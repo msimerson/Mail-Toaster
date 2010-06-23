@@ -1,0 +1,252 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use Date::Parse;
+use File::Path;
+use Getopt::Std;
+use Pod::Usage;
+
+our $VERSION = '5.25';
+
+use lib 'lib';
+use Mail::Toaster          5.25;
+use Mail::Toaster::Logs    5; 
+
+use vars qw( $opt_r $opt_v %count %spam );
+getopts('rv');
+
+my $debug   = $opt_v ? 1 : 0;
+print "maillogs $VERSION: verbose mode enabled.\n" if $debug;
+
+my $toaster = Mail::Toaster->new(debug=>$debug);
+my $util    = $toaster->get_util;
+my $conf    = $toaster->parse_config( file=>'toaster.conf', debug=>0);
+   $conf->{'logs_debug'} = $debug;
+my $logs    = Mail::Toaster::Logs->new(conf=>$conf, toaster => $toaster );
+
+$|++;
+
+$toaster->error( "basic tests fail, have you run toaster_setup.pl -s maillogs yet?")
+    if ! $logs->verify_settings();
+
+my $iam = $logs->what_am_i() or pod2usage;
+
+   if ( $iam eq "maillogs" ) { $logs->parse_cmdline_flags( prot=>$ARGV[0] ) }
+elsif ( $iam eq "sendlog"  ) { $logs->roll_send_logs()  }
+elsif ( $iam eq "smtplog"  ) { $logs->roll_rbl_logs()   }
+elsif ( $iam eq "pop3log"  ) { $logs->roll_pop3_logs()  }
+else                         { pod2usage };
+
+0;
+
+__END__
+
+=head1 NAME
+ 
+maillogs - A log file post-processer for multilog log files
+
+
+=head1 SYNOPSIS
+ 
+  maillog <protocol> [-r] [-v]
+
+   <protocol> is one of: 
+   
+          smtp - report SMTP AUTH attempts and successes
+           rbl - report RBL blocks
+          send - report qmail-send counters
+          pop3 - report pop3 counters
+          imap - report imap counters
+  spamassassin - report spamassassin counters
+  qmailscanner - report qmailscanner counters
+       webmail - count webmail authentications
+      
+     yesterday - mail an activity report to the admin
+
+
+=head1 USAGE
+
+Maillogs is used in two different ways. 
+
+=over
+
+=item Log Processor 
+
+In its simplest form, you just run maillogs and telling it which type of logs you want want to process. It parses the log files in real time, updates the counter files it maintains, and prints out the counters. 
+
+=item multilog post-processer 
+
+The multilog program (http://cr.yp.to/daemontools/multilog.html) has a poorly documented ability to run a postprocessor on logs after they reach a predetermined size (or are otherwise triggered). 
+
+This script is that postprocessor. To use maillogs as a post-processor, you must rename it to the the type of logs that it is processing. This is currently one of: pop3log, smtplog, sendlog. When run in this fashion, qmail will pipe its logs to multilog and once they reach the size determined in the log/run file, multilog will run the post-processing command. 
+
+When run as a post-processor, multilogs does not print anything, it simply processes through the logs and updates the counters. An optional feature is to have maillogs pipe the logs to cronolog which can archive your logs for you. This is the default behaviour.
+
+=back
+
+
+=head1 DESCRIPTION
+
+A script that:
+
+   processes mail logs and generates counters from them.
+   maintains counters for mail logs
+   functions as a postprocessor for multilog
+   
+Currently handles log counting of the following types:
+
+	qmail mail delivery (send)
+
+	qmail-pop3d         (pop3)
+	courier pop3d       (pop3)
+	courier pop3dssl    (pop3)
+
+	courier imapd       (imap)
+	courier imapdssl    (imap)
+
+	vpopmail smtp-auth  (smtp)
+
+	sqwebmail           (webmail)
+	squirrelmail        (webmail)
+
+	rblsmtpd            (rbl)
+
+	spamasssassin       (spamassassin)
+	qmailscanner        (qmailscanner)
+
+
+=head2 MOTIVATION
+
+I have "farms" of mail servers that share a hostname. I needed a way to collect the logs from all the servers and process them. maillogs is a piece of that puzzle that does several things. 
+
+    takes qmail log files (/var/log/mail/[send|smtp|pop3]/current) 
+    parses them, saving counts of the logs active
+    and stores them in counter files.
+
+
+=over 8
+
+=item rblsmtpd 
+
+For smtp logs we count denied RBL connections, spam and virus denials, invalid message formats, and other forms of SMTP phase rejection.
+
+
+=item qmail-send
+
+we log a slew of message statistics that are best understood by looking at the RRDutil graphs that "show" them.. 
+
+
+=item authentication
+
+For pop3, IMAP, webmail, and SMTP-AUTH, we count the number of 
+connections and the number of successful logins.
+
+
+=back
+
+Counters are written to files in /var/log/mail/counters/ by default.
+You can alter the locations of the logs files by editing the 
+toaster.conf file included with this script. That file should be
+installed in /usr/local/etc.
+
+
+=head2	DESIGN CONSIDERATIONS
+
+
+=over 8
+
+=item * 
+
+Counters will be polled via SNMP. Script must be able to return counts nearly instantly, even when dealing with HUGE logs.
+
+=item * 
+
+Must work with multilog and syslog logging formats
+
+
+=item * 
+
+Outputs data in a format suitable for polling via SNMP
+
+
+=item * 
+
+Simple configuration
+
+
+=item * 
+
+Fail safe, errors must be noticed and reported but not fatal
+
+=back
+
+
+=head1 CONFIGURATION AND ENVIRONMENT
+ 
+Options are available in toaster.conf that govern the options available in maillogs. 
+
+
+=head1 INSTALLATION
+
+Installation is automatic when you install Mail-Toaster. The latest version can be downloaded from http://mail-toaster.org/
+
+
+=head1 DIAGNOSTICS
+ 
+If the output of maillogs is not what you expect, you can run it in verbose mode to see status messages and debug logging. 
+
+
+=head2 COMMON USAGE MISTAKES
+
+=head1 DEPENDENCIES
+
+This program is a part of and requires Mail::Toaster to be installed.
+
+  Mail::Toaster    - http://mail-toaster.org/
+
+  Date::Parse      - CPAN as TimeDate 
+  Params::Validate - CPAN
+
+  Carp             - perl built-in
+  English          - perl built-in
+  File::Path       - perl built-in
+  Getopt::Std      - perl built-in
+  Pod::Usage       - perl built-in
+
+
+=head1 BUGS AND LIMITATIONS
+ 
+There are no known bugs in this module. 
+Please report problems to author.
+Patches are welcome.
+
+
+=head1 AUTHOR
+
+Matt Simerson (matt@tnpi.net)
+
+
+=head1 SEE ALSO
+
+  http://mail-toaster.org/
+
+
+=head1 ACKNOWLEDGEMENTS
+
+
+=head1 LICENCE AND COPYRIGHT
+ 
+Copyright (c) 2004-2010 The Network People, Inc. (info@tnpi.net). All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met: 
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=cut

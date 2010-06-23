@@ -1,0 +1,63 @@
+Patch my Matt Simerson to get Mail::Ezmlm to return untainted data.
+
+Patch against Mail::Ezmlm 0.05
+
+--- Ezmlm.pm.orig	Fri Mar 18 11:35:19 2005
++++ Ezmlm.pm	Fri Mar 18 11:37:40 2005
+@@ -245,6 +245,16 @@
+    my($self, $part) = @_;
+    my(@subscribers);
+    ($self->_seterror(-1, 'must setlist() before returning subscribers()') && return undef) unless(defined($self->{'LIST_NAME'}));
++
++       # additions by matt simerson (matt@tnpi.net) to get past mod_perl security (taint) checks
++       $ENV{"PATH"} = "";
++       if ( $self->{'LIST_NAME'} =~ /([\w\-\/.]*)/ ) {
++               $self->{'LIST_NAME'} = $1;
++       } else {
++               warn "TAINTED DATA IN LIST_NAME: $self->{'LIST_NAME'}\n";
++       };
++       # end additions
++
+    if(defined($part) && $part) {
+       ($self->_seterror(-1, "$part part of $self->{'LIST_NAME'} does not appear to exist in subscribers()") && return undef) unless(-e "$self->{'LIST_NAME'}/$part");
+       @subscribers = map { s/[\r\n]// && $_ } sort `$EZMLM_BASE/ezmlm-list $self->{'LIST_NAME'}/$part`;
+@@ -279,6 +289,19 @@
+    } else {
+       foreach $address (@addresses) {
+          next unless $self->_checkaddress($address);
++
++                       # matt adds
++                       $ENV{"PATH"} = "";   # taint checks
++
++                       if ( $self->{'LIST_NAME'} =~ /([\w\-\/.]*)/ ) {
++                               $self->{'LIST_NAME'} = $1;
++                       } else {
++                               warn "TAINTED DATA IN LIST_NAME: $self->{'LIST_NAME'}\n";
++                       };
++
++                       if ( $address =~ /(.*)/ ) { $address = $1 };
++                       # end matt adds
++
+          system("$EZMLM_BASE/ezmlm-sub", $self->{'LIST_NAME'}, $address) == 0 ||
+             ($self->_seterror($?) && return undef);
+       }
+@@ -331,8 +354,18 @@
+    } else {
+       foreach $address (@addresses) {
+          $ENV{'SENDER'} = $address;
++
++         # matt adds
++         $ENV{"PATH"} = "";   # taint checks
++         if ( $self->{'LIST_NAME'} =~ /([\w\-\/.]*)/ ) {
++             $self->{'LIST_NAME'} = $1;
++         } else {
++             warn "TAINTED DATA IN LIST_NAME: $self->{'LIST_NAME'}\n";
++         };
++         # end matt adds
++
+          undef($issub) if ((system("$EZMLM_BASE/ezmlm-issubn", $self->{'LIST_NAME'}) / 256) != 0)
+-      }   
++      }
+    }
+ 
+    $self->_seterror(undef);

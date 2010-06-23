@@ -1,0 +1,67 @@
+
+<!-- $Id: filtering.html,v 4.0 2004/11/16 20:57:31 matt Exp $ -->
+<HTML>
+ <HEAD>
+  <TITLE> All About Mail Filtering</TITLE>
+  <LINK REL="stylesheet" HREF="/includes/standard.css" TYPE="text/css">
+  <META CONTENT="All about Mail Filtering" NAME="description">
+ </HEAD>
+ <BODY BGCOLOR="#FFFFFF">
+
+ <TABLE WIDTH="95%" CELLPADDING="0" CELLSPACING="0" BORDER="0" ALIGN="CENTER">
+
+  <TR><TD COLSPAN="2"><BR>
+<H3 CLASS="title">What is Mail Filtering?</H3>
+
+<P>Mail Filtering is the process of scanning email messages and making intelligent routing
+decisions based on the content of the message. Our goal is to block every single spam. However,
+that is not currently possible without excessive risk of false positives. As important as 
+blocking spam is, we feel it is more important to make sure that every single good email (ham)
+makes it through.</p>
+
+<p>Our policy is a balance that effectively blocks 99% of the spam. Every message arriving
+to our server is first scanned and assigned a spam score. Messages with extremely high scores
+are rejected by the server. Everything else passes through. If you have enabled <i>Spam Detection</i>
+ in your preferences, messages that are suspect are delivered to your <i>Spam</i> folder.</p>
+
+In summary, our goal is to block as much spam as possible and never block a ham.</p>
+
+  </TD></TR>
+
+  <TR><TD COLSPAN="2"><BR>
+<H3 CLASS="title">Using Mail Filtering?</H3>
+
+<p>To enable mail filtering for your email account, choose <i>administration</i> <-> <i>qmailadmin</i> and make sure the <i>Spam Filtering</i> checkbox is selected.</p>
+
+  </TD></TR>
+
+  <TR><TD COLSPAN="2"><BR>
+<H3 CLASS="title">How Well Does it Work?</H3>
+
+<p>A properly configured <a href="http://mail-toaster.org/">Mail::Toaster</a> should not achieve less than 99% accuracy when detecting spam (junk mail) versus ham (legitimate mail). Viral messages should never be delivered and are blocked by the mail server.</p>
+</p><br>
+  </TD></TR>
+
+  <TR><TD COLSPAN="2">
+<H3 CLASS="title">How Does it Work?</H3>
+
+<p>This is a broad overview of the technologies available in a standard Mail::Toaster and how they are used. Whether these are available or installed is the choice of the administrator so not all features may be available for you. A visual of this is available on the <a href="http://mail-toaster.org/filtering.shtml">Mail::Toaster Filtering page.</a></p>
+
+<p>The first level of anti-spam protection is blacklists. Blacklists are subscription lists that identify mail servers or IP addresses that are known to send spam. There are many of these available and which ones are used is up to the mail administrator. Although only about 50% effective on their own, blacklists are a very good tool for blocking spam. They are used during the SMTP conversation and thus block the sender from deliving the mail to the protected server. Because blacklist usage is very common, getting blacklisted is a major incentive for mail adminstrators to police their mail systems and keep spammers away. It is also effective because it prevents the BL protected server from wasting resources filtering and otherwise dealing with spam.</p>
+
+<p>The next level of protection is virus scanning. Virus laden messages should NEVER be delivered to end user mailboxes. All messages are processed through a virus scanner and infected messages are blocked or quarantined. The Mail::Toaster includes the ability to block IPs that are sending virus laden messages for a specified amount of time. The settings are governed by the mail adminstrator.</p>
+
+<p>The next level of protection is SpamAssassin. SpamAssasin includes a literal plethora (hundreds) of tests that it uses to determine the probability of the message being spam. The tests include blacklist testing, message content pattern matching, checksums with databases of known spam (DCC, Pyzor, Razor), and a learning Bayesian filtering mechanism. SpamAssassin is an extremely powerful (and popular) tool for spam detection with success rates in excess of 99%. SpamAssassin processes each message and assigns the message a score and adds the X-Spam-Status header to the message.</p>
+
+<p>The next layer is maildrop rule processing. Maildrop handles deciding what to do with the messages after it's been through all the processors. If you have enabled <i>Spam Detection</i>, messages with a spam score higher than 5 get delivered to a Spam folder that is accessible via IMAP or webmail. Other messages get delivered to your normal mailbox.</p>
+
+<p>The final layer of protection is up to you, the mailbox owner. The Mail::Toaster includes a mechanism that "learns" what you consider spam versus ham. This is very powerful as it gives you the ability to teach the system what is good and what is not. The mechanism is quite simple: if a spam lands in your inbox, move it to the spam folder and if a ham lands in your Spam folder, move it to your inbox and leave it there. You have (by default) 14 days to make this determination before the system "learns" from your actions.</p>
+
+</p>
+  </TD></TR>
+
+  <TR><TD BGCOLOR="#660033" COLSPAN="2"><IMG SRC="images/red.gif" ALT=" " HEIGHT="3" WIDTH="1"></TD></TR>
+
+ </TABLE>
+ </BODY>
+</HTML>

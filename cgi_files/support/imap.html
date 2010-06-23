@@ -1,0 +1,87 @@
+
+<!-- $Id: imap.html,v 4.0 2004/11/16 20:57:31 matt Exp $ -->
+
+<HTML>
+ <HEAD>
+  <TITLE> All About IMAP</TITLE>
+  <LINK REL="stylesheet" HREF="/includes/standard.css" TYPE="text/css">
+  <META CONTENT="All about IMAP, the Internet Message Access Protocol" NAME="description">
+ </HEAD>
+ <BODY BGCOLOR="#FFFFFF">
+
+<H1 CLASS="title">What is IMAP?</H1>
+
+
+ <TABLE WIDTH="95%" CELLPADDING="0" CELLSPACING="0" BORDER="0" ALIGN="CENTER">
+  <TR><TD ALIGN="CENTER" COLSPAN="2">
+	<ADDRESS><FONT CLASS="bottom">
+		<a href="http://www.imap.org/">The following was culled from the UW IMAP site</a><BR>
+	</ADDRESS>
+  </TD></TR>
+  <TR><TD COLSPAN="2"><BR>
+
+
+
+<H1 CLASS="title">What is IMAP?</H1>
+
+<P>IMAP stands for <STRONG>I</STRONG>nternet <STRONG>M</STRONG>essage <STRONG>A</STRONG>ccess
+<STRONG>P</STRONG>rotocol.  It is a method of accessing electronic mail or bulletin board messages that
+are kept on a (possibly shared) mail server.  In other words, it permits a "client" email program to
+access remote message stores as if they were local.  For example, email stored on an IMAP server can be
+manipulated from a desktop computer at home, a workstation at the office, and a notebook computer while
+traveling, <STRONG>without</STRONG> the need to transfer messages or files back and forth between these
+computers. <P> IMAP's ability to access messages (both new and saved) from more than one computer has
+become extremely important as reliance on electronic messaging and use of multiple computers increase,
+but this functionality cannot be taken for granted: the widely used <EM>Post Office Protocol</EM> (POP)
+works best when one has only a single computer, since it was designed to support "offline" message
+access, wherein messages are downloaded and then deleted from the mail server.  This mode of access is
+not compatible with access from multiple computers since it tends to sprinkle messages across all of the
+computers used for mail access.  Thus, unless all of those machines share a common file system, the
+offline mode of access that POP was designed to support effectively ties the user to one computer for
+message storage and manipulation.  </P>
+
+<P>Key goals for IMAP include:</P>
+<UL>
+<LI> Be fully compatible with Internet messaging standards, e.g. MIME.</LI>
+<LI> Allow message access and management from more than one computer.</LI>
+<LI> Allow access without reliance on less efficient file access protocols.</LI>
+<LI> Provide support for "online", "offline", and "disconnected" access modes <SMALL>*</SMALL></LI>
+<LI> Support for concurrent access to shared mailboxes</LI>
+<LI> Client software needs no knowledge about the server's file store format.</LI>
+</UL>
+
+<P>The protocol includes operations for creating, deleting, and renaming mailboxes;  checking for new
+messages;  permanently removing messages; setting and clearing flags; server-based 
+<A HREF="http://www.isi.edu/in-notes/rfc822.txt">RFC-822</A> and 
+<A HREF="http://www.oac.uci.edu/indiv/ehood/MIME/MIME.html">MIME</A> 
+parsing (so clients don't need to), and searching; and selective fetching of message attributes, texts,
+and portions thereof for efficiency.</P>
+
+<P> IMAP was originally developed in 1986 at Stanford University.  However, it did not command the
+attention of mainstream email vendors until a decade later, and it is still not as well-known as earlier
+and less-capable alternatives such as POP, though that is rapidly changing, as <A
+HREF="http://www.imap.org/news/press.html">articles in the trade press</A> and the implementation of IMAP in more and more <A
+HREF="http://www.imap.org/products/">software products</A> show.  (See <A HREF="http://www.imap.org/about/history+status.html">IMAP Status and
+History</A> for a chronological overview of significant IMAP developments.) </P>
+
+
+<P>There is a companion protocol to IMAP, developed at Carnegie Mellon University.  It is called the
+"Application Configuration Access Protocol", or <A HREF="http://asg.web.cmu.edu/acap/">ACAP</A>, and
+provides the same location independent access to configuration files, address books, bookmark lists, etc,
+that IMAP offers for mailboxes.</P>
+
+<P>*<SMALL> See <A HREF="http://www.imap.org/papers/imap.vs.pop.brief.html">Comparing Two Approaches to Remote Mailbox Access: IMAP
+vs. POP</A> and <A HREF="http://papers/imap.vs.pop.html"> Message Access Paradigms and Protocols</A> for a detailed
+discussion of the advantages of IMAP as a message access method.</SMALL></P>
+
+<br>
+  </TD></TR>
+  <TR><TD ALIGN="CENTER" COLSPAN="2">
+	<ADDRESS><FONT CLASS="bottom">
+		&copy; 1996-2003 <A HREF="http://www.washington.edu">University of Washington</A><BR>
+	</ADDRESS>
+  </TD></TR>
+  <TR><TD BGCOLOR="#660033" COLSPAN="2"><IMG SRC="images/red.gif" ALT=" " HEIGHT="3" WIDTH="1"></TD></TR>
+ </TABLE>
+ </BODY>
+</HTML>

@@ -1,0 +1,782 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Mail::Toaster::Utility</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:matt@imac24.simerson.net" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#diagnostics">DIAGNOSTICS</a></li>
+	<li><a href="#dependencies">DEPENDENCIES</a></li>
+	<li><a href="#methods">METHODS</a></li>
+	<li><a href="#author">AUTHOR</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#todo">TODO</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+	<li><a href="#copyright">COPYRIGHT</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>Mail::Toaster::Utility - utility subroutines for sysadmin tasks</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<pre>
+  use Mail::Toaster::Utility;
+  my $util = Mail::Toaster::Utility-&gt;new;</pre>
+<pre>
+  $util-&gt;file_write($file, lines=&gt; @lines);</pre>
+<p>This is just one of the many handy little methods I have amassed here. Rather than try to remember all of the best ways to code certain functions and then attempt to remember them, I have consolidated years of experience and countless references from Learning Perl, Programming Perl, Perl Best Practices, and many other sources into these subroutines.</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This Mail::Toaster::Utility package is my most frequently used one. Each method has its own documentation but in general, all methods accept as input a hashref with at least one required argument and a number of optional arguments.</p>
+<p>
+</p>
+<hr />
+<h1><a name="diagnostics">DIAGNOSTICS</a></h1>
+<p>All methods set and return error codes (0 = fail, 1 = success) unless otherwise stated.</p>
+<p>Unless otherwise mentioned, all methods accept two additional parameters:</p>
+<pre>
+  debug - to print status and verbose error messages, set debug=&gt;1.
+  fatal - die on errors. This is the default, set fatal=&gt;0 to override.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="dependencies">DEPENDENCIES</a></h1>
+<pre>
+  Perl.
+  Scalar::Util -  built-in as of perl 5.8</pre>
+<p>Almost nothing else. A few of the methods do require certian things, like archive_expand requires tar and file. But in general, this package (Mail::Toaster::Utility) should run flawlessly on any UNIX-like system. Because I recycle this package in other places (not just Mail::Toaster), I avoid creating dependencies here.</p>
+<p>
+</p>
+<hr />
+<h1><a name="methods">METHODS</a></h1>
+<dl>
+<dt><strong><a name="new" class="item">new</a></strong></dt>
+
+<dd>
+<p>To use any of the methods below, you must first create a utility object. The methods can be accessed via the utility object.</p>
+<pre>
+  ############################################
+  # Usage      : use Mail::Toaster::Utility;
+  #            : my $util = Mail::Toaster::Utility-&gt;new;
+  # Purpose    : create a new Mail::Toaster::Utility object
+  # Returns    : a bona fide object
+  # Parameters : none
+  ############################################</pre>
+</dd>
+<dt><strong><a name="ask" class="item">ask</a></strong></dt>
+
+<dd>
+<p>Get a response from the user. If the user responds, their response is returned. If not, then the default response is returned. If no default was supplied, 0 is returned.</p>
+<pre>
+  ############################################
+  # Usage      :  my $ask = $util-&gt;ask( &quot;Would you like fries with that&quot;,
+  #                        default  =&gt; &quot;SuperSized!&quot;,
+  #                        timeout  =&gt; 30  
+  #               );
+  # Purpose    : prompt the user for information
+  #
+  # Returns    : S - the users response (if not empty) or
+  #            : S - the default ask or
+  #            : S - an empty string
+  #
+  # Parameters
+  #   Required : S - question - what to ask
+  #   Optional : S - default  - a default answer
+  #            : I - timeout  - how long to wait for a response
+  # Throws     : no exceptions
+  # See Also   : yes_or_no</pre>
+</dd>
+<dt><strong><a name="archive_expand" class="item">archive_expand</a></strong></dt>
+
+<dd>
+<p>Decompresses a variety of archive formats using your systems built in tools.</p>
+<pre>
+  ############### archive_expand ##################
+  # Usage      : $util-&gt;archive_expand(
+  #            :     archive =&gt; 'example.tar.bz2' );
+  # Purpose    : test the archiver, determine its contents, and then
+  #              use the best available means to expand it.
+  # Returns    : 0 - failure, 1 - success
+  # Parameters : S - archive - a bz2, gz, or tgz file to decompress</pre>
+</dd>
+<dt><strong><a name="cwd_source_dir" class="item">cwd_source_dir</a></strong></dt>
+
+<dd>
+<p>Changes the current working directory to the supplied one. Creates it if it does not exist. Tries to create the directory using perl's builtin mkdir, then the system mkdir, and finally the system mkdir with sudo.</p>
+<pre>
+  ############ cwd_source_dir ###################
+  # Usage      : $util-&gt;cwd_source_dir( dir=&gt;&quot;/usr/local/src&quot; );
+  # Purpose    : prepare a location to build source files in
+  # Returns    : 0 - failure,  1 - success
+  # Parameters : S - dir - a directory to build programs in</pre>
+</dd>
+<dt><strong><a name="check_homedir_ownership" class="item">check_homedir_ownership</a></strong></dt>
+
+<dd>
+<p>Checks the ownership on all home directories to see if they are owned by their respective users in /etc/password. Offers to repair the permissions on incorrectly owned directories. This is useful when someone that knows better does something like &quot;chown -R user /home /user&quot; and fouls things up.</p>
+<pre>
+  ######### check_homedir_ownership ############
+  # Usage      : $util-&gt;check_homedir_ownership();
+  # Purpose    : repair user homedir ownership
+  # Returns    : 0 - failure,  1 - success
+  # Parameters :
+  #   Optional : I - auto - no prompts, just fix everything
+  # See Also   : sysadmin</pre>
+<p>Comments: Auto mode should be run with great caution. Run it first to see the results and then, if everything looks good, run in auto mode to do the actual repairs.</p>
+</dd>
+<dt><strong><a name="check_pidfile" class="item">check_pidfile</a></strong></dt>
+
+<dd>
+<p>see pidfile_check</p>
+</dd>
+<dt><strong><a name="chown_system" class="item">chown_system</a></strong></dt>
+
+<dd>
+<p>The advantage this sub has over a Pure Perl implementation is that it can utilize sudo to gain elevated permissions that we might not otherwise have.</p>
+<pre>
+  ############### chown_system #################
+  # Usage      : $util-&gt;chown_system( dir=&gt;&quot;/tmp/example&quot;, user=&gt;'matt' );
+  # Purpose    : change the ownership of a file or directory
+  # Returns    : 0 - failure,  1 - success
+  # Parameters : S - dir    - the directory to chown
+  #            : S - user   - a system username
+  #   Optional : S - group  - a sytem group name
+  #            : I - recurse - include all files/folders in directory?
+  # Comments   : Uses the system chown binary
+  # See Also   : n/a</pre>
+</dd>
+<dt><strong><a name="clean_tmp_dir" class="item">clean_tmp_dir</a></strong></dt>
+
+<dd>
+<pre>
+  ############## clean_tmp_dir ################
+  # Usage      : $util-&gt;clean_tmp_dir( dir=&gt;$dir );
+  # Purpose    : clean up old build stuff before rebuilding
+  # Returns    : 0 - failure,  1 - success
+  # Parameters : S - $dir - a directory or file. 
+  # Throws     : die on failure
+  # Comments   : Running this will delete its contents. Be careful!</pre>
+</dd>
+<dt><strong><a name="get_mounted_drives" class="item">get_mounted_drives</a></strong></dt>
+
+<dd>
+<pre>
+  ############# get_mounted_drives ############
+  # Usage      : my $mounts = $util-&gt;get_mounted_drives();
+  # Purpose    : Uses mount to fetch a list of mounted drive/partitions
+  # Returns    : a hashref of mounted slices and their mount points.</pre>
+</dd>
+<dt><strong><a name="file_archive" class="item">file_archive</a></strong></dt>
+
+<dd>
+<pre>
+  ############### file_archive #################
+  # Purpose    : Make a backup copy of a file by copying the file to $file.timestamp.
+  # Usage      : my $archived_file = $util-&gt;file_archive( $file );
+  # Returns    : the filename of the backup file, or 0 on failure.
+  # Parameters : S - file - the filname to be backed up
+  # Comments   : none</pre>
+</dd>
+<dt><strong><a name="chmod" class="item">chmod</a></strong></dt>
+
+<dd>
+<p>Set the permissions (ugo-rwx) of a file. Will use the native perl methods (by default) but can also use system calls and prepend sudo if additional permissions are needed.</p>
+<pre>
+  $util-&gt;chmod(
+                file_or_dir =&gt; '/etc/resolv.conf',
+                mode =&gt; '0755',
+                sudo =&gt; $sudo
+  )</pre>
+<pre>
+ arguments required:
+   file_or_dir - a file or directory to alter permission on
+   mode   - the permissions (numeric)</pre>
+<pre>
+ arguments optional:
+   sudo  - the output of $util-&gt;sudo
+   fatal - die on errors? (default: on)
+   debug</pre>
+<pre>
+ result:
+   0 - failure
+   1 - success</pre>
+</dd>
+<dt><strong><a name="chown" class="item">chown</a></strong></dt>
+
+<dd>
+<p>Set the ownership (user and group) of a file. Will use the native perl methods (by default) but can also use system calls and prepend sudo if additional permissions are needed.</p>
+<pre>
+  $util-&gt;chown(
+                file_or_dir =&gt; '/etc/resolv.conf',
+                uid =&gt; 'root',
+                gid =&gt; 'wheel',
+                sudo =&gt; 1
+  );</pre>
+<pre>
+ arguments required:
+   file_or_dir - a file or directory to alter permission on
+   uid   - the uid or user name
+   gid   - the gid or group name</pre>
+<pre>
+ arguments optional:
+   file  - alias for file_or_dir
+   dir   - alias for file_or_dir
+   sudo  - the output of $util-&gt;sudo
+   fatal - die on errors? (default: on)
+   debug</pre>
+<pre>
+ result:
+   0 - failure
+   1 - success</pre>
+</dd>
+<dt><strong><a name="file_delete" class="item">file_delete</a></strong></dt>
+
+<dd>
+<pre>
+  ############################################
+  # Usage      : $util-&gt;file_delete( file=&gt;$file );
+  # Purpose    : Deletes a file.
+  # Returns    : 0 - failure, 1 - success
+  # Parameters 
+  #   Required : file - a file path
+  # Comments   : none
+  # See Also   :</pre>
+<pre>
+ Uses unlink if we have appropriate permissions, otherwise uses a system rm call, using sudo if it is not being run as root. This sub will try very hard to delete the file!</pre>
+</dd>
+<dt><strong><a name="file_get" class="item">file_get</a></strong></dt>
+
+<dd>
+<pre>
+   $util-&gt;file_get( url=&gt;$url, debug=&gt;1 );</pre>
+<p>Use the standard URL fetching utility (fetch, curl, wget) for your OS to download a file from the $url handed to us.</p>
+<pre>
+ arguments required:
+   url - the fully qualified URL</pre>
+<pre>
+ arguments optional:
+   timeout - the maximum amount of time to try
+   fatal
+   debug</pre>
+<pre>
+ result:
+   1 - success
+   0 - failure</pre>
+</dd>
+<dt><strong><a name="file_is_newer" class="item">file_is_newer</a></strong></dt>
+
+<dd>
+<p>compares the mtime on two files to determine if one is newer than another.</p>
+</dd>
+<dt><strong><a name="file_mode" class="item">file_mode</a></strong></dt>
+
+<dd>
+<pre>
+ usage:
+   my @lines = &quot;1&quot;, &quot;2&quot;, &quot;3&quot;;  # named array
+   $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;\@lines );   
+        or
+   $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;['1','2','3'] );  # anon arrayref</pre>
+<pre>
+ required arguments:
+   mode - the files permissions mode</pre>
+<pre>
+ arguments optional:
+   fatal
+   debug</pre>
+<pre>
+ result:
+   0 - failure
+   1 - success</pre>
+</dd>
+<dt><strong><a name="file_read" class="item">file_read</a></strong></dt>
+
+<dd>
+<p>Reads in a file, and returns it in an array. All lines in the array are chomped.</p>
+<pre>
+   my @lines = $util-&gt;file_read( $file, max_lines=&gt;100 )</pre>
+<pre>
+ arguments required:
+   file - the file to read in</pre>
+<pre>
+ arguments optional:
+   max_lines  - integer - max number of lines
+   max_length - integer - maximum length of a line
+   fatal
+   debug</pre>
+<pre>
+ result:
+   0 - failure
+   success - returns an array with the files contents, one line per array element</pre>
+</dd>
+<dt><strong><a name="file_write" class="item">file_write</a></strong></dt>
+
+<dd>
+<pre>
+ usage:
+   my @lines = &quot;1&quot;, &quot;2&quot;, &quot;3&quot;;  # named array
+   $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;\@lines );   
+        or
+   $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;['1','2','3'] );  # anon arrayref</pre>
+<pre>
+ required arguments:
+   file - the file path you want to write to
+   lines - an arrayref. Each array element will be a line in the file</pre>
+<pre>
+ arguments optional:
+   fatal
+   debug</pre>
+<pre>
+ result:
+   0 - failure
+   1 - success</pre>
+</dd>
+<dt><strong><a name="files_diff" class="item">files_diff</a></strong></dt>
+
+<dd>
+<p>Determine if the files are different. $type is assumed to be text unless you set it otherwise. For anthing but text files, we do a MD5 checksum on the files to determine if they are different or not.</p>
+<pre>
+   $util-&gt;files_diff( f1=&gt;$file1,f2=&gt;$file2,type=&gt;'text',debug=&gt;1 );</pre>
+<pre>
+   if ( $util-&gt;files_diff( f1=&gt;&quot;foo&quot;, f2=&gt;&quot;bar&quot; ) )
+   {
+       print &quot;different!\n&quot;;
+   };</pre>
+<pre>
+ required arguments:
+   f1 - the first file to compare
+   f2 - the second file to compare</pre>
+<pre>
+ arguments optional:
+   type - the type of file (text or binary)
+   fatal
+   debug</pre>
+<pre>
+ result:
+   0 - files are the same
+   1 - files are different
+  -1 - error.</pre>
+</dd>
+<dt><strong><a name="find_bin" class="item">find_bin</a></strong></dt>
+
+<dd>
+<p>Check all the &quot;normal&quot; locations for a binary that should be on the system and returns the full path to the binary.</p>
+<pre>
+   $util-&gt;find_bin( 'dos2unix', dir=&gt;'/opt/local/bin' );</pre>
+<p>Example:</p>
+<pre>
+   my $apachectl = $util-&gt;find_bin( &quot;apachectl&quot;, dir=&gt;&quot;/usr/local/sbin&quot; );</pre>
+<pre>
+ arguments required:
+   bin - the name of the program (its filename)</pre>
+<pre>
+ arguments optional:
+   dir - a directory to check first
+   fatal
+   debug</pre>
+<pre>
+ results:
+   0 - failure
+   success will return the full path to the binary.</pre>
+</dd>
+<dt><strong><a name="get_file" class="item">get_file</a></strong></dt>
+
+<dd>
+<p>an alias for file_get for legacy purposes. Do not use.</p>
+</dd>
+<dt><strong><a name="get_my_ips" class="item">get_my_ips</a></strong></dt>
+
+<dd>
+<p>returns an arrayref of IP addresses on local interfaces.</p>
+</dd>
+<dt><strong><a name="is_process_running" class="item">is_process_running</a></strong></dt>
+
+<dd>
+<p>Verify if a process is running or not.</p>
+<pre>
+   $util-&gt;is_process_running($process) ? print &quot;yes&quot; : print &quot;no&quot;;</pre>
+<p>$process is the name as it would appear in the process table.</p>
+</dd>
+<dt><strong><a name="is_readable" class="item">is_readable</a></strong></dt>
+
+<dd>
+<pre>
+  ############################################
+  # Usage      : $util-&gt;is_readable( file=&gt;$file );
+  # Purpose    : ????
+  # Returns    : 0 = no (not reabable), 1 = yes
+  # Parameters : S - file - a path name to a file
+  # Throws     : no exceptions
+  # Comments   : none
+  # See Also   : n/a</pre>
+<pre>
+  result:
+     0 - no (file is not readable)
+     1 - yes (file is readable)</pre>
+</dd>
+<dt><strong><a name="is_writable" class="item">is_writable</a></strong></dt>
+
+<dd>
+<p>If the file exists, it checks to see if it is writable. If the file does not exist, it checks to see if the enclosing directory is writable.</p>
+<pre>
+  ############################################
+  # Usage      : $util-&gt;is_writable(file =&gt;&quot;/tmp/boogers&quot;);
+  # Purpose    : make sure a file is writable
+  # Returns    : 0 - no (not writable), 1 - yes (is writeable)
+  # Parameters : S - file - a path name to a file
+  # Throws     : no exceptions</pre>
+</dd>
+<dt><strong><a name="fstab_list" class="item">fstab_list</a></strong></dt>
+
+<dd>
+<pre>
+  ############ fstab_list ###################
+  # Usage      : $util-&gt;fstab_list;
+  # Purpose    : Fetch a list of drives that are mountable from /etc/fstab.
+  # Returns    : an arrayref
+  # Comments   : used in backup.pl
+  # See Also   : n/a</pre>
+</dd>
+<dt><strong><a name="get_dir_files" class="item">get_dir_files</a></strong></dt>
+
+<dd>
+<pre>
+   $util-&gt;get_dir_files( dir=&gt;$dir, debug=&gt;1 )</pre>
+<pre>
+ required arguments:
+   dir - a directory</pre>
+<pre>
+ optional arguments:
+   fatal
+   debug</pre>
+<pre>
+ result:
+   an array of files names contained in that directory.
+   0 - failure</pre>
+</dd>
+<dt><strong><a name="get_the_date" class="item">get_the_date</a></strong></dt>
+
+<dd>
+<p>Returns the date split into a easy to work with set of strings.</p>
+<pre>
+   $util-&gt;get_the_date( bump=&gt;$bump, debug=&gt;$debug )</pre>
+<pre>
+ required arguments:
+   none</pre>
+<pre>
+ optional arguments:
+   bump - the offset (in days) to subtract from the date.
+   debug</pre>
+<pre>
+ result: (array with the following elements)
+        $dd = day
+        $mm = month
+        $yy = year
+        $lm = last month
+        $hh = hours
+        $mn = minutes
+        $ss = seconds</pre>
+<pre>
+        my ($dd, $mm, $yy, $lm, $hh, $mn, $ss) = $util-&gt;get_the_date();</pre>
+</dd>
+<dt><strong><a name="install_from_source" class="item">install_from_source</a></strong></dt>
+
+<dd>
+<pre>
+  usage:</pre>
+<pre>
+        $util-&gt;install_from_source(
+                package =&gt; 'simscan-1.07',
+            site    =&gt; '<a href="http://www.inter7.com">http://www.inter7.com</a>',
+                url     =&gt; '/simscan/',
+                targets =&gt; ['./configure', 'make', 'make install'],
+                patches =&gt; '',
+                debug   =&gt; 1,
+        );</pre>
+<p>Downloads and installs a program from sources.</p>
+<pre>
+ required arguments:
+    conf    - hashref - mail-toaster.conf settings.
+    site    - 
+    url     - 
+    package -</pre>
+<pre>
+ optional arguments:
+    targets - arrayref - defaults to [./configure, make, make install].
+    patches - arrayref - patch(es) to apply to the sources before compiling
+    patch_args - 
+    source_sub_dir - a subdirectory within the sources build directory
+    bintest - check the usual places for an executable binary. If found, it will assume the software is already installed and require confirmation before re-installing.
+    debug
+    fatal</pre>
+<pre>
+ result:
+   1 - success
+   0 - failure</pre>
+</dd>
+<dt><strong><a name="install_from_source_php" class="item">install_from_source_php</a></strong></dt>
+
+<dd>
+<p>Downloads a PHP program and installs it. This function is not completed due to lack o interest.</p>
+</dd>
+<dt><strong><a name="is_interactive" class="item">is_interactive</a></strong></dt>
+
+<dd>
+<p>tests to determine if the running process is attached to a terminal.</p>
+</dd>
+<dt><strong><a name="logfile_append" class="item">logfile_append</a></strong></dt>
+
+<dd>
+<pre>
+   $util-&gt;logfile_append( file=&gt;$file, lines=&gt;\@lines )</pre>
+<p>Pass a filename and an array ref and it will append a timestamp and the array contents to the file. Here's a working example:</p>
+<pre>
+   $util-&gt;logfile_append( file=&gt;$file, prog=&gt;&quot;proggy&quot;, lines=&gt;[&quot;Starting up&quot;, &quot;Shutting down&quot;] )</pre>
+<p>That will append a line like this to the log file:</p>
+<pre>
+   2004-11-12 23:20:06 proggy Starting up
+   2004-11-12 23:20:06 proggy Shutting down</pre>
+<pre>
+ arguments required:
+   file  - the log file to append to
+   prog  - the name of the application
+   lines - arrayref - elements are events to log.</pre>
+<pre>
+ arguments optional:
+   fatal
+   debug</pre>
+<pre>
+ result:
+   1 - success
+   0 - failure</pre>
+</dd>
+<dt><strong><a name="mailtoaster" class="item">mailtoaster</a></strong></dt>
+
+<dd>
+<pre>
+   $util-&gt;mailtoaster();</pre>
+<p>Downloads and installs Mail::Toaster.</p>
+</dd>
+<dt><strong><a name="mkdir_system" class="item">mkdir_system</a></strong></dt>
+
+<dd>
+<pre>
+   $util-&gt;mkdir_system( dir =&gt; $dir, debug=&gt;$debug );</pre>
+<p>creates a directory using the system mkdir binary. Can also make levels of directories (-p) and utilize sudo if necessary to escalate.</p>
+</dd>
+<dt><strong><a name="pidfile_check" class="item">pidfile_check</a></strong></dt>
+
+<dd>
+<p>pidfile_check is a process management method. It will check to make sure an existing pidfile does not exist and if not, it will create the pidfile.</p>
+<pre>
+   $pidfile = $util-&gt;pidfile_check( pidfile=&gt;&quot;/var/run/program.pid&quot; );</pre>
+<p>The above example is all you need to do to add process checking (avoiding multiple daemons running at the same time) to a program or script. This is used in toaster-watcher.pl. toaster-watcher normally completes a run in a few seconds and is run every 5 minutes.</p>
+<p>However, toaster-watcher can be configured to do things like expire old messages from maildirs and feed spam through a processor like sa-learn. This can take a long time on a large mail system so we don't want multiple instances of toaster-watcher running.</p>
+<pre>
+ result:
+   the path to the pidfile (on success).</pre>
+<p>Example:</p>
+<pre>
+        my $pidfile = $util-&gt;pidfile_check( pidfile=&gt;&quot;/var/run/changeme.pid&quot; );
+        unless ($pidfile) {
+                warn &quot;WARNING: couldn't create a process id file!: $!\n&quot;;
+                exit 0;
+        };</pre>
+<pre>
+        do_a_bunch_of_cool_stuff;
+        unlink $pidfile;</pre>
+</dd>
+<dt><strong><a name="regexp_test" class="item">regexp_test</a></strong></dt>
+
+<dd>
+<p>Prints out a string with the regexp match bracketed. Credit to Damien Conway from Perl Best Practices.</p>
+<pre>
+ Example:
+    $util-&gt;regexp_test( 
+                exp    =&gt; 'toast', 
+                string =&gt; 'mailtoaster rocks',
+        );</pre>
+<pre>
+ arguments required:
+   exp    - the regular expression
+   string - the string you are applying the regexp to</pre>
+<pre>
+ result:
+   printed string highlighting the regexp match</pre>
+</dd>
+<dt><strong><a name="source_warning" class="item">source_warning</a></strong></dt>
+
+<dd>
+<p>Checks to see if the old build sources are present. If they are, offer to remove them.</p>
+<pre>
+ Usage:</pre>
+<pre>
+   $util-&gt;source_warning( 
+                package =&gt; &quot;Mail-Toaster-4.10&quot;, 
+                clean   =&gt; 1, 
+                src     =&gt; &quot;/usr/local/src&quot; 
+   );</pre>
+<pre>
+ arguments required:
+   package - the name of the packages directory</pre>
+<pre>
+ arguments optional:
+   src     - the source directory to build in (/usr/local/src)
+   clean   - do we try removing the existing sources? (enabled)
+   timeout - how long to wait for an answer (60 seconds)</pre>
+<pre>
+ result:
+   1 - removed
+   0 - failure, package exists and needs to be removed.</pre>
+</dd>
+<dt><strong><a name="sources_get" class="item">sources_get</a></strong></dt>
+
+<dd>
+<p>Tries to download a set of sources files from the site and url provided. It will try first fetching a gzipped tarball and if that files, a bzipped tarball. As new formats are introduced, I will expand the support for them here.</p>
+<pre>
+  usage:
+        $self-&gt;sources_get( 
+                package =&gt; 'simscan-1.07', 
+                site    =&gt; '<a href="http://www.inter7.com">http://www.inter7.com</a>',
+                path    =&gt; '/simscan/',
+        )</pre>
+<pre>
+ arguments required:
+   package - the software package name
+   site    - the host to fetch it from
+   url     - the path to the package on $site</pre>
+<pre>
+ arguments optional:
+   conf    - hashref - values from toaster-watcher.conf
+   debug</pre>
+<p>This sub proved quite useful during 2005 as many packages began to be distributed in bzip format instead of the traditional gzip.</p>
+</dd>
+<dt><strong><a name="sudo" class="item">sudo</a></strong></dt>
+
+<dd>
+<pre>
+   my $sudo = $util-&gt;sudo();</pre>
+<pre>
+   $util-&gt;syscmd( &quot;$sudo rm /etc/root-owned-file&quot; );</pre>
+<p>Often you want to run a script as an unprivileged user. However, the script may need elevated privileges for a plethora of reasons. Rather than running the script suid, or as root, configure sudo allowing the script to run system commands with appropriate permissions.</p>
+<p>If sudo is not installed and you're running as root, it'll offer to install sudo for you. This is recommended, as is properly configuring sudo.</p>
+<pre>
+ arguments required:</pre>
+<pre>
+ arguments optional:
+   debug</pre>
+<pre>
+ result:
+   0 - failure
+   on success, the full path to the sudo binary</pre>
+</dd>
+<dt><strong><a name="syscmd" class="item">syscmd</a></strong></dt>
+
+<dd>
+<pre>
+   Just a little wrapper around system calls, that returns any failure codes and prints out the error(s) if present. A bit of sanity testing is also done to make sure the command to execute is safe.</pre>
+<pre>
+      my $r = $util-&gt;syscmd( &quot;gzip /tmp/example.txt&quot; );
+      $r ? print &quot;ok!\n&quot; : print &quot;not ok.\n&quot;;</pre>
+<pre>
+    arguments required:
+      cmd     - the command to execute</pre>
+<pre>
+    arguments optional:
+      debug
+      fatal</pre>
+<pre>
+    result
+      the exit status of the program you called.</pre>
+</dd>
+<dt><strong><a name="_try_mkdir" class="item">_try_mkdir</a></strong></dt>
+
+<dd>
+<p>try creating a directory using perl's builtin mkdir.</p>
+</dd>
+<dt><strong><a name="yes_or_no" class="item">yes_or_no</a></strong></dt>
+
+<dd>
+<pre>
+  my $r = $util-&gt;yes_or_no( 
+      &quot;Would you like fries with that?&quot;,
+      timeout  =&gt; 30
+  );</pre>
+<pre>
+        $r ? print &quot;fries are in the bag\n&quot; : print &quot;no fries!\n&quot;;</pre>
+<pre>
+ arguments required:
+   none.</pre>
+<pre>
+ arguments optional:
+   question - the question to ask
+   timeout  - how long to wait for an answer (in seconds)</pre>
+<pre>
+ result:
+   0 - negative (or null)
+   1 - success (affirmative)</pre>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="author">AUTHOR</a></h1>
+<p>Matt Simerson (<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>)</p>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>None known. Report any to author.</p>
+<p>
+</p>
+<hr />
+<h1><a name="todo">TODO</a></h1>
+<pre>
+  make all errors raise exceptions
+  write test cases for every method
+  comments. always needs more comments.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p>The following are all man/perldoc pages:</p>
+<pre>
+ Mail::Toaster</pre>
+<p>
+</p>
+<hr />
+<h1><a name="copyright">COPYRIGHT</a></h1>
+<p>Copyright (c) 2003-2009, The Network People, Inc. All Rights Reserved.</p>
+<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+<p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+<p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+<p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+</body>
+
+</html>

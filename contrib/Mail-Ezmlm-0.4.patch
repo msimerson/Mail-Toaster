@@ -1,0 +1,60 @@
+Patch my Matt Simerson to get Mail::Ezmlm to return untainted data.
+
+Patch against Mail::Ezmlm 0.04
+
+--- Ezmlm.pm.orig	Sat Nov 13 13:38:59 2004
++++ Ezmlm.pm	Mon Nov 15 13:44:35 2004
+@@ -236,6 +236,16 @@
+    my($self, $part) = @_;
+    my(@subscribers);
+    ($self->_seterror(-1, 'must setlist() before returning subscribers()') && return undef) unless(defined($self->{'LIST_NAME'}));
++
++	# additions by matt simerson (matt@tnpi.net) to get past mod_perl security (taint) checks
++	$ENV{"PATH"} = "";
++	if ( $self->{'LIST_NAME'} =~ /([\w\-\/.]*)/ ) {
++		$self->{'LIST_NAME'} = $1;
++	} else {
++		warn "TAINTED DATA IN LIST_NAME: $self->{'LIST_NAME'}\n";
++	};
++	# end additions
++
+    if(defined($part) && $part) {
+       ($self->_seterror(-1, "$part part of $self->{'LIST_NAME'} does not appear to exist in subscribers()") && return undef) unless(-e "$self->{'LIST_NAME'}/$part");
+       @subscribers = map { s/[\r\n]// && $_ } sort `$EZMLM_BASE/ezmlm-list $self->{'LIST_NAME'}/$part`;
+@@ -270,6 +280,19 @@
+    } else {
+       foreach $address (@addresses) {
+          next unless $self->_checkaddress($address);
++
++			# matt adds
++			$ENV{"PATH"} = "";   # taint checks
++
++			if ( $self->{'LIST_NAME'} =~ /([\w\-\/.]*)/ ) {
++				$self->{'LIST_NAME'} = $1;
++			} else {
++				warn "TAINTED DATA IN LIST_NAME: $self->{'LIST_NAME'}\n";
++			};
++
++			if ( $address =~ /(.*)/ ) { $address = $1 };
++			# end matt adds
++
+          system("$EZMLM_BASE/ezmlm-sub", $self->{'LIST_NAME'}, $address) == 0 ||
+             ($self->_seterror($?) && return undef);
+       }
+@@ -322,6 +345,16 @@
+    } else {
+       foreach $address (@addresses) {
+ 			$ENV{'SENDER'} = $address;
++
++			# matt adds
++			$ENV{"PATH"} = "";   # taint checks
++			if ( $self->{'LIST_NAME'} =~ /([\w\-\/.]*)/ ) {
++				$self->{'LIST_NAME'} = $1;
++			} else {
++				warn "TAINTED DATA IN LIST_NAME: $self->{'LIST_NAME'}\n";
++			};
++			# end matt adds
++
+          undef($issub) if ((system("$EZMLM_BASE/ezmlm-issubn", $self->{'LIST_NAME'}) / 256) != 0)
+       }   
+    }

@@ -1,0 +1,35 @@
+#
+# $Id: $
+#
+
+# Author: Matt Simerson
+#
+# httpd.conf diffs for Apache 2.2 for Mail::Toaster
+# apply this to the stock httpd.conf.
+#
+
+*** httpd.conf.orig     Sat Jul  8 18:09:29 2006
+--- httpd.conf  Sat Jul  8 23:28:38 2006
+***************
+*** 438,447 ****
+  #Include etc/apache22/extra/httpd-dav.conf
+  
+  # Various default settings
+! #Include etc/apache22/extra/httpd-default.conf
+  
+  # Secure (SSL/TLS) connections
+! #Include etc/apache22/extra/httpd-ssl.conf
+  #
+  # Note: The following must must be present to support
+  #       starting without SSL on platforms with no /dev/random equivalent
+--- 439,448 ----
+  #Include etc/apache22/extra/httpd-dav.conf
+  
+  # Various default settings
+! Include etc/apache22/extra/httpd-default.conf
+  
+  # Secure (SSL/TLS) connections
+! Include etc/apache22/extra/httpd-ssl.conf
+  #
+  # Note: The following must must be present to support
+  #       starting without SSL on platforms with no /dev/random equivalent

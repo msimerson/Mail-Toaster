@@ -1,0 +1,549 @@
+# 
+# Extensive documentation for this file and its settings is 
+# included in the docs directory of the Mail::Toaster 
+# distribution, in perl pod format (perldoc toaster-watcher.conf)
+# and posted online at the following URL:
+#
+#   http://mail-toaster.org/docs/
+#
+# Many values require keyword parameters, pathnames, or a binary value
+# binary values are either 0 or 1, 1 being yes, 0 being no
+#
+# Most elements in this file pertain to toaster_setup.pl and the
+# toaster-watcher.pl script, both of which are run as root. Other
+# settings needed by non-root scripts are in toaster.conf.
+#
+# A current copy of this file is posted on the Mail::Toaster web site:
+# http://www.tnpi.net/internet/mail/toaster/etc/toaster-watcher.conf
+
+######################################
+#            TOASTER
+######################################
+
+toaster_version                    = 0               # ver, 0 = latest release
+toaster_hostname                   = mail.example.com
+toaster_admin_email                = postmaster@example.com
+toaster_test_email                 = test@example.com
+toaster_test_email_pass            = cHanGeMe
+
+toaster_debug                      = 0
+supervise_rebuilt_notice           = 1       # email admin when a run file is updated
+
+system_config_dir                  = /usr/local/etc
+
+toaster_prefix                     = /usr/local
+toaster_src_dir                    = /usr/local/src
+toaster_http_base                  = /usr/local/www
+toaster_http_docs                  = /usr/local/www/toaster
+toaster_cgi_bin                    = /usr/local/www/cgi-bin.toaster
+toaster_tmp_dir                    = /tmp
+toaster_watcher_log                = /var/log/mail/watcher.log
+
+toaster_sf_mirror                  = downloads.sourceforge.net/project
+toaster_dl_site                    = http://www.tnpi.net    # select a mirror
+toaster_dl_url                     = /internet/mail/toaster
+
+preserve_cgifiles                  = 0
+toaster_apache_vhost               = 1
+
+package_install_method             = ports     # packages | ports
+                                     # if both options are supported, the setup
+                                     # script will prefer the one you choose.
+
+
+######################################
+#        FreeBSD Specific
+######################################
+
+cvsup_server_preferred             = fastest         # fastest or a hostname
+cvsup_server_country               = US
+cvsup_supfile_ports                = portsnap        # portsnap or path to file 
+                                                     # ex: /etc/cvsup-ports
+cvsup_supfile_sources              = cvsup-sources
+toaster_pkg_site                   = ftp://ftp.freebsd.org
+
+
+######################################
+#           Programs 
+######################################
+
+# You can pass the version number of some programs
+# if you with to install a particular version
+#    0  = do not install
+#    1  = install
+# port  = install from FreeBSD or Darwin ports
+# other = install particular version
+#
+# Extra options are noted after the # where available. Selecting 1 is the most reliable
+# and will install trying first via ports, then sources if the port install fails.
+
+install_squirrelmail               = 1.4.20  # 0, ver, port
+install_squirrelmail_sql           = 0       # use MySQL for user prefs and address book?
+install_squirrelmail_sql_pass      = chAnge7his
+install_lighttpd                   = 1
+install_apache                     = 0       # 0, 1, 2, 21, 22
+install_apache_etc                 = /usr/local/etc/apache22
+install_apache_user                = www
+install_apache_suexec              = 0
+install_apache_proxy               = 0
+install_apache_bdb                 = 0       # berkeley DB
+install_cronolog                   = 1.6.2   # ver, port
+install_php                        = 5       # 0, 4, 5, ver
+install_phpmyadmin                 = 0       # 0, 1
+install_mysql                      = 0       # 0, 1, 2, 3, 40, 41, 5, 51
+install_mysqld                     = 0       # 0, 1
+install_mysql_optimized            = 0
+install_mysql_dir                  = /var/db/mysql
+install_courier_imap               = port    # 0, ver, port (3.0.8)
+install_sqwebmail                  = 0       # 0, ver, port (4.0.7)
+install_dovecot                    = port    # 0, ver, port
+install_gnupg                      = 1       # 0, port
+install_qmail                      = 0       # 0, ver       (1.03)
+install_netqmail                   = 1.05    # 0, ver
+install_qmailadmin                 = 1.2.9   # 0, ver, port
+install_autorespond                = 2.0.5   # 0, ver, port
+install_daemontools                = 0.76    # ver, port
+install_djbdns                     = 1.05    # ver, port
+install_vpopmail                   = port    # ver, port
+install_vqadmin                    = 0       # 0, ver, port
+install_isoqlog                    = 0       # 0, ver, port
+install_portupgrade                = 0
+install_portaudit                  = 1
+install_portmaster                 = 1
+install_openldap_client            = 0
+install_net_snmpd                  = 0       # 4, 5
+install_ezmlm                      = 5.1.0   # 0, ver, port
+install_ezmlm_cgi                  = 0
+install_ezmlm_mysql                = 0
+install_qmail_notify               = 0
+install_aspell                     = 0
+install_ispell                     = 1
+install_quota_tools                = 0
+install_roundcube                  = port    # 0, port
+install_roundcube_db_pass          = To4st3dR0ndc@be
+
+# openssl 
+install_openssl                    = 1
+openssl_ciphers                    = pci  # a list of OpenSSL ciphers, or one of the following:
+                                          # high:    256-bit encryption
+                                          # pci:     include only PCI compliant ciphers
+                                          # medium:  128-bit or higher, secure as of 2009
+                                          # default: (see 'openssl ciphers DEFAULT')
+                                          # all:     (see 'openssl ciphers ALL')
+
+######################################
+#           Mail Filtering 
+######################################
+
+install_mail_filtering             = 1
+install_procmail                   = 0
+install_maildrop                   = 1       # 0, 1, ver
+install_spamassassin               = 1
+install_spamassassin_flags         = -v -u spamd -H /var/spool/spamd -x # Add -q for per user SQL
+install_spamassassin_sql           = 0       # use AWL, bayes, and per-user prefs from MySQL
+install_spamassassin_dbuser        = spamassassin
+install_spamassassin_dbpass        = assSPAMing
+install_dspam                      = 0
+install_simscan                    = 1.4.0   # 0, ver
+install_qmailscanner               = 0       # 0, ver       (1.25  as of 04/08/05)
+install_qmailscanner_stats         = 0       # 0, ver       (2.0.2 as of 02/02/05)
+install_clamav                     = port    # 0, port, ver (0.84  as of 05/02/05)
+install_clamav_user                = clamav  # qscand | clamav
+install_pyzor                      = 0
+install_razor                      = port    # 0, port, ver (2.80  as of 03/15/06)
+install_bogofilter                 = 0
+install_dcc                        = 0
+install_ripmime                    = port    # 0, port, ver (1.4.0.6 as of 3/15/06)
+
+filtering_method                   = tcpserver  # smtp | tcpserver  # see docs for details
+filtering_spamassassin_method      = site       # site | user | domain
+filtering_maildrop_filter_file     = /usr/local/etc/mail/mailfilter
+filtering_spama_discard_score      = 12      # discard messages with a SA score above this
+filtering_report_spam_spamassassin = 1
+filtering_report_spam_pyzor        = 0       # don't enable this with report_spamassassin
+filtering_debug                    = 1
+
+install_smtp-delay                 = 0       # feature not coded yet
+
+
+######################################
+#           Qmail Settings
+######################################
+
+qmail_dir                          = /var/qmail
+qmail_supervise                    = /var/qmail/supervise
+qmail_supervise_smtp               = qmail_supervise/smtp
+qmail_supervise_send               = qmail_supervise/send
+qmail_supervise_pop3               = qmail_supervise/pop3
+qmail_supervise_submit             = qmail_supervise/submit
+qmail_service                      = /var/service
+qmail_service_smtp                 = qmail_service/smtp
+qmail_service_send                 = qmail_service/send
+qmail_service_pop3                 = qmail_service/pop3
+qmail_service_submit               = qmail_service/submit
+qmail_toaster_patch_version        = 3.1
+qmail_smtp_reject_patch            = 1
+qmail_mfcheck_enable               = 1
+qmail_domainkeys                   = 0
+qmail_tarpit_count                 = 50
+qmail_tarpit_delay                 = 5
+qmail_spf_behavior                 = 2
+qmail_concurrencyremote            = 100     # don't crank this up unless you need to!
+qmail_smtpd_auth_0.31              = 0       # leave this zero!
+qmail_queue_extra                  = 0       # 0, 1
+qmail_log_base                     = /var/log/mail
+qmail_log_user                     = qmaill
+qmail_log_group                    = qnofiles
+qmail_mysql_include                = /usr/local/lib/mysql/libmysqlclient.a
+
+
+######################################
+#           Vpopmail
+######################################
+
+vpopmail_user                      = vpopmail
+vpopmail_group                     = vchkpw
+vpopmail_home_dir                  = /usr/local/vpopmail
+vpopmail_learn_passwords           = 1
+vpopmail_default_domain            = 0
+vpopmail_roaming_users             = 1
+vpopmail_relay_clear_minutes       = 180
+vpopmail_mysql                     = 1         # disables all mysql options
+vpopmail_mysql_limits              = 0
+vpopmail_mysql_replication         = 0
+vpopmail_mysql_logging             = 0
+vpopmail_mysql_repl_master         = localhost
+vpopmail_mysql_repl_master_port    = 3306
+vpopmail_mysql_repl_slave          = localhost
+vpopmail_mysql_repl_slave_port     = 3306
+vpopmail_mysql_database            = vpopmail
+vpopmail_mysql_user                = vpopmail
+vpopmail_mysql_pass                = supersecretword
+vpopmail_auth_logging              = 1
+vpopmail_logging                   = 1
+vpopmail_logging_verbose           = 1
+vpopmail_valias                    = 1
+vpopmail_qmail_ext                 = 1
+vpopmail_rebuild_tcpserver_file    = 0
+vpopmail_ip_alias_domains          = 0
+vpopmail_etc_passwd                = 0
+vpopmail_domain_quotas             = 0
+vpopmail_default_quota             = 100000000S,10000C  # deprecated in 5.4.0+
+vpopmail_disable_many_domains      = 0
+vpopmail_enable_netblocks          = 0
+
+
+#######################################
+#           qmail-send                #
+#######################################
+
+# send_log_method - [ syslog | multilog | debug | stats | disabled ]
+# see smtpd_log_method for complete details
+#
+send_log_method                    = multilog
+send_log_postprocessor             = maillogs   # maillogs | none
+send_log_maxsize_bytes             = 1000000    # make this > 5 minutes of logging
+send_log_isoqlog                   = 1
+send_mailbox_string                = ./Maildir/
+
+
+#######################################
+#           qmail-smtpd               #
+#######################################
+
+smtpd_listen_on_address            = all        # all, a hostname, or IP
+smtpd_listen_on_port               = smtp       # smtp or a port number
+smtpd_hostname                     = 0
+
+# smtpd_hostname [ system | qmail | mail.example.com ]
+#
+#  system - will set to the systems hostname
+#  qmail  - will set to contents of qmail/control/me
+#  other  - anything else is considered to be a hostname
+##
+
+smtpd_max_memory_per_connection    = 15         # in megabytes
+smtpd_max_connections              = 20
+smtpd_max_memory                   = 356
+smtpd_use_mysql_relay_table        = 1
+smtpd_lookup_tcpremotehost         = 0          # tcpserver -H
+smtpd_lookup_tcpremoteinfo         = 0          # tcpserver -R
+smtpd_dns_paranoia                 = 0          # tcpserver -p
+smtpd_dns_lookup_timeout           = 26         # tcpserver -tNN
+smtpd_verbose                      = 0          # tcpserver -v
+smtpd_run_as_user                  = vpopmail
+smtpd_run_as_group                 = qmail
+smtpd_auth_enable                  = 1          # enable / disable SMTP auth
+smtpd_checkpasswd_bin              = vpopmail_home_dir/bin/vchkpw
+smtpd_relay_database               = vpopmail_home_dir/etc/tcp.smtp.cdb
+smtpd_qmail_queue                  = /var/qmail/bin/qmail-queue
+#smtpd_qmail_queue                 = /var/qmail/bin/simscan
+smtpd_fixcrio                      = 0
+smtpd_recordio                     = 0
+
+##
+# smtpd_log_method - [ syslog | multilog | debug | stats | disabled ]
+#
+# - syslog   - logs to syslog ( /var/log/mail* )
+# - multilog - logs via multilog to $qmail_log_base/smtp - required for maillogs & RRDutil.
+# - debug    - enables full debugging, records entire SMTP converation
+# - stats    - only logs stats lines 
+# - disabled - silently discards all logs
+##
+
+smtpd_log_method                   = multilog
+smtpd_log_postprocessor            = maillogs   # maillogs | none
+smtpd_log_maxsize_bytes            = 1000000    # make sure this is larger than 5 minutes of logging
+
+rbl_enable                         = 0       # master RBL switch. Disables all RBLs
+rbl_enable_fail_closed             = 1       # default is on
+rbl_enable_soft_failure            = 1       # default is on (off means bounce immediately (553)
+rbl_enable_lookup_using            = net-dns # dig, net-dns
+rbl_timeout                        = 60      # default is 60 seconds
+rbl_reverse_dns                    = 1       # block based on presence of reverse DNS
+rbl_reverse_dns_failure            = soft    # soft | hard  (temporary (451) or permanent (553) error)
+                                             # currently the only way to block based on DNS is modifying
+                                             # your ~vpopmail/etc/tcp.smtp file. See the FAQ for details
+# zen.spamhaus.org combines the sbl, xbl, and pbl
+rbl_zen.spamhaus.org               = 1       # http://www.spamhaus.org/zen/
+rbl_bl.spamcop.net                 = 1       # http://www.spamcop.net/
+rbl_dnsbl-1.uceprotect.net         = 1       # http://www.uceprotect.net/en/index.php?m=3&s=3
+rbl_rbl-plus.mail-abuse.org        = 0       # Subscription only!
+rbl_korea.services.net             = 1       # Block all of Korea
+rbl_dsn.rfc-ignorant.org           = 1       # http://rfc-ignorant.org/
+rbl_whois.rfc-ignorant.org         = 1
+rbl_abuse.rfc-ignorant.org         = 1       # http://www.rfc-ignorant.org/policy-abuse.php
+rbl_postmaster.rfc-ignorant.org    = 1       # http://www.rfc-ignorant.org/policy-postmaster.php
+rbl_bogusmx.rfc-ignorant.org       = 1       # http://www.rfc-ignorant.org/policy-bogusmx.php
+rbl_opm.blitzed.org                = 0       # http://opm.blitzed.org/info (part of xbl)
+rbl_dnsbl.sorbs.net                = 1       # aggregate: includes all sorbs.net lists
+rbl_psbl.surriel.com               = 1       # http://psbl.surriel.com/
+#          new and not heavily tested as of 5/1/05
+rbl_dnsbl.ahbl.org                 = 0       # http://www.ahbl.org/
+rbl_multi.surbl.org                = 0       # http://www.surbl.org/
+rbl_cn-kr.blackholes.us            = 0       # block china & korea
+rbl_cbl.abuseat.org                = 0       # http://cbl.abuseat.org/ (part of sbl-xbl)
+#      individual lists included in combined lists above
+rbl_dnsbl.njabl.org                = 1       # http://www.dnsbl.njabl.org/
+rbl_sbl.spamhaus.org               = 0       # http://www.spamhaus.org/sbl/
+rbl_xbl.spamhaus.org               = 0       # http://www.spamhaus.org/xbl/
+rbl_pbl.spamhaus.org               = 0       # http://www.spamhaus.org/pbl/
+rbl_dul.dnsbl.sorbs.net            = 0   
+rbl_zombie.dnsbl.sorbs.net         = 0       # http://www.dnsbl.sorbs.net/
+rbl_socks.dnsbl.sorbs.net          = 0
+rbl_blackholes.mail-abuse.org      = 0       # Subscription only!
+rbl_relays.mail-abuse.org          = 0       # Subscription only!
+rbl_dialups.mail-abuse.org         = 0       # Subscription only!
+#            deprecated/defunct RBLs
+rbl_list.dsbl.org                  = 0       # http://dsbl.org/
+rbl_sbl-xbl.spamhaus.org           = 0       # replaced by zen.spamhaus.org
+rbl_dynablock.njabl.org            = 0       # being dropped as of 2007.01.??
+rbl_combined.njabl.org             = 0       # aggregate: all njabl.org lists
+rbl_relays.ordb.org                = 0       # DEAD - 2006.12.18 http://www.ordb.org/
+rbl_spews.blackhole.us             = 0       # not availble directly - part of dnsbl.sorbs.net
+rbl_bl.ordb.org                    = 0       # DEAD - 
+rbl_dialups.visi.com               = 0       # DEAD - no NS records as of 2004.05.02
+rbl_relays.visi.com                = 0       # DEAD - donation required
+rbl_cn.rbl.cluecentral.net         = 0       # DEAD - Block all of China  
+rbl_kr.rbl.cluecentral.net         = 0       # DEAD - Block all of Korea
+rbl_dev.null.dk                    = 0       # DEAD
+rbl_relays.osirusoft.com           = 0       # DEAD
+rbl_formmail.relays.monkeys.com    = 0       # monkeys.com DEAD as of 2003.09.22
+rbl_proxies.relays.monkeys.com     = 0       # monkeys.com DEAD as of 2003.09.22
+rbl_abuse.easynet.nl               = 0       # DEAD as of 2003.12.11
+
+rwl_enable                         = 0       # master RWL switch. Disables all RWLs
+rwl_list.dnswl.org                 = 1       # http://www.dnswl.org/
+rwl_qmail.bondedsender.org         = 0       # http://www.bondedsender.org/
+
+
+#######################################
+#              POP3D                  #
+#######################################
+# pop3_daemon - you must choose qpop3d if you need POP before SMTP auth.
+# Don't use POP before SMTP, use SMTP AUTH instead.
+##
+
+pop3_daemon                        = dovecot # qpop3d | courier | dovecot
+
+##
+# pop3_hostname [ system | qmail | mail.example.com ]
+#
+#  system - will set to the systems hostname
+#  qmail  - will set to contents of qmail/control/me
+#  other  - anything else is considered to be a hostname
+##
+
+pop3_hostname                      = system
+pop3_max_memory_per_connection     = 4
+pop3_max_connections               = 50
+pop3_max_memory                    = 256
+pop3_lookup_tcpremotehost          = 0
+pop3_lookup_tcpremoteinfo          = 0
+pop3_dns_paranoia                  = 0
+pop3_dns_lookup_timeout            = 26
+pop3_verbose                       = 0
+pop3_listen_on_address             = all
+pop3_checkpasswd_bin               = vpopmail_home_dir/bin/vchkpw
+
+##
+# pop3_log_method - [ syslog | multilog | verbose | stats | disabled ]
+##
+
+pop3_log_method                    = multilog   # multilog required for RRDutil
+pop3_log_postprocessor             = maillogs   # maillogs | none
+pop3_log_maxsize_bytes             = 1000000    # make this > 5 minutes of logging
+
+
+#######################################
+#            POP3D-SSL                #
+#######################################
+
+pop3_ssl_daemon                    = dovecot    #  qpop3d | courier | dovecot
+
+# NOTICE: if you choose qpop3d, then stunnel will be installed
+# and courier's pop3ssl will be disabled.
+
+#######################################
+#         qmail-smtpd-submit          #
+#######################################
+
+submit_enable                      = 1
+submit_listen_on_address           = all        # all, hostname, IP
+submit_listen_on_port              = submission # submission, port number
+submit_hostname                    = 0
+
+# smtp-submit_hostname [ system | qmail | mail.example.com ]
+#
+#  system - will set to the systems hostname
+#  qmail  - will set to contents of qmail/control/me
+#  other  - anything else is considered to be a hostname
+##
+
+submit_max_memory_per_connection   = 25         # in megabytes
+submit_max_connections             = 50
+submit_use_mysql_relay_table       = 0
+submit_lookup_tcpremotehost        = 0
+submit_lookup_tcpremoteinfo        = 0
+submit_dns_paranoia                = 0
+submit_dns_lookup_timeout          = 26
+submit_verbose                     = 0          # tcpserver -v
+submit_run_as_user                 = vpopmail
+submit_run_as_group                = vchkpw
+submit_auth_enable                 = 1          # enable / disable SMTP auth
+submit_checkpasswd_bin             = vpopmail_home_dir/bin/vchkpw
+submit_relay_database              = vpopmail_home_dir/etc/tcp.smtp.cdb
+submit_qmail_queue                 = /var/qmail/bin/simscan
+#submit_qmail_queue                = /var/qmail/bin/qmail-queue
+
+##
+# submit_log_method - [ syslog | multilog | debug | stats | disabled ]
+#
+# - syslog   - logs to syslog ( /var/log/mail* )
+# - multilog - logs via multilog to $qmail_log_base/submit
+# - debug    - enables full debugging, records entire SMTP converation
+# - stats    - only logs stats lines 
+# - disabled - silently discards all logs
+##
+
+submit_log_method                  = syslog
+submit_log_postprocessor           = none       # none (maillogs eventually)
+submit_log_maxsize_bytes           = 1000000    # make sure this is larger than 5 minutes of logging
+
+
+
+#######################################
+#            QMAILADMIN               #
+#######################################
+
+qmailadmin_spam_option             = 1
+qmailadmin_help_links              = 1.0.8
+qmailadmin_install_as_root         = 0
+qmailadmin_modify_quotas           = 1
+qmailadmin_domain_autofill         = 1
+qmailadmin_spam_command            = | /usr/local/bin/maildrop /usr/local/etc/mail/mailfilter
+qmailadmin_cgi_bin_dir             = 0  # override toaster_cgi_bin
+qmailadmin_http_docroot            = 0  # override toaster_http_docs
+qmailadmin_http_images             = /usr/local/www/data/images
+
+
+#######################################
+#            phpMyAdmin               #
+#######################################
+
+phpMyAdmin_controluser             = pma
+phpMyAdmin_controlpassword         = pmapass
+phpMyAdmin_auth_type               = cookie  ( cookie | http )
+
+
+#######################################
+#               Simscan               #
+#######################################
+
+simscan_user                       = simscan
+simscan_trophie                    = 0       # use trophie?
+simscan_clamav                     = 1       # use clamav?
+simscan_ripmime                    = 1       # 0, 1  use ripmime?
+simscan_quarantine                 = 0       # 0, or a directory for spam/viral messages
+simscan_spamassassin               = 1       # 0, 1
+simscan_spamc_args                 = 0       # 0, list of options to pass to spamc
+simscan_spam_hits_reject           = 12      # reject messages with a spam score higher than
+simscan_spam_passthru              = 0       # allow spam messages to be delivered?
+simscan_per_domain                 = 1       # use /var/qmail/control/simcontrol
+simscan_block_attachments          = 1       # block attachments in /var/qmail/control/ssattach
+simscan_block_types                = exe,com,vbs,lnk,scr,wsh,hta,pif
+simscan_received                   = 0       # add the Received: by simscan header
+simscan_custom_smtp_reject         = 1       # does qmail have the custom smtp reject patch?
+simscan_regex_scanner              = 0       # 
+
+
+#######################################
+#      Maildir Old Message Cleanup    #
+#######################################
+
+maildir_clean_interval             = 7       # The # of days between cleanup runs
+                                             #  This is the "master" switch for all the
+                                             #  following cleanup options. If this is
+                                             #  set to zero, nothing below matters.
+maildir_clean_Read                 = 0       # remove read messages
+maildir_clean_Unread               = 365     # remove unread messages (days)
+maildir_clean_Sent                 = 180     # sent messages over x days are removed
+maildir_clean_Trash                = 14      # trashed messages over x days are removed
+maildir_clean_Spam                 = 14      # spam messages over x days are removed
+
+#######################################
+#    SpamAssassin Message Learning    #
+#######################################
+
+maildir_learn_interval             = 1       # how many days between spam learning runs
+maildir_learn_Spam                 = 1       # feed spam through sa-learn (SpamAssassin)
+maildir_learn_Read                 = 1       # feed ham through sa-learn (SpamAssassin)
+maildir_learn_Read_days            = 1       # only learn from messages older than x days
+
+
+#######################################
+#      Apache Suexec Options          #
+#######################################
+
+apache_suexec_docroot              = /usr/local/www/data
+apache_suexec_userdir              = html
+apache_suexec_safepath             = /usr/local/bin:/usr/bin:/bin
+apache_suexec_logfile              = /var/log/apache/suexec.log
+apache_suexec_uidmin               = 1000
+apache_suexec_gidmin               = 1000
+apache_suexec_caller               = www
+apache_suexec_umask                =
+
+
+#######################################
+#      OpenSSL config values          #
+#######################################
+
+ssl_certificate                    = 0       # /path/to/certificate/file.pem
+ssl_country                        = SU
+ssl_state                          = saxeT
+ssl_locality                       = dnalraG
+ssl_organization                   = moc.elpmaxE
+ssl_common_name                    = 0                         # 0, hostname
+ssl_email_address                  = 0                         # 0, email address
+

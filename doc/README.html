@@ -1,0 +1,226 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>toaster_setup.pl - runs various build and testing functions for Mail::Toaster</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:matt@imac24.simerson.net" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+<!--
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#version">VERSION</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#options_and_arguments">OPTIONS AND ARGUMENTS</a></li>
+	<li><a href="#methods">METHODS</a></li>
+	<li><a href="#author">AUTHOR</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#todo">TODO</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+	<li><a href="#copyright">COPYRIGHT</a></li>
+</ul>
+
+-->
+
+
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>toaster_setup.pl - runs various build and testing functions for Mail::Toaster</p>
+<p>
+</p>
+<hr />
+<h1><a name="version">VERSION</a></h1>
+<p>This document refers to Mail::Toaster version 5.00</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p>toaster_setupl.pl is the front end to everything you need to turn a computer into a secure, full-featured, high-performance mail server.</p>
+<pre>
+   toaster_setup.pl -s &lt;help&gt; [-d]</pre>
+<pre>
+      -s[ection] - see OPTIONS AND ARGUMENTS section for choices
+      -d[ebug]   - enable verbose debugging</pre>
+<p>A really good place to start is:</p>
+<pre>
+   toaster_setupl.pl -s help | less</pre>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>The mail toaster is a collection of open-source software which provides a full-featured mail server running on FreeBSD, Mac OS X, and Linux. The system is built around the qmail mail transport agent, with many additions and modifications. Matt Simerson is the primary author and maintainer of the toaster. There is an active and friendly community of toaster owners which supports the toaster on a mailing list and web forum.</p>
+<p>The toaster is built around qmail, a robust mail transfer agent by Daniel J. Bernstein, and vpopmail, a virtual domain manager by Inter7 systems. Matt keeps up with releases of the core software, evaluates them, decides when they are stable, and then integrates them into the toaster. Matt has also added several patches which add functionality to these core programs.</p>
+<p>A complete set of instructions for building a mail toaster are on the toaster install page. There is a substantial amount of documentation available for the &quot;Mail::Toaster&quot; toaster. Much of it is also readable via &quot;perldoc Mail::Toaster&quot;, and the subsequent pages. Don't forget to read the Install, Configure, and FAQ pages on the web site. If you still have questions, there is a Web Forum and mailing list. Both are browseable and searchable for your convenience.</p>
+<pre>
+  
+=head2 URLs</pre>
+<pre>
+   <a href="http://mail-toaster.org/">http://mail-toaster.org/</a>
+   <a href="http://www.tnpi.net/internet/mail/toaster/">http://www.tnpi.net/internet/mail/toaster/</a></pre>
+<p>
+</p>
+<hr />
+<h1><a name="options_and_arguments">OPTIONS AND ARGUMENTS</a></h1>
+<pre>
+  toaster_setup.pl -s &lt;section&gt; [-debug]</pre>
+<pre>
+           help - print this usage screen
+         config - initial configuration of toaster*.conf files
+           perl - installs or upgrades perl
+            pre - installs a list of programs and libraries other toaster components need</pre>
+<pre>
+                     FreeBSD Specific
+          ports - updates your ports tree, installs the pkg_* tools
+        sources - update your FreeBSD sources (/usr/src)
+        jailadd - creates a new jail
+      jailstart - starts up an existing jail
+     jaildelete - deletes an existing jail</pre>
+<pre>
+                    Standard Daemons &amp; Utilities
+          mysql - installs MySQL
+     phpmyadmin - installs phpMyAdmin
+         apache - installs Apache 
+      apachessl - installs self signed SSL certs for Apache
+     apacheconf - patches httpd.conf for use with Mail::Toaster</pre>
+<pre>
+                     Qmail and related tools
+          ucspi - install ucspi-tcp w/MySQL patch
+    daemontools - install daemontools
+          ezmlm - install EzMLM idx
+       vpopmail - installs vpopmail
+      vpeconfig - configure ~vpopmail/etc/tcp.smtp
+      vpopmysql - run the vpopmail MySQL grant and db create commands
+        vqadmin - install vqadmin
+          qmail - installs qmail with toaster patches
+      qmailconf - configure various qmail control files
+       netqmail - installs netqmail 
+    netqmailmac - installs netqmail with no patches
+         djbdns - install the djbdns program</pre>
+<pre>
+        courier - installs courier imap &amp; pop3 daemons
+    courierconf - post install configure for courier</pre>
+<pre>
+                   Web Mail and Admin interfaces
+     qmailadmin - installs qmailadmin
+      sqwebmail - installs sqwebmail (webmail app)
+   squirrelmail - installs squirrelmail (webmail app)
+      roundcube - installs Roundcube (webmail app)</pre>
+<pre>
+                     Mail Filtering
+         filter - installs SpamAssassin, ClamAV, DCC, razor, and more
+          razor - installs the razor2 agents
+       maildrop - installs maildrop and mailfilter
+         clamav - installs just ClamAV
+   qmailscanner - installs Qmail-Scanner &amp; qmailscanner stats
+        simscan - install simscan
+        simconf - configure simscan 
+        simtest - run email tests to verify that simscan is working
+   spamassassin - install and configure spamassassin
+        allspam - activate spam filtering for all users</pre>
+<pre>
+                  Logs, Statistics, and Monitoring
+       maillogs - creates the mail logging directories
+            qss - installs qmailscanner stats
+        socklog - installs socklog
+        isoqlog - installs and configured isoqlog
+      supervise - creates the directories to be used by svscan</pre>
+<pre>
+           test - runs a complete test suite against your server
+     filtertest - runs the simscan and qmail-scanner email scanner tests
+       authtest - authenticates against pop, imap, and smtp servers
+       proctest - check for processes that *should* be running
+ imap|pop3|smtp - do authentication test for imap, pop3, or smtp-auth</pre>
+<pre>
+        toaster - install Mail::Toaster
+     mattbundle - install MATT::Bundle
+            mrm - install Mysql::Replication
+     logmonster - install Apache::Logmonster
+        nictool - install nictool (<a href="http://www.nictool.com/">http://www.nictool.com/</a>)
+            all - installs everything shown on the toaster INSTALL page</pre>
+<p>
+</p>
+<hr />
+<h1><a name="methods">METHODS</a></h1>
+<dl>
+<dt><strong><a name="all" class="item">all</a></strong></dt>
+
+<dd>
+<pre>
+  toaster_setup.pl -s all</pre>
+<p>a special target that tries to build the entire Mail::Toaster without any interaction from you. Unlike other targets, it will keep right on going when it encounters an error, getting as much built as it possibly can. It is presumed that the administrator is logging the output for later review. I use this target primarily in testing.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="author">AUTHOR</a></h1>
+<p>Matt Simerson (<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>)</p>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>None known. Report any to author, preferably via RT <a href="http://rt.cpan.org/Public/Bug/Report.html?Queue=Mail-Toaster">http://rt.cpan.org/Public/Bug/Report.html?Queue=Mail-Toaster</a></p>
+<p>Patches welcome in &quot;diff -u&quot; format.</p>
+<p>
+</p>
+<hr />
+<h1><a name="todo">TODO</a></h1>
+<pre>
+ Add -s dnscache section to install a DNS stub resolver
+ Check if daemons are running before installs. - mostly done
+ Turn entire process into a ./install_it_all script  - done</pre>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p>The following are all man/perldoc pages:</p>
+<pre>
+  Mail::Toaster::Conf
+  toaster.conf 
+  toaster-watcher.conf
+  
+  Mail::Toaster
+  Mail::Toaster::Apache
+  Mail::Toaster::CGI 
+  Mail::Toaster::DNS
+  Mail::Toaster::Darwin
+  Mail::Toaster::Ezmlm
+  Mail::Toaster::FreeBSD
+  Mail::Toaster::Logs
+  Mail::Toaster::Mysql
+  Mail::Toaster::Qmail
+  Mail::Toaster::Setup
+  Mail::Toaster::Utility</pre>
+<pre>
+  <a href="http://mail-toaster.org/">http://mail-toaster.org/</a>
+  <a href="http://mail-toaster.org/docs/">http://mail-toaster.org/docs/</a>
+  <a href="http://mail-toaster.org/faq.shtml">http://mail-toaster.org/faq.shtml</a>
+  <a href="http://mail-toaster.org/changes.shtml">http://mail-toaster.org/changes.shtml</a></pre>
+<p>
+</p>
+<hr />
+<h1><a name="copyright">COPYRIGHT</a></h1>
+<p>Copyright (c) 2004-2010, The Network People, Inc. All rights reserved.</p>
+<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+<p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+<p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+<p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+</body>
+
+</html>

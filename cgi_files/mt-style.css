@@ -1,0 +1,267 @@
+/* 
+  Author: Matt Simerson (matt@tnpi.net)
+	  Version: 1.1
+		Date: 2006.10.17
+		
+		colors in use:
+
+	  dark grey:   #333333   text
+	  light grey:  #666666   active text
+	
+  	tan bg:  #FFFFCC    active/middle bar
+  	tan bg:  #CCCC99    background page color
+*/
+* html div#header {
+/* "tan hack", for IE box model positioning bug 
+	http://www.communitymx.com/content/article.cfm?cid=E0989953B6F20B41
+*/
+	width: 97%;   /* IE 5 win */
+	w\idth: 98%;  /* IE 6 & IE5 mac */
+}
+body {
+	margin-left: 0px;
+	font-family: Verdana, Helvetica, Arial, sans-serif;
+	font-size: 11px;
+	background-color: #CCCC99;
+	background-image: url("images/mt_background.png");
+}
+div#header {
+	position: absolute;
+	top: 0px;
+	left: 10px;
+	right: 10px;
+	padding-right: 10px;
+	padding-left: 10px;
+	padding-top: 5px;
+	height: 25px;
+/*
+	background-color: #ffffff;
+	color: #666666;
+*/
+}
+
+div#top_level_links {
+	height: 24px;
+	margin: 0px;
+	width: 550px;
+/*
+	background-color: #FFFFCC;
+*/
+}
+div#top_level_links span {
+/*   these are the top level headings: webmail, admin, stats, help */
+	float: left;
+	padding-top: 4px;
+	padding-bottom: 4px;
+	padding-right: 10px;
+	padding-left: 20px;
+	font-size: 14px;
+	color: #333333;
+/*
+	border-right: 1px #666666 dotted;
+	background-image: url("images/tan-50-opaque.gif");
+*/
+}
+div#top_level_links span.first {
+	/* the webmail graphic */
+	background-color: #FFFFCC;
+	background-image: url("images/mt_tab-left-off.gif");
+	/* added by erics@steelerubber.com */
+	cursor:hand;
+	cursor:pointer;
+	/* end add by erics@steelerubber.com */
+}
+div#top_level_links span.middle {
+	/* admin - help tabs */
+	background-color: #FFFFCC;
+	background-image: url("images/mt_tab-middle-off.gif");
+	/* added by erics@steelerubber.com */
+	cursor:hand;
+	cursor:pointer;
+	/* end add by erics@steelerubber.com */
+}
+div#top_level_links span.last {
+	/* a special tab to close the tab  bar */
+	background-color: #FFFFCC;
+	background-image: url("images/mt_tab-right-off.gif");
+	width: 10px;
+	height: 25px;
+	padding: 0px;
+	margin: 0px;
+	/* added by erics@steelerubber.com */
+	cursor:hand;
+	cursor:pointer;
+	/* end add by erics@steelerubber.com */
+}
+div#top_level_links span:hover {
+	text-decoration: underline;
+	color: #000000;
+}
+div#top_level_links a:link, div#top_level_links a:visited {
+	color: #333333;
+	text-decoration: none;
+}
+
+div#head_top_right {
+	position: absolute;
+	top: 0px;
+	right: 10px;
+	height: 25px;
+	width: 300px;
+/*
+	background-color: #FFFFC0;
+*/
+}
+div#head_top_right a {
+	color: #333333;
+	background-color: #cccc99;
+}
+div#head_top_right a:hover {
+	text-decoration: none;
+	color: #000000;
+	background-color: #FFFFCC;
+}
+
+div#head_bot {
+	position: absolute;
+	top: 35px;
+	left: 15px;
+	right: 10px;
+	height: 20px;
+	color: #333333;
+/*   
+	background-color: #FFFFCC;
+	background-image: url("images/tan-50-opaque.gif");
+*/
+}
+div#head_bot a {
+	text-decoration: none;
+	color: #333333;
+	/* added by erics@steelerubber.com */
+	cursor:hand;
+	cursor:pointer;
+	/* end add by erics@steelerubber.com */
+}
+div#head_bot span {
+	border-right: 1px #666666 dotted;
+	padding-right: 10px;
+	padding-left: 10px;
+	margin-right: 0px;
+	height: 100%; 
+}
+div#head_bot span:hover {
+	text-decoration: underline;
+	background-color: #CCCC77;
+}
+
+div#mt_body_div {
+	clear: both;
+	display: block;
+	margin-left: 20px;
+	width: 95%;
+	min-height: 500px;
+	height:auto !important;
+	height: 80%;
+/*
+	height: 500px;
+	position: absolute;
+	top: 60px;
+	right: 10px;
+	left: 10px;
+	bottom: 30px;
+	margin-right: 10px;
+	border-right: 3px #666666 solid;
+	border-bottom: 3px #666666 solid; 
+*/
+}
+
+div#webmail, div#admin, div#stats, div#help {
+	float: left;
+	display: none;
+}
+
+div#messages_div {
+	position: relative;
+	top: 0px;
+	left: 0px;
+	height: 45px;
+	width: 10px;
+/*
+	float: left;
+*/
+	padding-top: 5px;
+	padding-left: 8px;
+	font-size: 11px;
+}
+
+div#login_form_div {
+	display: none;
+	float: right;
+	padding-top: 6px;
+}
+div#signed_in_div {
+	float: right;
+	padding-top: 4px;
+}
+
+div#quota_div {
+	display: none;
+	float:  right;
+	width: 100px;
+	text-align: center;
+	font-size: 9px;
+	margin-top: 3px;
+	margin-left: 4px;
+	margin-right: 15px;
+/*
+*/
+}
+div#quota_100 {
+	width: 100%;
+	height: 12px;
+	padding: 2px;
+	background-color: #FFFFCC;
+	background-image: url("images/tan-50-opaque.gif");
+}
+div#quota_used {
+	position: relative;
+	top: -13px;
+	height: 10px;
+	background-color: #99FF66;
+	width: 76%;
+}
+div#quota_desc {
+	position: relative;
+	top: -25px;
+	text-align: center;
+}
+
+div#powered_top {
+	float: right;
+	width: 140px;
+	text-align: right;
+	font-size: 9px;
+}
+div#powered_top a {
+	text-decoration: underline;
+}
+
+div#powered_footer {
+	font-size: 9px;
+	float: left;
+	margin-left: 150px;
+	margin-top: 5px;
+}
+div#validxhtml10 {
+	float: left;
+	margin-left: 20px;
+	width: 62px;
+	height: 22px;
+}
+div#valid_css {
+	float: left;
+	margin-left: 5px;
+	width: 60px;
+	height: 22px;
+}
+

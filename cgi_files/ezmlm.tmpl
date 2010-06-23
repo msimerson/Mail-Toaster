@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- 
+# $Id: ezmlm.tmpl,v 4.0 2004/11/16 20:57:30 matt Exp $
+-->
+<html>
+<head>
+	<title>
+		<TMPL_VAR name="host">
+			Ezmlm Mailing List Import</title> 
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+<style type="text/css">
+<!--
+p {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-style: normal;
+}
+h1 { font-family: Arial, Helvetica, sans-serif; }
+h2 { font-family: Arial, Helvetica, sans-serif; }
+h3 { font-family: Arial, Helvetica, sans-serif; }
+h4 { font-family: Arial, Helvetica, sans-serif; }
+h5 { font-family: Arial, Helvetica, sans-serif; }
+-->
+</style>
+
+</head>
+
+<body>
+<form name="auth" method="post" action="">
+
+	<table width="100%" align="center" border="0" cellpadding="0" cellspacing="0">
+		<tr>
+			<td colspan="3" align="center" valign="top">
+				<TMPL_VAR name="logo">
+				<h2><TMPL_VAR name="head"></h2>
+				<hr>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="3" align="center">
+				<p><font color="green"><TMPL_VAR name="instruct"></font></p></td>
+		</tr>
+		<tr>
+			<td colspan="3" height="15" width="5"></td>
+		</tr>
+		<tr>
+			<td width="300" height="300" valign="top">
+<!--BEGIN OF ACCOUNT INFO TABLE-->
+
+				<table width="300" border="0" cellpadding="0" bgcolor="black">
+					<tr>
+						<td>
+							<table width="300" border="0" cellpadding="5" bgcolor="white">
+							<tr>
+								<td>
+									<table width="290" border="0" bgcolor="#CCCCCC">
+										<th colspan="2" align="center" bgcolor="#333333">
+											<p><font color="white" size="2">Authentication Info</font></p></th>
+										<tr>
+											<td width="40%" align="right"><p>Domain:</p></td>
+											<td width="60%"><p><TMPL_VAR name="domain"></p></td>
+										</tr>
+										<tr>
+											<td align="right"><p>Postmaster<br>Password: </p></td>
+											<td>
+												<p><TMPL_VAR name="password"></p>
+											</td>
+										</tr>
+										<tr>
+											<td align="right"><p></p></td>
+											<td>
+												<p> <input type="submit" name="submit"> </p>
+											</td>
+										</tr>
+										<tr>
+											<td colspan="2" height="10" width="10">&nbsp;</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							</table>
+						</td>
+					</tr>
+				</table>
+
+<!--END OF ACCOUNT INFO TABLE-->
+	    </td>
+		<td width="20"></td>
+        <td valign="top">
+<!--BEGIN OF EMAIL LIST TABLE-->
+
+				<table width="300" border="0" cellpadding="0" bgcolor="black">
+					<tr>
+						<td>
+							<table width="300" border="0" cellpadding="5" bgcolor="white">
+							<tr>
+								<td>
+									<table width="290" border="0" bgcolor="#CCCCCC">
+										<th colspan="2" align="center" bgcolor="#333333">
+											<p><font color="white" size="2">List Info</font></p></th>
+										<tr>
+											<td align="right"><p>Mailing Lists: </p></td>
+											<td>
+												<p><TMPL_VAR name="list"> </p>
+											</td>
+										</tr>
+										<tr>
+											<td align="right"><p>Action</p></td>
+											<td>
+												<p><TMPL_VAR name="action"></p>
+											</td>
+										</tr>
+										<tr>
+											<td><p>Email Addresses: </p></td>
+											<td>
+												<textarea name="addresses" rows="10" cols="30"></textarea>
+											</td>
+										</tr>
+										<tr>
+											<td colspan="2" height="10" width="10">&nbsp;</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							</table>
+						</td>
+					</tr>
+				</table>
+
+<!--END OF EMAIL LIST TABLE-->
+        </td>
+	</tr>
+	<tr>
+		<td colspan="3" align="center"><p> &nbsp;</p><hr></td>
+	</tr>
+</table>
+</form>
+
+<!--
+
+Copyright (c) 2004, The Network People, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->

@@ -1,0 +1,317 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html" />
+	<title>Webmail - Powered By Mail::Toaster</title>
+	<meta name="generator" content="TextMate http://macromates.com/" />
+	<meta name="author" content="Matt Simerson" />
+	<link rel="stylesheet" href="mt-style.css" type="text/css" media="screen" />
+	<script src="mt-script.js" type="text/javascript"></script> 
+	<!-- Date: 2006-08-12 -->
+</head>
+
+<body onload="read_auth_settings_from_cookies(false)">
+
+<div id="messages_div">
+</div>
+
+<div id="header">
+    <div id="top_level_links">
+		<span id="webmail_span" class="first">
+	        <a onclick="selectHeading('webmail');">webmail</a> 
+		</span>
+		<span id="admin_span" class="middle">
+			<a onclick="selectHeading('admin');" >administration</a>
+		</span>
+		<span id="stats_span" class="middle">
+			<a onclick="selectHeading('stats');" >statistics</a>
+	  	</span>
+		<span id="help_span" class="middle">
+			<a onclick="selectHeading('help');" > help </a>
+	  	</span>
+     	<span id="cookie_save" class="middle" style="display: none;">
+			<a id="sign_in" onclick="save_auth_settings()">Log In</a>
+		</span>
+     	<span id="cookie_delete" class="middle" style="display: none;">
+			<a id="sign_out" onclick="erase_auth_settings()">Log Out</a>
+		</span>
+
+		<span id="top_level_close_span" class="last"></span>
+
+	<div id="head_top_right">
+        <div id="signed_in_div"> <a id="signed_in" name="signed_in"></a> </div>
+
+		<div id="login_form_div" style="display: none;">
+			<form id="auth" name="auth" method="get" action="">
+				<input name="email" type="text" id="email" size="12" 
+            		value="email address" onfocus="if(this.value=='email address')this.value='';" />
+				<input name="password" type="password" id="password" 
+            		size="10" value="password" onfocus="if(this.value=='password')this.value='';" />
+        		<input type="submit" value="Log In" onclick="save_auth_settings()" />
+			</form>
+		</div>
+    </div>
+		<div id="quota_div" style="display: none;">
+		    <div id="quota_100">
+		    </div>
+		    <div id="quota_used">
+	        </div>
+	        <div id="quota_desc">quota used
+	        </div>
+		</div>
+	</div>
+</div>
+
+<div id="head_bot">
+	<div id="webmail">
+		<span id="windex_span">
+			<a onclick="display_subhead_menu_item('windex');"> home </a>
+		</span>
+		<span id="squirrel_span"> 
+            <a onclick="display_subhead_menu_item('squirrel');" > squirrelmail </a>
+		</span>
+<!--
+		<span id="vwebmail_span">
+			<a onclick="display_subhead_menu_item('vwebmail');" > v-webmail </a>
+		</span>
+		<span id="sqwebmail_span">
+			<a onclick="display_subhead_menu_item('sqwebmail');"> sqwebmail </a>
+		</span>
+-->
+<!--
+		<span id="roundcube_span">
+			<a onclick="display_subhead_menu_item('roundcube');"> RoundCube </a>
+	    </span>
+		<span id="imp_span">
+			<a onclick="display_subhead_menu_item('imp');"> Horde </a>
+	    </span>
+-->
+	</div>
+	<div id="admin">
+		<span id="qmailadmin_span">
+	       <a onclick="display_subhead_menu_item('qmailadmin')"> qmailadmin </a>
+		</span>
+<!--
+		<span id="ezmlm_span">
+			<a onclick="display_subhead_menu_item('ezmlm')"> ezmlm </a>
+		</span>
+		<span id="vqadmin_span">
+			<a onclick="display_subhead_menu_item('vqadmin')"> vqadmin </a>
+		</span>
+-->
+	</div>
+	<div id="stats">
+        <span id="munin_span">
+		    <a onclick="display_subhead_menu_item('munin')"> munin </a>
+		</span>
+        <span id="isoqlog_span">
+            <a onclick="display_subhead_menu_item('isoqlog')"> isoqlog </a>
+		</span>
+<!--
+        <span id="rrdutil_span">
+		    <a onclick="display_subhead_menu_item('rrdutil')"> rrdutil </a>
+		</span>
+        <span id="qss_span">
+            <a onclick="display_subhead_menu_item('qss')"> qmailscanner </a>
+		</span>
+-->
+	</div>
+	<div id="help">
+		<span id="userguide_span">
+			<a onclick="display_subhead_menu_item('userguide')">user guide</a>
+		</span>
+	    <span id="webmail_help_span">
+			<a onclick="display_subhead_menu_item('webmail_help')"> webmail </a>
+		</span>
+	    <span id="imap_help_span">
+			<a onclick="display_subhead_menu_item('imap_help')"> imap </a>
+		</span>
+	    <span id="pop3_help_span">
+			<a onclick="display_subhead_menu_item('pop3_help')"> pop3 </a>
+		</span>
+	    <span id="filtering_help_span">
+			<a onclick="display_subhead_menu_item('filtering_help')"> spam filtering </a>
+		</span>
+	    <span id="antivirus_help_span">
+			<a onclick="display_subhead_menu_item('antivirus_help')"> virus scanning </a>
+		</span>
+        <span id="ssl_help_span">
+			<a onclick="display_subhead_menu_item('ssl_help')"> ssl security </a>
+       	</span>
+        <span id="vpopmail_help_span">
+			<a onclick="display_subhead_menu_item('vpopmail_help')"> vpopmail </a>
+       	</span>
+	</div>
+	<div id="powered_top">
+		Powered by <a target="mt_body" href="http://mail-toaster.org/">Mail::Toaster</a>
+	</div>
+</div>
+
+<!--
+<div id="validxhtml10">
+   <a href="http://validator.w3.org/check?uri=referer">
+    <img src="images/validxhtml10.gif" border="0" width="62" height="22" alt="valid xhtml 10" /></a>
+</div>
+<div id="valid_css">
+   <img src="images/vcss.gif" border="0" width="60" height="21" alt="valid css" />
+</div>
+<div id="powered_footer">
+    Powered by <a href="http://www.mail-toaster.org/" target="mt_body" title="Mail Toaster">Mail::Toaster</a>
+</div>
+-->
+
+<div id="windex_div" style="display: none;">
+    <!-- this div is not currently used -->
+    <form method="get" name="windex" target="mt_body" action="mt-webmail.html">
+        <input type="submit" value="" />
+    </form>
+</div>
+<div id="imp_div" style="display: none;">
+	<form method="post" name="imp" target="mt_body" action="/horde/imp/redirect.php">
+		<input type="hidden" name="imapuser" value="" />
+		<input type="hidden" name="pass" value="" />
+		<input type="hidden" name="actionID" value="105" />
+		<input type="hidden" name="url" value="" />
+		<input type="hidden" name="mailbox" value="INBOX" />
+		<input type="hidden" name="server" value="locahost" />
+		<input type="hidden" name="port" value="143" />
+		<input type="hidden" name="namespace" value="" />
+		<input type="hidden" name="maildomain" value="localhost" />
+		<input type="hidden" name="protocol" value="imap" />
+		<input type="hidden" name="realm" value="" />
+		<input type="hidden" name="folders" value="Mail/" />
+		<input type="hidden" name="new_lang" value="en_US/" />
+		<input type="submit" value="" />
+	</form>
+</div>
+<div id="roundcube_div" style="display: none;">
+	<form method="post" name="roundcube" target="mt_body" action="/roundcubemail/">
+	    <input name="_action" value="login" type="hidden" />
+	    <input type="hidden" name="_user" value="" />
+	    <input type="hidden" name="_pass" value="" />
+        <input type="submit" value="" />
+	</form>
+</div>
+<div id="squirrel_div" style="display: none;">
+	<form method="post" name="squirrel" target="mt_body" action="/squirrelmail/src/redirect.php">
+		<input type="hidden" name="login_username" value="" />
+		<input type="hidden" name="secretkey" value="" />
+		<input type="submit" value="" />
+    </form>
+</div>
+<div id="sqwebmail_div" style="display: none;">
+	<form method="post" name="sqwebmail" target="mt_body" action="/cgi-bin/sqwebmail">
+		<input type="hidden" name="username" value="" />
+		<input type="hidden" name="password" value="" />
+        <input type="hidden" name="sameip" value="1" />
+        <input type="submit" value="" />
+    </form>
+</div>
+<div id="vwebmail_div" style="display: none;">
+	<form method="post" name="vwebmail" target="mt_body" action="/v-webmail/login.php?vwebmailsession=">
+		<input type="hidden" name="username" value="" />
+		<input type="hidden" name="password" value="" />
+        <input type="hidden" name="mail_server" value="localhost" />
+        <input type="hidden" name="mail_server_type" value="imap/notls" />
+        <input type="hidden" name="mail_server_port" value="143" />
+        <input type="hidden" name="mail_server_fold" value="INBOX." />
+        <input type="hidden" name="language" value="en" />
+        <input type="hidden" name="template" value="v-webmail" />
+		<input type="submit" value="" />
+	</form>
+</div>
+
+<div id="qmailadmin_div" style="display: none;">
+	<form method="post" name="qmailadmin" target="mt_body" action="/cgi-bin/qmailadmin">
+		<input type="hidden" name="username" value="" />
+		<input type="hidden" name="domain" value="" />
+		<input type="hidden" name="password" value="" />
+		<input type="submit" value="" />
+	</form>
+</div>
+<div id="vqadmin_div" style="display: none;">
+	<form method="post" name="vqadmin" target="mt_body" action="/cgi-bin/vqadmin/vqadmin.cgi">
+		<input type="hidden" name="username" value="" />
+		<input type="hidden" name="domain" value="" />
+		<input type="hidden" name="password" value="" />
+		<input type="submit" value="" />
+	</form>
+</div>
+<div id="ezmlm_div" style="display: none;">
+	<form method="post" name="ezmlm" target="mt_body" action="ezmlm.cgi">
+		<input type="hidden" name="domain" value="" />
+		<input type="hidden" name="password" value="" />
+		<input type="submit" value="" />
+	</form>
+</div>
+
+<div id="isoqlog_div" style="display: none;">
+	<form name="isoqlog" target="mt_body" action="isoqlog/">
+		<input type="submit" value="submit" />
+    </form>
+</div>
+<div id="qss_div" style="display: none;">
+	<form method="get" name="qss" target="mt_body" action="qss/index.php">
+		<input type="submit" value="submit" />
+	</form>
+</div>
+<div id="munin_div" style="display: none;">
+	<form method="post" name="munin" target="mt_body" action="/munin/">
+        <input type="submit" value="" />
+	</form>
+</div>
+<div id="rrdutil_div" style="display: none;">
+	<form method="post" name="rrdutil" target="mt_body" action="/cgi-bin/rrdutil.cgi">
+		<input type="hidden" name="mail" value="on" />
+		<input type="hidden" name="days" value="1" />
+		<input type="hidden" name="hostname" value="localhost" />
+        <input type="submit" value="" />
+	</form>
+</div>
+
+<div id="userguide_div" style="display: none;">
+	<form method="get" name="userguide" target="mt_body" action="/qmailadmin/images/help/email_user/">
+        <input type="submit" value="" />
+	</form>
+</div>
+<div id="webmail_help_div" style="display: none;">
+	<form method="get" name="webmail_help" target="mt_body" action="support/webmail.html">
+        <input type="submit" value="" />
+	</form>
+</div>
+<div id="imap_help_div" style="display: none;">
+	<form method="get" name="imap_help" target="mt_body" action="support/imap.html">
+        <input type="submit" value="" />
+	</form>
+</div>
+<div id="pop3_help_div" style="display: none;">
+	<form method="get" name="pop3_help" target="mt_body" action="support/pop3.html">
+        <input type="submit" value="" />
+	</form>
+</div>
+<div id="filtering_help_div" style="display: none;">
+	<form method="get" name="filtering_help" target="mt_body" action="support/filtering.html">
+        <input type="submit" value="" />
+	</form>
+</div>
+<div id="antivirus_help_div" style="display: none;">
+	<form method="get" name="antivirus_help" target="mt_body" action="support/antivirus.html">
+        <input type="submit" value="" />
+	</form>
+</div>
+<div id="ssl_help_div" style="display:none;">
+    <form method="get" name="ssl_help" target="mt_body" action="support/ssl.html">
+        <input type="submit" value="" />
+    </form>
+</div>
+<div id="vpopmail_help_div" style="display:none;">
+    <form method="get" name="vpopmail_help" target="mt_body" action="vpopmail/index.html">
+        <input type="submit" value="" />
+    </form>
+</div>
+
+</body>
+
+</html>

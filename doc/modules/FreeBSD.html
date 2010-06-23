@@ -1,0 +1,272 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Mail::Toaster::FreeBSD</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:matt@imac24.simerson.net" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#subroutines">SUBROUTINES</a></li>
+	<li><a href="#author">AUTHOR</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#todo">TODO</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+	<li><a href="#copyright">COPYRIGHT</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>Mail::Toaster::FreeBSD - FreeBSD specific Mail::Toaster functions.</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p>Primarily functions for working with FreeBSD ports (updating, installing, configuring with custom options, etc) but also includes a suite of methods for FreeBSD managing jails.</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>Usage examples for each subroutine are included.</p>
+<p>
+</p>
+<hr />
+<h1><a name="subroutines">SUBROUTINES</a></h1>
+<dl>
+<dt><strong><a name="new" class="item">new</a></strong></dt>
+
+<dd>
+<pre>
+        use Mail::Toaster::FreeBSD;
+        my $fbsd = Mail::Toaster::FreeBSD-&gt;new;</pre>
+</dd>
+<dt><strong><a name="is_port_installed" class="item">is_port_installed</a></strong></dt>
+
+<dd>
+<p>Checks to see if a port is installed.</p>
+<pre>
+    $fbsd-&gt;is_port_installed( &quot;p5-CGI&quot; );</pre>
+<pre>
+ arguments required
+   port - the name of the port/package</pre>
+<pre>
+ arguments optional:
+   alt - alternate package name. This can help as ports evolve and register themselves differently in the ports database.</pre>
+<pre>
+ result:
+   0 - not installed
+   1 - if installed</pre>
+</dd>
+<dt><strong><a name="jail_create" class="item">jail_create</a></strong></dt>
+
+<dd>
+<pre>
+    $fbsd-&gt;jail_create( );</pre>
+<pre>
+ arguments required:
+    ip        - 10.0.1.1
+    
+ arguments optional:
+    hostname  - jail36.example.com,
+    jail_home - /home/jail,
+    debug</pre>
+<p>If hostname is not passed and reverse DNS is set up, it will
+be looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
+<p>jail_home defaults to &quot;/home/jail&quot;.</p>
+<p>Here's an example of how I use it:</p>
+<pre>
+    ifconfig fxp0 inet alias 10.0.1.175/32</pre>
+<pre>
+    perl -e 'use Mail::Toaster::FreeBSD;  
+         my $fbsd = Mail::Toaster::FreeBSD-&gt;new; 
+         $fbsd-&gt;jail_create( ip=&gt;&quot;10.0.1.175&quot; )';</pre>
+<p>After running $fbsd-&gt;jail_create, you need to set up the jail. 
+At the very least, you need to:</p>
+<pre>
+    1. set root password
+    2. create a user account
+    3. get remote root 
+        a) use sudo (pkg_add -r sudo; visudo)
+        b) add user to wheel group (vi /etc/group)
+        c) modify /etc/ssh/sshd_config to permit root login
+    4. install perl (pkg_add -r perl)</pre>
+<p>Here's how I set up my jails:</p>
+<pre>
+    pw useradd -n matt -d /home/matt -s /bin/tcsh -m -h 0
+    passwd root
+    pkg_add -r sudo rsync perl5.8
+    rehash; visudo
+    sh /etc/rc</pre>
+<p>Ssh into the jail from another terminal. Once successfully 
+logged in with root privs, you can drop the initial shell 
+and access the jail directly.</p>
+<p>Read the jail man pages for more details. Read the perl code
+to see what else it does.</p>
+</dd>
+<dt><strong><a name="jail_delete" class="item">jail_delete</a></strong></dt>
+
+<dd>
+<p>Delete a jail.</p>
+<pre>
+  $freebsd-&gt;jail_delete( ip=&gt;'10.0.1.160' );</pre>
+<p>This script unmounts the proc and dev filesystems and then nukes the jail directory.</p>
+<p>It would be a good idea to shut down any processes in the jail first.</p>
+</dd>
+<dt><strong><a name="jail_start" class="item">jail_start</a></strong></dt>
+
+<dd>
+<p>Starts up a FreeBSD jail.</p>
+<pre>
+        $fbsd-&gt;jail_start( ip=&gt;'10.0.1.1', hostname=&gt;'jail03.example.com' );</pre>
+<pre>
+ arguments required:
+    ip        - 10.0.1.1,</pre>
+<pre>
+ arguments optional:
+    hostname  - jail36.example.com,
+    jail_home - /home/jail,
+    debug</pre>
+<p>If hostname is not passed and reverse DNS is set up, it will be
+looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
+<p>jail_home defaults to &quot;/home/jail&quot;.</p>
+<p>Here's an example of how I use it:</p>
+<pre>
+    perl -e 'use Mail::Toaster::FreeBSD; 
+      $fbsd = Mail::Toaster::FreeBSD-&gt;new;
+      $fbsd-&gt;jail_start( ip=&gt;&quot;10.0.1.175&quot; )';</pre>
+<pre>
+    
+=item port_install</pre>
+<pre>
+    $fbsd-&gt;port_install( &quot;openldap2&quot; );</pre>
+<p>That's it. Really. Well, OK, sometimes it can get a little more complex. port_install checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap2.</p>
+<p>If you want to install OpenLDAP 2, then you can install from any of:</p>
+<pre>
+                /usr/ports/net/openldap2
+                /usr/ports/net/openldap20
+                /usr/ports/net/openldap21
+                /usr/ports/net/openldap22</pre>
+<p>So, a full complement of settings could look like:</p>
+<pre>
+
+    $freebsd-&gt;port_install( &quot;openldap2&quot;, 
+                dir   =&gt; &quot;openldap22&quot;,
+                check =&gt; &quot;openldap-2.2&quot;,
+                flags =&gt; &quot;NOPORTDOCS=true&quot;, 
+                fatal =&gt; 0,
+                debug =&gt; 1,
+        );</pre>
+<pre>
+ arguments required:
+   port - the name of the directory in which the port resides</pre>
+<pre>
+ arguments optional:
+   dir   - overrides 'port' for the build directory
+   check - what to test for to determine if the port is installed (see note #1)
+   flags - comma separated list of arguments to pass when building
+   fatal
+   debug</pre>
+<pre>
+ NOTES:</pre>
+<p>#1 - On rare occasion, a port will get installed as a name other than the ports name. Of course, that wreaks all sorts of havoc so when one of them nasties is found, you can optionally pass along a fourth parameter which can be used as the port installation name to check with.</p>
+</dd>
+<dt><strong><a name="package_install" class="item">package_install</a></strong></dt>
+
+<dd>
+<pre>
+        $fbsd-&gt;package_install( port=&gt;&quot;ispell&quot; );</pre>
+<p>Suggested usage:</p>
+<pre>
+        unless ( $fbsd-&gt;package_install( port=&gt;&quot;ispell&quot; ) ) {
+                $fbsd-&gt;port_install( &quot;ispell&quot; );
+        };</pre>
+<p>Installs the selected package from FreeBSD packages. If the first install fails, it will try again using an alternate FTP site (ftp2.freebsd.org). If that fails, it returns 0 (failure) so you know it failed and can try something else, like installing via ports.</p>
+<p>If the package is registered in FreeBSD's package registry as another name and you want to check against that name (so it doesn't try installing a package that's already installed), instead, pass it along as alt.</p>
+<pre>
+ arguments required:
+    port - the name of the package to install</pre>
+<pre>
+ arguments optional:
+    alt  - a name the package is registered in the ports tree as
+    url  - a URL to fetch the package from</pre>
+<p>See the pkg_add man page for more details on using an alternate URL.</p>
+</dd>
+<dt><strong><a name="ports_update" class="item">ports_update</a></strong></dt>
+
+<dd>
+<p>Updates the FreeBSD ports tree (/usr/ports/).</p>
+<pre>
+    $fbsd-&gt;ports_update(conf=&gt;$conf);</pre>
+<pre>
+ arguments required:
+   conf - a hashref
+ 
+See the docs for toaster-watcher.conf for complete details.</pre>
+</dd>
+<dt><strong><a name="conf_check" class="item">conf_check</a></strong></dt>
+
+<dd>
+<pre>
+    $fbsd-&gt;conf_check(check=&gt;&quot;snmpd_enable&quot;, line=&gt;&quot;snmpd_enable=\&quot;YES\&quot;&quot;);</pre>
+<p>The above example is for snmpd. This checks to verify that an snmpd_enable line exists in /etc/rc.conf. If it doesn't, then it will add it by appending the second argument to the file.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="author">AUTHOR</a></h1>
+<p>Matt Simerson &lt;<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>&gt;</p>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>None known. Report any to author.</p>
+<p>
+</p>
+<hr />
+<h1><a name="todo">TODO</a></h1>
+<p>Needs more documentation.</p>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p>The following are all man/perldoc pages:</p>
+<pre>
+ Mail::Toaster 
+ Mail::Toaster::Conf
+ toaster.conf
+ toaster-watcher.conf</pre>
+<pre>
+ <a href="http://mail-toaster.org/">http://mail-toaster.org/</a>
+ <a href="http://www.tnpi.net/computing/freebsd/">http://www.tnpi.net/computing/freebsd/</a></pre>
+<p>
+</p>
+<hr />
+<h1><a name="copyright">COPYRIGHT</a></h1>
+<p>Copyright 2003-2009, The Network People, Inc. All Rights Reserved.</p>
+<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+<p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+<p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+<p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+</body>
+
+</html>

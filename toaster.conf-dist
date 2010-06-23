@@ -1,0 +1,43 @@
+# 
+# Documentation for this file and its settings is included 
+# in the docs directory of the Mail::Toaster 
+# distribution, in perl pod format (perldoc toaster.conf)
+# and posted online at the following URLs:
+#
+#   http://mail-toaster.org/docs/ or
+#   http://www.tnpi.net/support/forums/
+#
+# A current copy of this file is posted on the Mail::Toaster web site:
+#   http://mail-toaster.org/etc/toaster.conf
+
+#######################################
+#         Mail::Toaster::Logs         #
+#######################################
+
+logs_debug         = 0      # caution, turning this on will result in LOTS of debug 
+                            # output, you certainly don't want to leave it on.
+
+logs_base          = /var/log/mail         # where qmail logs live (/var/log)
+logs_supervise     = /var/qmail/supervise
+logs_user          = qmaill
+logs_group         = qnofiles
+logs_pop3d         = dovecot               # courier, dovecot, or qpop3d
+logs_isoqlog       = 0                     # configure isoqlog first!
+logs_taifiles      = 1                     # output to multilogs @NNNNNNN files
+logs_archive       = 1                     # output to YYYY/MM/DD/xxxxlog files
+logs_archive_untai = 0                     # convert tai to human readable dates
+logs_archive_purge = 0                     # purge logs older than 1 month
+qmailanalog_bin    = /var/qmail/qmailanalog/bin
+send_log_method    = multilog
+
+logs_counters      = counters              # dir for storing counters
+logs_rbl_count     = smtp_rbl.txt
+logs_smtp_count    = smtp_auth.txt
+logs_send_count    = send.txt
+logs_pop3_count    = pop3.txt
+logs_imap_count    = imap.txt
+logs_spam_count    = spam.txt
+logs_virus_count   = virus.txt
+logs_web_count     = webmail.txt
+
+

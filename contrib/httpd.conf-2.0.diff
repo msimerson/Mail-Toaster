@@ -1,0 +1,33 @@
+389c389
+<     Options Indexes FollowSymLinks
+---
+>     Options Indexes FollowSymLinks ExecCGI
+405a406,419
+> <Directory "/usr/local/www/squirrelmail">
+>     Options Indexes ExecCGI
+>     AllowOverride None
+>     Order allow,deny
+>     Allow from all
+> </Directory>
+> 
+> <Directory "/usr/local/share/isoqlog/htmltemp/images">
+>     Options None
+>     AllowOverride None
+>     Order allow,deny
+>     Allow from all
+> </Directory>
+> 
+442c456
+< DirectoryIndex index.html index.html.var
+---
+> DirectoryIndex index.shtml index.html index.htm index.html.var
+597a612,614
+> Alias /squirrelmail/ "/usr/local/www/squirrelmail/"
+> Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
+> Alias /phpMyAdmin/ "/usr/local/www/phpMyAdmin/"
+906c923,925
+< #AddHandler cgi-script .cgi
+---
+> AddHandler cgi-script .cgi
+> AddType application/x-httpd-php .php
+> AddType application/x-httpd-php-source .phps

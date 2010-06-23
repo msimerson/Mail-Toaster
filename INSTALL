@@ -1,0 +1,12 @@
+
+INSTALLATION
+------------
+
+Full instructions are here: http://www.tnpi.net/wiki/Install_mail-toaster
+
+  perl Makefile.PL
+  make deps  (helpful)
+  make test
+  make install
+
+

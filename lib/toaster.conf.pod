@@ -1,0 +1,122 @@
+=head1 NAME
+
+toaster.conf - Configuration file for Mail::Toaster
+
+
+=head1 SYNOPSIS
+
+man pages for options in toaster.conf
+
+
+=head1 DESCRIPTION
+
+toaster.conf - This document provides details on what all them nifty settings do.
+
+A current copy of toaster.conf is posted on the Mail::Toaster web site at http://mail-toaster.org/etc/toaster.conf
+
+
+=head2 SITE SETTINGS
+
+ #######################################
+ #         Mail::Toaster::Logs         #
+ #######################################
+
+This section lets you configure the logging behavior on your toaster. This section is used primarily by the maillogs script. Note that there are also settings which affect logs in toaster-watcher.conf 
+
+
+ logs_base         = /var/log/mail
+
+If you store your logs somewhere else, change this. (Some people prefer /var/log/qmail, following "Life with Qmail")
+
+ logs_supervise    = /var/qmail/supervise
+
+The location of your supervise directory. The supervise directory contains control files for all supervised services available on your machine, even if they aren't running.
+
+THE DIFFERENCE BETWEEN SUPERVISE AND SERVICE DIRS
+
+The supervise directory is where all the control files are created and where they'll live forever and ever, even if they aren't used. The supervise directory can be the same as the service directory, but it shouldn't be. Per Dan & LWQ docs, the service directory should exist elsewhere. On FreeBSD /var/service is the most appropriate location (man hier for details). 
+
+In the service directory you create symlinks to the supervised directories you want running. 
+
+A good example of this is that many toaster run courier-imap's pop3 daemon instead of qmails. Yet, the qmail pop3 daemons supervise directory is still build in /var/qmail/supervise but not symlinked in /var/service and thus not running. Switching from courier to qmail's is typically as easy as: 
+
+  pop3 stop 
+  rm /usr/local/etc/rc.d/pop3.sh 
+  ln -s /var/qmail/supervise/pop3 /var/service 
+
+It's important to undertand the difference.
+
+ logs_user         = qmaill
+ logs_group        = qnofiles
+
+What user and group should own the toaster logfiles? 
+
+ logs_pop3d        = qpop3d  # courier | qpop3d
+
+The toaster used to use the courier pop3 server; now it uses the qmail pop3 server. If you are upgrading an older toaster and wish to continue using courier, make sure you change this.
+
+ logs_isoqlog      = 1  # configure isoqlog first!
+
+Will you process your logs with isoqlog? Make sure you heed the warning in the comment-- if you don't configure the isoqlog.conf file, but you leave this set to 1, bad things happen. If you haven't gotten around to configuring isoqlog, change this to 0 until you do. (MATT says: a default isoqlog file is now installed with reasonable defaults). If you have more than 50 domains, you'll have to set up a script that concatenates rcpthosts and morercpthosts to a new file for isoqlog to get its domain list from). 
+
+ logs_taifiles     = 1 
+
+Today's logfiles will be in filenames timestamped in the tai64n format. For example, a file called @400000004030ff6b05921044.s was created at 2004-02-16 12:35:29.093458500. To view these filenames in a human readable format, go to your log directory and enter ls | tai64nlocal.
+
+Be warned, if you disable this option, then qmailanalog processing will fail and your nightly qmail activity log will not work as you would hope and expect.
+
+ logs_archive      = 1  
+
+For example, the SMTP log file for February 14, 2004, is called 2004/02/14/smtplog.gz, unless you are looking at todays logs. Prior days log files are automatically compressed. This directory tree lives inside your logs_base directory. If you set this option to 0, old logs are not archived-- they are deleted. 
+
+ qmailanalog_bin = /usr/local/qmailanalog/bin
+ 
+The directory to your qmailanalog bin files.
+
+ logs_counters     = counters  
+
+A directory inside your logs_base directory, which stores the counter files used by maillogs. 
+
+ logs_rbl_count    = smtp_rbl.txt
+ logs_smtp_count   = smtp_auth.txt
+ logs_send_count   = send.txt
+ logs_pop3_count   = pop3.txt
+ logs_imap_count   = imap.txt
+ logs_spam_count   = spam.txt
+ logs_virus_count  = virus.txt
+ logs_web_count    = webmail.txt
+
+The names of the counter files in the logs_counters directory.
+
+
+=head1 AUTHOR
+
+ David Chaplin-Loebell <david@klatha.com>
+ Matt Simerson <matt@tnpi.net>
+
+David undertook the writing of this documentation for which I (Matt) and the toaster community are VERY grateful. Thank you David, and may the source always be with you.
+
+
+=head1 SEE ALSO
+
+ Mail::Toaster::Conf
+ toaster-watcher.conf
+
+
+=head1 COPYRIGHT
+
+Copyright (c) 2004-2008, The Network People, Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=cut
+
