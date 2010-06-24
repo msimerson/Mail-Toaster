@@ -2,26 +2,19 @@
 use strict;
 use warnings;
 
-#
-# $Id: ezmlm.cgi, matt Exp $
-#
+our $VERSION = "5.25";
 
-use lib "lib";
-use Mail::Toaster::Ezmlm; my $ezmlm = Mail::Toaster::Ezmlm->new;
+use lib 'lib';
+use Mail::Toaster;
+use Mail::Toaster::Ezmlm; 
 
-use vars qw/ $VERSION /;
-$VERSION = "5.02";
+my $toaster = Mail::Toaster->new(debug=>0);
+my $ezmlm = Mail::Toaster::Ezmlm->new( toaster => $toaster );
 
-if ( $ENV{'GATEWAY_INTERFACE'} ) 
-{
-	$ezmlm->process_cgi(br=>"\n", debug=>1);
-} 
-else 
-{
-	$ezmlm->process_shell() 
-};
+if ( $ENV{'GATEWAY_INTERFACE'} ) { $ezmlm->process_cgi(br=>"\n", debug=>1); } 
+else                             { $ezmlm->process_shell()  };
 
-exit 1;
+exit 0;
 
 =head1 NAME
 

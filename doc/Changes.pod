@@ -6,6 +6,7 @@
    replaced inline squirrelmail config with local overrides
    added build and post-install config support for lighttpd
    added sqlite build option for roundcube when install_mysql = 0
+   added t/01.syntax (syntax checks for bin/* and lib/*)
 
 =head2 5.25 - Jun 10, 2010
 

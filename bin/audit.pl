@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 
 use strict;
+use warnings;
+
 use English;
 
 my $http_url = "http://secure.example.com";
@@ -55,10 +57,10 @@ robots_dot_txt();
 
 sub access_control
 {
-    my $hosts_allow = "hosts.allow"
-    my $hosts_sshd  = "hosts.allow.ssh"
-    my $hosts_mysql = "hosts.allow.mysql"
-    my $hosts_http  = "hosts.allow.http"
+    my $hosts_allow = "hosts.allow";
+    my $hosts_sshd  = "hosts.allow.ssh";
+    my $hosts_mysql = "hosts.allow.mysql";
+    my $hosts_http  = "hosts.allow.http";
 
     return 0;
 
@@ -107,7 +109,7 @@ sub valid_accounts
     #print "adding users: " . join(" ", @tmp) . "\n";
     my %valid = map { $_ => 1 } @valid_accounts;
 
-    @tmp = `cat $badlist`; chomp @tmp;
+    @tmp = `cat $bad_users`; chomp @tmp;
     push @invalid_accounts, @tmp;
     my %invalid = map { $_ => 1 } @invalid_accounts;
 
@@ -129,7 +131,7 @@ sub valid_accounts
     };
 
     unlink $good_users;
-    unlink $badlist;
+    unlink $bad_users;
 
     _changes($changes, "ALERT: please verify the accounts shown above\n");
 };

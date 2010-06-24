@@ -11,12 +11,20 @@ use English qw( -no_match_vars );
 
 use lib 'lib';
 use Mail::Toaster          5.25; 
-my $toaster = Mail::Toaster->new;
-my $util    = $toaster->{util};
+my ($toaster, $util);
+
 
 sub new {
-    my ( $class, $name ) = @_;
-    my $self = { name => $name };
+    my $class = shift;
+    my %p = validate( @_, {
+        toaster => { type=> SCALAR, optional => 1 },
+    });
+
+    $toaster = $p{toaster} || Mail::Toaster->new(debug=>0);
+    $util = $toaster->get_util();
+
+    my $self = { toaster => $toaster };
+
     bless( $self, $class );
     return $self;
 }
