@@ -6,7 +6,10 @@
    replaced inline squirrelmail config with local overrides
    added build and post-install config support for lighttpd
    added sqlite build option for roundcube when install_mysql = 0
-   added t/01.syntax (syntax checks for bin/* and lib/*)
+   added t/01.syntax (syntax checks for bin/*, lib/*, cgi_files/ezmlm.cgi)
+   renamed port_install to install_port (see DEVELOP)
+   added crude munin install support
+   updated t_setup -s mailtoaster target (from $util-> to $toaster->)
 
 =head2 5.25 - Jun 10, 2010
 
@@ -34,7 +37,7 @@
    in t/Qmail.t, service_dir_get tests are non-fatal now
    changed IP used in RBL tests (my mail server got whitelisted?!)
    changed API for file_read, file_write, file_archive, is_port_installed,
-     port_install (first arg is filename)
+     install_port (first arg is filename)
    dovecot.conf altered using search/replace function instead of patch
    after installing spamassassin, run 'sa-update' to initialize
    create a single SSL cert and use it for qmail, dovecot, courier, apache
@@ -77,7 +80,7 @@
    added install_mysqld config setting, can install mysql client w/o server
    renamed config vpopmail_qmail_extensions to vpopmail_qmail_ext (match --config)
    deleted jail_create, delete, get_hostname, start functions (deprecated)
-   removed base from port_install calls, deprecated
+   removed base from install_port calls, deprecated
    removed qmailscanner support
    removed rrdutil support
    removed legacy CGI applications
@@ -289,7 +292,7 @@
       file if filtering_spamassassin_method was not = site.
     - installing phpmyadmin attempted to install php4-gd
       despite install_php = 5.
- *.pm - updated calls to darwin->port_install to reflect an internal
+ *.pm - updated calls to darwin->install_port to reflect an internal
       API change. 
 
 

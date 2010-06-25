@@ -105,6 +105,7 @@ META.yml
 README
 sysadmin.conf-dist
 t/00.load.t
+t/01-syntax.t
 t/Apache.t
 t/Darwin.t
 t/DNS.t

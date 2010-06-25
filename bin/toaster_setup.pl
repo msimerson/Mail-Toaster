@@ -122,6 +122,7 @@ my $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf=>$conf);
 : $section eq "socklog"     ? $setup->socklog          ( )
 : $section eq "isoqlog"     ? $setup->isoqlog          ( )
 : $section eq "supervise"   ? $setup->supervise        ( )
+: $section eq "munin"       ? $setup->munin            ( )
 
 # test targets
 : $section eq "test"        ? $setup->test             ( )
@@ -138,7 +139,7 @@ my $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf=>$conf);
 : $section eq "mattbundle"  ? $setup->mattbundle       ( )
 : $section eq "logmonster"  ? $setup->logmonster       ( )
 : $section eq "mrm"         ? $setup->mrm              ( )
-: $section eq "toaster"     ? $util->mailtoaster    (debug=>$debug)
+: $section eq "toaster"     ? $setup->mailtoaster      ( )
 : $section eq "nictool"     ? $setup->nictool          ( )
 : $section eq "webmail"     ? $setup->webmail          ( )
 : $section eq "all"         ? all()

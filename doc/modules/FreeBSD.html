@@ -153,10 +153,10 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
       $fbsd-&gt;jail_start( ip=&gt;&quot;10.0.1.175&quot; )';</pre>
 <pre>
     
-=item port_install</pre>
+=item install_port</pre>
 <pre>
-    $fbsd-&gt;port_install( &quot;openldap2&quot; );</pre>
-<p>That's it. Really. Well, OK, sometimes it can get a little more complex. port_install checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap2.</p>
+    $fbsd-&gt;install_port( &quot;openldap2&quot; );</pre>
+<p>That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap2.</p>
 <p>If you want to install OpenLDAP 2, then you can install from any of:</p>
 <pre>
                 /usr/ports/net/openldap2
@@ -166,7 +166,7 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
 <p>So, a full complement of settings could look like:</p>
 <pre>
 
-    $freebsd-&gt;port_install( &quot;openldap2&quot;, 
+    $freebsd-&gt;install_port( &quot;openldap2&quot;, 
                 dir   =&gt; &quot;openldap22&quot;,
                 check =&gt; &quot;openldap-2.2&quot;,
                 flags =&gt; &quot;NOPORTDOCS=true&quot;, 
@@ -195,7 +195,7 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
 <p>Suggested usage:</p>
 <pre>
         unless ( $fbsd-&gt;package_install( port=&gt;&quot;ispell&quot; ) ) {
-                $fbsd-&gt;port_install( &quot;ispell&quot; );
+                $fbsd-&gt;install_port( &quot;ispell&quot; );
         };</pre>
 <p>Installs the selected package from FreeBSD packages. If the first install fails, it will try again using an alternate FTP site (ftp2.freebsd.org). If that fails, it returns 0 (failure) so you know it failed and can try something else, like installing via ports.</p>
 <p>If the package is registered in FreeBSD's package registry as another name and you want to check against that name (so it doesn't try installing a package that's already installed), instead, pass it along as alt.</p>

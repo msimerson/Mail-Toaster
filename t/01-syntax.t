@@ -2,7 +2,7 @@
 use Config qw/ myconfig /;
 use Data::Dumper;
 use English qw/ -no_match_vars /;
-use Test::More tests => 21;
+use Test::More tests => 22;
 
 use lib 'lib';
 
@@ -31,3 +31,7 @@ foreach ( `find lib -name '*.pm'` ) {
     my $pretty_name = substr($_, 4);
     ok( $exit_code == 0, "syntax $pretty_name");
 };
+
+my $r = `$this_perl -c cgi_files/ezmlm.cgi 2>&1`;
+my $exit_code = sprintf ("%d", $CHILD_ERROR >> 8);
+ok( $exit_code == 0, "syntax ezmlm.cgi");

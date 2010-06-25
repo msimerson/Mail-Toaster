@@ -27,23 +27,21 @@ sub new {
     return $self;
 }
 
-sub port_install {
+sub install_port {
     my $self = shift;
     my $port_name = shift or return $log->error("missing port name", fatal => 0);
 
     my %p = validate( @_, {
             'opts'   => { type=>SCALAR,  optional=>1 },
             'fatal'  => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'  => { type=>BOOLEAN, optional=>1, default=>1 },
         },
     );
 
-    my ( $opts, $fatal, $debug )
-        = ( $p{'opts'}, $p{'fatal'}, $p{'debug'} );
+    my ( $opts, $fatal ) = ( $p{'opts'}, $p{'fatal'} );
 
     #	$self->ports_check_age("30");
 
-    print "port_install: installing $port_name...";
+    print "install_port: installing $port_name...";
 
     my $port_bin = $util->find_bin( "port", fatal => 0 );
 
@@ -219,9 +217,9 @@ Updates the Darwin Ports tree (/usr/ports/dports/).
 	$darwin->ports_update();
 
 
-=item port_install
+=item install_port
 
-	$darwin->port_install( "openldap2" );
+	$darwin->install_port( "openldap2" );
 
 That's it. Really. Honest. Nothing more. 
 

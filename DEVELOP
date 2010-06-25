@@ -1,0 +1,11 @@
+
+
+
+STYLE GUIDE
+
+Subroutine Naming (from PBP)
+
+routine  -> imperative_verb   [ _adjective]? _ noun _ preposition
+         |   imperative_verb  [ _adjective]? _ noun _ participle
+         |   imperative_verb  [ _adjective]? _ noun 
+

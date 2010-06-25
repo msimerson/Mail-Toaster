@@ -280,9 +280,9 @@ sub install_darwin {
 		croak "you are calling this incorrectly!\n" if $OSNAME ne "darwin";
 
     if ( $util->find_bin( "port", debug=>0) ) {
-        $darwin->port_install( "mysql5", debug=>$debug );
-        $darwin->port_install( "p5-dbi", debug=>$debug );
-        $darwin->port_install( "p5-dbd-mysql", debug=>$debug );
+        $darwin->install_port( "mysql5" );
+        $darwin->install_port( "p5-dbi" );
+        $darwin->install_port( "p5-dbd-mysql" );
         return 1;
     }
 
@@ -306,8 +306,8 @@ sub install_extras {
         $self->startup( conf=>$conf, debug=>$debug ) 
     };
 
-    $freebsd->port_install( "p5-DBI", debug => $debug, ); 
-    $freebsd->port_install( "p5-DBD-mysql", debug => $debug,);
+    $freebsd->install_port( "p5-DBI" ); 
+    $freebsd->install_port( "p5-DBD-mysql" );
 
     return 1;
 }
@@ -350,7 +350,7 @@ sub install_freebsd {
     push @ports, 'server' if $conf->{install_mysqld};
 
     foreach ( @ports ) {
-        $freebsd->port_install( "mysql$dir-$_",
+        $freebsd->install_port( "mysql$dir-$_",
             check => "mysql-$_-$check",
             flags => $flags,
         );
@@ -448,7 +448,7 @@ sub phpmyadmin_install {
 
     if ( $OSNAME eq "freebsd" ) {
 
-        $freebsd->port_install( "phpmyadmin", check => "phpMyAdmin");
+        $freebsd->install_port( "phpmyadmin", check => "phpMyAdmin");
         $dir = "/usr/local/www/data/phpMyAdmin";
 
         # the port moved the install location
@@ -458,7 +458,7 @@ sub phpmyadmin_install {
 
         print
 "NOTICE: the port install of phpmyadmin requires that Apache be installed in ports!\n";
-        $darwin->port_install( "phpmyadmin" );
+        $darwin->install_port( "phpmyadmin" );
         $dir = "/Library/Webserver/Documents/phpmyadmin";
     }
 

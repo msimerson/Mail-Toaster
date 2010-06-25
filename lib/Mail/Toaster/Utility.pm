@@ -1,6 +1,6 @@
 package Mail::Toaster::Utility;
 
-our $VERSION = '5.28';
+our $VERSION = '5.29';
 
 use strict;
 use warnings;
@@ -1827,16 +1827,16 @@ sub logfile_append {
     return 1;
 }
 
-sub provision_unix {
+sub mail_toaster {
     my ( $self, $debug ) = @_;
     my ( $conf, $ver );
 
     my $perlbin = $self->find_bin( "perl", debug => 0 );
 
-    if ( -e "/usr/local/etc/provision.conf" ) {
+    if ( -e "/usr/local/etc/toaster-watcher.conf" ) {
 
         $conf = $self->parse_config(
-            file   => "provision.conf",
+            file   => "toaster-watcher.conf",
             etcdir => "/usr/local/etc",
             debug  => 0,
         );
@@ -1989,6 +1989,24 @@ sub pidfile_check {
     }
 
     return $pidfile;
+}
+
+sub provision_unix {
+    my ( $self, $debug ) = @_;
+    my ( $conf, $ver );
+
+    my $perlbin = $self->find_bin( "perl", debug => 0 );
+
+    if ( -e "/usr/local/etc/provision.conf" ) {
+
+        $conf = $self->parse_config(
+            file   => "provision.conf",
+            etcdir => "/usr/local/etc",
+            debug  => 0,
+        );
+    }
+
+    $self->install_module( 'Provision::Unix' );
 }
 
 sub regexp_test {

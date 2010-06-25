@@ -94,6 +94,117 @@ sub get_version {
     return $version;
 }
 
+sub install_port {
+    my $self = shift;
+    my $portname = shift or return $log->error("missing port/package name", fatal=>0);
+    my %p    = validate(
+        @_,
+        {   dir      => { type => SCALAR, optional => 1 },
+            category => { type => SCALAR|UNDEF, optional => 1 },
+            check    => { type => SCALAR,  optional => 1 },
+            flags    => { type => SCALAR,  optional => 1 },
+            options  => { type => SCALAR,  optional => 1 },
+            fatal    => { type => BOOLEAN, optional => 1 },
+            test_ok  => { type => BOOLEAN, optional => 1 },
+        },
+    );
+
+    my ( $options, $fatal ) = ( $p{options}, $p{fatal} );
+
+    my $make_defines = "";
+    my @defs;
+
+    return $p{test_ok} if defined $p{test_ok};
+
+    my $check = $p{check} || $portname;
+    my $as = $self->is_port_installed( $check, fatal => $fatal );
+    if ($as) {
+        $log->audit( "install_port: $portname install, ok ($as)" );
+        return 1;
+    }
+
+    my $port_dir = $p{dir} || $portname;
+    $port_dir =~ s/::/-/g if $port_dir =~ /::/;
+
+    my $start_directory = Cwd::getcwd();
+		my $category = $p{category} || $self->get_port_category($portname) 
+            or die "unable to find port directory for port $portname\n";
+
+		my $path = "/usr/ports/$category/$port_dir";
+		-d $path && chdir $path or croak "couldn't cd to $path: $!\n";
+
+    $log->audit("install_port: installing $portname");
+
+    # these are the "make -DWITH_OPTION" flags
+    if ( $p{flags} ) {
+        @defs = split( /,/, $p{flags} );
+        foreach my $def (@defs) {
+            if ( $def =~ /=/ ) {             # DEFINE=VALUE format, use as is
+                $make_defines .= " $def ";
+            }
+            else { 
+                $make_defines .= " -D$def "; # otherwise, prepend the -D flag
+            }
+        }
+    }
+
+    if ($options) {
+        $self->port_options( port => $portname, opts => $options );
+    }
+
+    if ( $portname eq "qmail" ) {
+        $util->syscmd( "make clean && make $make_defines install && make clean");
+    }
+    elsif ( $portname eq "ezmlm-idx" ) {
+        $util->syscmd( "make clean && make $make_defines install" );
+        copy( "work/ezmlm-0.53/ezmlmrc", "/usr/local/bin" );
+        $util->syscmd( "make clean" );
+    }
+    else {
+
+        # reset our PATH, to make sure we use our system supplied tools
+        $ENV{PATH}
+            = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
+
+        # the vast majority of ports work great this way
+        print "running: make $make_defines install clean\n";
+        system "make clean";
+        system "make $make_defines";
+        system "make $make_defines install";
+        system "make clean";
+    }
+
+    # return to our original working directory
+    chdir($start_directory);
+
+    $as = $self->is_port_installed( $check, fatal => $fatal,);
+    if ($as) {
+        $log->audit( "install_port: $portname install, ok ($as)" );
+        return 1;
+    }
+
+    $log->audit( "install_port: $portname install, FAILED" );
+    $self->install_port_try_manual( $portname, $path );
+
+    if ( $portname =~ /\Ap5\-(.*)\z/ ) {
+        my $p_name = $1;
+        $p_name =~ s/\-/::/g;
+
+        print <<"EO_PERL_MODULE_MANUAL";
+Since it was a perl module that failed to install,  you could also try
+manually installing via CPAN. Try something like this:
+
+       perl -MCPAN -e 'install $p_name'
+
+EO_PERL_MODULE_MANUAL
+    };
+
+    croak
+        "FATAL FAILURE: Install of $portname failed. Please fix and try again.\n"
+        if $fatal;
+    return;
+}
+
 sub is_port_installed {
     my $self = shift;
     my $port = shift or return $log->error("missing port/package name", fatal=>0);
@@ -131,12 +242,11 @@ sub install_portupgrade {
         @_,
         {   conf    => { type => HASHREF, optional => 1, },
             fatal   => { type => BOOLEAN, optional => 1, default => 1 },
-            debug   => { type => BOOLEAN, optional => 1, default => 1 },
             test_ok => { type => BOOLEAN, optional => 1 },
         },
     );
 
-    my ( $conf, $fatal, $debug ) = ( $p{'conf'}, $p{'fatal'}, $p{'debug'} );
+    my ( $conf, $fatal ) = ( $p{'conf'}, $p{'fatal'} );
 
     my $package = $conf->{'package_install_method'} || "packages";
 
@@ -163,14 +273,9 @@ sub install_portupgrade {
         );
     }
 
-    $self->port_install(
-        port  => "portupgrade",
-        debug => 0,
-        fatal => $fatal,
-    );
+    $self->install_port( port => "portupgrade", fatal => $fatal,);
 
-    return 1 
-        if $self->is_port_installed( "portupgrade", fatal => $fatal, debug => 0 );
+    return 1 if $self->is_port_installed( "portupgrade" );
     return;
 }
 
@@ -287,127 +392,7 @@ sub package_install {
     return $r;
 }
 
-sub port_install {
-    my $self = shift;
-    my $portname = shift or return $log->error("missing port/package name", fatal=>0);
-    my %p    = validate(
-        @_,
-        {   dir      => { type => SCALAR, optional => 1 },
-            category => { type => SCALAR|UNDEF, optional => 1 },
-            check    => { type => SCALAR,  optional => 1 },
-            flags    => { type => SCALAR,  optional => 1 },
-            options  => { type => SCALAR,  optional => 1 },
-            fatal    => { type => BOOLEAN, optional => 1 },
-            debug    => { type => BOOLEAN, optional => 1 },
-            test_ok  => { type => BOOLEAN, optional => 1 },
-        },
-    );
-
-    my ( $options, $fatal, $debug ) = ( $p{options}, $p{fatal}, $p{debug} );
-
-    my $make_defines = "";
-    my @defs;
-
-    return $p{test_ok} if defined $p{test_ok};
-
-    my $check = $p{check} || $portname;
-    my $as = $self->is_port_installed( $check, fatal => $fatal );
-    if ($as) {
-        $log->audit( "port_install: $portname install, ok ($as)" );
-        return 1;
-    }
-
-    warn "port_install: installing $portname\n";
-
-    my $port_dir = $p{dir} || $portname;
-    $port_dir =~ s/::/-/g if $port_dir =~ /::/;
-
-    my $start_directory = Cwd::getcwd();
-		my $category = $p{category} || $self->get_port_category($portname) 
-            or die "unable to find port directory for port $portname\n";
-
-		my $path = "/usr/ports/$category/$port_dir";
-		-d $path && chdir $path or croak "couldn't cd to $path: $!\n";
-
-    $log->audit("port_install: installing $portname");
-
-    # these are the "make -DWITH_OPTION" flags
-    if ( $p{flags} ) {
-        @defs = split( /,/, $p{flags} );
-        foreach my $def (@defs) {
-
-            # if provided in the DEFINE=VALUE format, use it as is
-            if ( $def =~ /=/ ) { $make_defines .= " $def " }
-
-            # otherwise, we need to prepend the -D flag
-            else { $make_defines .= " -D$def " }
-        }
-    }
-
-    if ($options) {
-        $self->port_options( port => $portname, opts => $options );
-    }
-
-    if ( $portname eq "qmail" ) {
-        $util->syscmd( "make clean && make $make_defines install && make clean", 
-            debug => $debug
-        );
-    }
-    elsif ( $portname eq "ezmlm-idx" ) {
-        $util->syscmd( "make clean && make $make_defines install",
-            debug => $debug,
-            fatal => $fatal
-        );
-        copy( "work/ezmlm-0.53/ezmlmrc", "/usr/local/bin" );
-        $util->syscmd( "make clean", debug => $debug, fatal => $fatal);
-    }
-    else {
-
-        # reset our PATH, to make sure we use our system supplied tools
-        $ENV{PATH}
-            = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
-
-        # the vast majority of ports work great this way
-        print "running: make $make_defines install clean\n";
-        system "make clean";
-        system "make $make_defines";
-        system "make $make_defines install";
-        system "make clean";
-    }
-    print "done.\n" if $debug;
-
-    # return to our original working directory
-    chdir($start_directory);
-
-    $as = $self->is_port_installed( $check, debug => $debug, fatal => $fatal,);
-    if ($as) {
-        $log->audit( "port_install: $portname install, ok ($as)" );
-        return 1;
-    }
-
-    $log->audit( "port_install: $portname install, FAILED" );
-    $self->port_install_try_manual( $portname, $path );
-
-    if ( $portname =~ /\Ap5\-(.*)\z/ ) {
-        my $p_name = $1;
-        $p_name =~ s/\-/::/g;
-
-        print <<"EO_PERL_MODULE_MANUAL";
-Since it was a perl module that failed to install,  you could also try
-manually installing via CPAN. Try something like this:
-
-       perl -MCPAN -e 'install $p_name'
-
-EO_PERL_MODULE_MANUAL
-    };
-
-    croak
-        "FATAL FAILURE: Install of $portname failed. Please fix and try again.\n"
-        if $fatal;
-    return;
-}
-
-sub port_install_try_manual {
+sub install_port_try_manual {
     my ($self, $portname, $path ) = @_;
     print <<"EO_PORT_TRY_MANUAL";
 
@@ -492,11 +477,7 @@ sub ports_update {
 
     return $self->portsnap( debug => $debug, fatal => $fatal );
 
-    $self->install_portupgrade(
-        conf  => $conf,
-        debug => $debug,
-        fatal => $fatal
-    ) if $conf->{'install_portupgrade'};
+    $self->install_portupgrade( conf  => $conf ) if $conf->{'install_portupgrade'};
 
     return 1;
 }
@@ -522,10 +503,7 @@ sub portsnap {
     my $ps_conf = "/usr/local/etc/portsnap.conf";
 
     unless ( $portsnap && -x $portsnap ) {
-        $self->port_install( "portsnap",
-            'debug' => $debug,
-            'fatal' => $fatal,
-        );
+        $self->install_port( "portsnap" );
 
         if ( !-e $ps_conf ) {
             if ( -e "$ps_conf.sample" ) {
@@ -745,11 +723,11 @@ Here's an example of how I use it:
 
 
     
-=item port_install
+=item install_port
 
-    $fbsd->port_install( "openldap2" );
+    $fbsd->install_port( "openldap2" );
 
-That's it. Really. Well, OK, sometimes it can get a little more complex. port_install checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap2. 
+That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap2. 
 
 If you want to install OpenLDAP 2, then you can install from any of:
 
@@ -760,12 +738,11 @@ If you want to install OpenLDAP 2, then you can install from any of:
 
 So, a full complement of settings could look like:
   
-    $freebsd->port_install( "openldap2", 
+    $freebsd->install_port( "openldap2", 
 		dir   => "openldap22",
 		check => "openldap-2.2",
 		flags => "NOPORTDOCS=true", 
 		fatal => 0,
-		debug => 1,
 	);
 
  arguments required:
@@ -790,7 +767,7 @@ So, a full complement of settings could look like:
 Suggested usage: 
 
 	unless ( $fbsd->package_install( port=>"ispell" ) ) {
-		$fbsd->port_install( "ispell" );
+		$fbsd->install_port( "ispell" );
 	};
 
 Installs the selected package from FreeBSD packages. If the first install fails, it will try again using an alternate FTP site (ftp2.freebsd.org). If that fails, it returns 0 (failure) so you know it failed and can try something else, like installing via ports.

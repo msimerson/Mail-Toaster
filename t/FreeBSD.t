@@ -70,13 +70,12 @@ my $util = $toaster->get_util;
        ), 'package_install');
 
 
-# port_install
-	ok ( $freebsd->port_install( "perl", 
+# install_port
+	ok ( $freebsd->install_port( "perl", 
 	    dir   => 'perl5.8', 
-	    debug => 0, 
         fatal => 0,
 	    test_ok=> 1, 
-	), 'port_install');
+	), 'install_port');
 
 
 # port_options
