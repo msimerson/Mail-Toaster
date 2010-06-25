@@ -142,7 +142,7 @@ sub build_smtp_run {
     $exec .= $self->smtp_set_rbls();
     $exec .= "\\\n\trecordio " if $conf->{'smtpd_recordio'};
     $exec .= "\\\n\tfixcrio "  if $conf->{'smtpd_fixcrio'};
-    $exec .= "qmail-smtpd ";
+    $exec .= "\\\n\tqmail-smtpd ";
     $exec .= $self->smtp_auth_enable();
     $exec .= $toaster->supervised_log_method( prot => "smtpd" );
 
@@ -1985,7 +1985,7 @@ sub smtp_auth_enable {
     my $chkpass = $self->_set_checkpasswd_bin( prot => 'smtpd' ) 
         or return '';
 
-    return "\\\n\t$smtp_auth $chkpass /usr/bin/true ";
+    return "$smtp_auth $chkpass /usr/bin/true ";
 }
 
 sub smtp_set_qmailqueue {
@@ -2062,7 +2062,7 @@ sub smtp_set_rbls {
     }
     else { print "no RBL's selected\n" if $debug }
 
-    return $rbl_cmd_string;
+    return "$rbl_cmd_string ";
 };
 
 sub test_each_rbl {

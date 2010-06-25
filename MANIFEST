@@ -59,6 +59,7 @@ contrib/munin/qmail_rbl
 contrib/munin/spamassassin
 contrib/qmail-tap.diff
 contrib/services.sh
+DEVELOP
 doc/Changes.html
 doc/Changes.pod
 doc/mailadmin.html
