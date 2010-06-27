@@ -25,7 +25,7 @@ my $util  = $toaster->{util};
 die "Sorry, you are not root!\n" if $UID != 0;
 
 my $pidfile = "/var/run/toaster-watcher.pid";
-if ( ! $util->pidfile_check( pidfile => $pidfile, fatal=>0, debug=>0 ) ) {
+if ( ! $util->check_pidfile( $pidfile, fatal=>0, debug=>0 ) ) {
     warn "Another toaster-watcher is running,  I refuse to!\n";
     exit 500;
 };

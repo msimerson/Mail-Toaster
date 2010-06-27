@@ -1,6 +1,5 @@
 
 
-
 STYLE GUIDE
 
 Subroutine Naming (from PBP)
@@ -8,4 +7,48 @@ Subroutine Naming (from PBP)
 routine  -> imperative_verb   [ _adjective]? _ noun _ preposition
          |   imperative_verb  [ _adjective]? _ noun _ participle
          |   imperative_verb  [ _adjective]? _ noun 
+
+
+
+FATAL BY DESIGN
+
+Subroutines should succeed or die trying.
+
+Except when the caller exclicity provides permission by passing an optional named parameter for fatal.
+
+  $util->get_url('http://www.tnpi.nt/index.html');    # <- fatal (invalid domain)
+  $util->get_url('http://www.tnpi.nt/index.html',fatal=>0);  # not fatal, err result
+  $util->get_url('http://www.tnpi.net/index.html');   # success!
+
+In the example above, the first example won't return anything unless the caller traps the exception. In the second example, a false value is returned. In the final example, a true value is returned.
+
+
+
+STATUS AND ERROR MESSAGES
+
+Don't use print or warn.
+
+Instead, make calls to a Mail::Toaster object, which is present in each module as $log. Status messages and anything that should return a successful result should call $log->audit. Errors should instead call $log->error. The primary difference is that audit messages return a successful result code and errors return a failure code.
+
+ $util->is_readable( '/tmp' )
+    or return $log->error( "can't read /tmp" );
+ $log->audit( "yay, I can read from /tmp" );
+
+To save a status message:
+
+  $log->audit("test status message");        <- prints nothing to the screen
+  $log->audit("save and print it",debug=>1)  <- saves the message and prints it
+
+To save an error message:
+
+  $log->error("I've fallen and can't reach by beer");  <- fatal error
+  $log->error("I can still reach my beer",fatal=>0);   <- non-fatal error
+
+Authors are encouraged to use $log->audit extensively. By default, audit calls do not print. This allows the authors to be verbose by liberally using audit messages, as if they were commenting their code in english. 
+
+When an error condition is encountered, the audit and error logs are printed to the screen, allowing the author and/or user to see, in great detail, what the error encountered was, as well as the context leading up to it. 
+
+
+USING AND SHARING STANDARD ARGUMENTS
+
 

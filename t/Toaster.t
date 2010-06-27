@@ -10,11 +10,8 @@ use lib 'lib';
 
 BEGIN {
     use_ok('Mail::Toaster');
-    use_ok('Mail::Toaster::Utility');
 }
 require_ok('Mail::Toaster');
-require_ok('Mail::Toaster::Utility');
-
 
 my $toaster = Mail::Toaster->new(debug=>0);
 ok( defined $toaster, 'get Mail::Toaster object' );
@@ -22,8 +19,6 @@ ok( $toaster->isa('Mail::Toaster'), 'check object class' );
 ok( ref $toaster->get_config(), 'get_config');
 
 my $util = $toaster->get_util;
-ok( ref $util, 'get Mail::Toaster::Utility object' );
-ok( $util->isa('Mail::Toaster::Utility'), 'check object class' );
 
 # audit
 $toaster->dump_audit( quiet => 1);
@@ -120,21 +115,21 @@ if ( $UID == 0 ) {
         ok( $toaster->learn_mailboxes( 
             fatal => 0,
             test_ok => 1, 
-        ), 'learn_mailboxes' );
+        ), 'learn_mailboxes +' );
 
 # clean_mailboxes
         ok( $toaster->clean_mailboxes( test_ok=>1, fatal => 0 ),
-            'clean_mailboxes' );
+            'clean_mailboxes +' );
     }
     else {
         # these should fail if the toaster logs are not set up yet
         ok( ! $toaster->clean_mailboxes( fatal => 0 ),
-            'clean_mailboxes' );
+            'clean_mailboxes -' );
 
         ok( ! $toaster->learn_mailboxes( 
             fatal => 0,
             test_ok => 0, 
-        ), 'learn_mailboxes' );
+        ), 'learn_mailboxes -' );
     }
 }
 

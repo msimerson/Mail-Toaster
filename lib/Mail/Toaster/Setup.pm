@@ -300,33 +300,22 @@ sub clamav {
 }
 
 sub clamav_perms {
-# fix up the permissions of several clamav directories and files
-
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    my $debug   = $self->set_debug( $p{debug} );
     my $prefix  = $conf->{'toaster_prefix'}      || "/usr/local";
     my $confdir = $conf->{'system_config_dir'}   || "/usr/local/etc";
     my $clamuid = $conf->{'install_clamav_user'} || "clamav";
     my $share   = "$prefix/share/clamav";
 
     foreach my $file ( $share, "$share/daily.cvd", "$share/main.cvd",
-        "$share/viruses.db", "$share/viruses.db2", "/var/log/freshclam.log", )
-    {
+        "$share/viruses.db", "$share/viruses.db2", "/var/log/freshclam.log", ) {
 
-        #print "setting the ownership of $file to $clamuid.\n";
-        if ( -e $file ) {
-            $util->chown(
-                file  => $file,
-                uid   => $clamuid,
-                gid   => 'clamav',
-                debug => $debug,
-            );
-        }
+        print "setting the ownership of $file to $clamuid.\n";
+        $util->chown( $file, uid => $clamuid, gid => 'clamav' ) if -e $file;
     }
 
-    $util->syscmd( "pw user mod clamav -G qmail", debug => $debug );
+    $util->syscmd( "pw user mod clamav -G qmail", debug => $p{debug} );
 }
 
 sub clamav_run {
@@ -2218,7 +2207,7 @@ WITHOUT_PGSQL=true",
 
     # figure out where to install the CGI
 
-    $util->cwd_source_dir( dir => "$src/mail" );
+    $util->cwd_source_dir( "$src/mail" );
 
     if ( -d $ezmlm_dist ) {
         unless (
@@ -2234,17 +2223,17 @@ WITHOUT_PGSQL=true",
     }
 
     unless ( -e "$ezmlm_dist.tar.gz" ) {
-        $util->file_get( url => "$site/archive/$ezmlm_dist.tar.gz", debug=>$debug );
+        $util->get_url( "$site/archive/$ezmlm_dist.tar.gz" );
     }
 
     unless ( -e "$idx.tar.gz" ) {
-        $util->file_get( url => "$site/archive/$ver/$idx.tar.gz", debug=>$debug );
+        $util->get_url( "$site/archive/$ver/$idx.tar.gz" );
     }
 
-    $util->archive_expand( archive => "$ezmlm_dist.tar.gz", debug => $debug )
+    $util->extract_archive( "$ezmlm_dist.tar.gz" )
       or croak "Couldn't expand $ezmlm_dist.tar.gz: $!\n";
 
-    $util->archive_expand( archive => "$idx.tar.gz", debug => $debug )
+    $util->extract_archive( "$idx.tar.gz" )
       or croak "Couldn't expand $idx.tar.gz: $!\n";
 
     $util->syscmd( "mv $idx/* $ezmlm_dist/", debug=>$debug );
@@ -3086,8 +3075,8 @@ sub maildrop {
     my $sub_bin = $util->find_bin( "$prefix/sbin/subscribeIMAP.sh", debug => 0, fatal => 0 );
     unless ( $sub_bin && -e $sub_bin ) {
 
-        my $chown = $util->find_bin( 'chown', debug => 0 );
-        my $chmod = $util->find_bin( 'chmod', debug => 0 );
+        my $chown = $util->find_bin( 'chown' );
+        my $chmod = $util->find_bin( 'chmod' );
 
         my @lines;
         push @lines, '#!/bin/sh
@@ -3138,15 +3127,11 @@ fi
         $util->mkdir_system( dir => $log, debug => 0 );
 
         # set its ownership to be that of the qmail log user
-        $util->chown(
-            dir   => $log,
+        $util->chown( $log,
             uid   => $conf->{'qmail_log_user'},
             gid   => $conf->{'qmail_log_group'},
             sudo  => $UID == 0 ? 0 : 1,
-            debug => $debug,
         );
-
-        #or croak "maildrop: chown $log failed!";
     }
 
     my $logf = "$log/maildrop.log";
@@ -3156,8 +3141,7 @@ fi
         $util->file_write( $logf, lines => ["begin"], debug=>$debug );
 
         # set the ownership of the maildrop log to the vpopmail user
-        $util->chown(
-            file  => $logf,
+        $util->chown( $logf,
             uid   => $uid,
             gid   => $gid,
             sudo  => 1,
@@ -3224,8 +3208,7 @@ sub maildrop_filter {
             debug => $debug,
         );
 
-        $util->chown(
-            file  => $filterfile,
+        $util->chown( $filterfile,
             uid   => $user,
             gid   => $group,
             debug => $debug,
@@ -3241,8 +3224,7 @@ sub maildrop_filter {
         debug => $debug,
     );
 
-    $util->chown(
-        file => "$filterfile.new",
+    $util->chown( "$filterfile.new",
         uid  => $user,
         gid  => $group,
         debug => $debug,
@@ -4526,13 +4508,13 @@ sub qmailadmin_help {
        $src .= "/mail";
  
     print "qmailadmin: Installing help files in $helpdir\n";
-    $util->cwd_source_dir( dir => $src, debug=>$debug );
+    $util->cwd_source_dir( $src, debug=>$debug );
 
     my $helpfile = "qmailadmin-help-$ver";
     unless ( -e "$helpfile.tar.gz" ) {
         my $url = "http://$conf->{toaster_sf_mirror}/qmailadmin/qmailadmin-help/$ver/$helpfile.tar.gz";
         print "qmailadmin: fetching helpfile tarball from $url.\n";
-        $util->file_get( url => $url, debug=>$debug );
+        $util->get_url( $url );
     }
 
     if ( !-e "$helpfile.tar.gz" ) {
@@ -4540,7 +4522,7 @@ sub qmailadmin_help {
         return;
     }
 
-    $util->archive_expand( archive => "$helpfile.tar.gz", debug => $debug );
+    $util->extract_archive( "$helpfile.tar.gz" );
 
     move( $helpfile, $helpdir ) or
         $log->error( "Could not move $helpfile to $helpdir");
@@ -5166,7 +5148,7 @@ sub simscan_conf {
     my $group = $conf->{'smtpd_run_as_group'} || 'qmail';
 
     $util->syscmd( "pw user mod simscan -G qmail,clamav", debug => $debug );
-    $util->chown( dir => '/var/qmail/simscan', uid => $user, gid => $group );
+    $util->chown( '/var/qmail/simscan', uid => $user, gid => $group );
     $util->chmod( dir => '/var/qmail/simscan', mode => '0770' );
 
     if ( -x "/var/qmail/bin/simscanmk" ) {
@@ -6009,7 +5991,7 @@ sub sqwebmail {
     my $site    = "http://" . $conf->{'toaster_sf_mirror'} . "/courier";
     my $src     = $conf->{'toaster_src_dir'} || "/usr/local/src";
 
-    $util->cwd_source_dir( dir => "$src/mail" );
+    $util->cwd_source_dir( "$src/mail" );
 
     if ( -d "$package" ) {
         unless ( $util->source_warning( $package, 1, $src ) ) {
@@ -6019,13 +6001,13 @@ sub sqwebmail {
     }
 
     unless ( -e "$package.tar.bz2" ) {
-        $util->file_get( url => "$site/$package.tar.bz2" );
+        $util->get_url( "$site/$package.tar.bz2" );
         unless ( -e "$package.tar.bz2" ) {
             croak "sqwebmail FAILED: coudn't fetch $package\n";
         }
     }
 
-    $util->archive_expand( archive => "$package.tar.bz2", debug => $debug );
+    $util->extract_archive( "$package.tar.bz2" );
 
     chdir($package) or croak "sqwebmail FAILED: coudn't chdir $package\n";
 
@@ -6252,7 +6234,7 @@ sub startup_script_darwin {
     my $dl_url = "$dl_site/internet/mail/toaster";
 
     unless ( -e $start ) {
-        $util->file_get( url => "$dl_url/start/to.yp.cr.daemontools-svscan.plist" );
+        $util->get_url( "$dl_url/start/to.yp.cr.daemontools-svscan.plist" );
         my $r = $util->install_if_changed(
             newfile  => "to.yp.cr.daemontools-svscan.plist",
             existing => $start,
@@ -6267,7 +6249,7 @@ sub startup_script_darwin {
     $start = "$prefix/sbin/services";
 
     if ( -w $start ) {
-        $util->file_get( url => "$dl_url/start/services-darwin.txt" );
+        $util->get_url( "$dl_url/start/services-darwin.txt" );
 
         my $r = $util->install_if_changed(
             newfile  => "services-darwin.txt",
@@ -6295,7 +6277,7 @@ sub startup_script_freebsd {
 
         my $dl_site = $conf->{'toaster_dl_site'} || "http://www.tnpi.net";
         my $dl_url = "$dl_site/internet/mail/toaster";
-        $util->file_get( url => "$dl_url/start/services.txt" );
+        $util->get_url( "$dl_url/start/services.txt" );
         my $r = $util->install_if_changed(
             newfile  => "services.txt",
             existing => $start,
@@ -7082,7 +7064,7 @@ sub vpopmail {
 
     my $src = $conf->{'toaster_src_dir'} || "/usr/local/src";
 
-    $util->cwd_source_dir( dir => "$src/mail", debug=>$debug );
+    $util->cwd_source_dir( "$src/mail", debug=>$debug );
 
     my $tarball = "$package.tar.gz";
 
@@ -7112,10 +7094,8 @@ sub vpopmail {
         }
     }
 
-    if ( !$util->archive_expand( archive => $tarball, debug => $debug ) )
-    {
-        croak "Couldn't expand $tarball!\n";
-    }
+    croak "Couldn't expand $tarball!\n"
+        if !$util->extract_archive( $tarball );
 
     if ( $conf->{vpopmail_mysql} ) {
         $conf_args .= $self->vpopmail_mysql_options();
@@ -7185,11 +7165,9 @@ sub vpopmail_default_domain {
             debug => 0,
         );
 
-        $util->chown(
-            file => "$vpopdir/etc/defaultdomain",
+        $util->chown( "$vpopdir/etc/defaultdomain",
             uid  => $conf->{'vpopmail_user'}  || "vpopmail",
             gid  => $conf->{'vpopmail_group'} || "vchkpw",
-            debug => 0,
         );
 
         return q{};
@@ -7332,7 +7310,7 @@ sub vpopmail_install_default_tcp_smtp {
         my $count = $util->file_read( "$etc_dir/tcp.smtp" );
         return if $count != 1;
         # back it up
-        $util->file_archive( "$etc_dir/tcp.smtp" );
+        $util->archive_file( "$etc_dir/tcp.smtp" );
     }
 
     my $qdir = $conf->{'qmail_dir'};

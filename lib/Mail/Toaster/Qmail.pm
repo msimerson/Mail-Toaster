@@ -966,7 +966,7 @@ sub install_qmail {
     my $dl_url  = $conf->{'toaster_dl_url'}  || "/internet/mail/toaster";
     my $toaster_url = "$dl_site$dl_url";
 
-    $util->cwd_source_dir( dir => "$src/mail", debug=>$debug );
+    $util->cwd_source_dir( "$src/mail", debug=>$debug );
 
     if ( -e $package ) {
         unless ( $util->source_warning( package=>$package, src=>$src ) ) {
@@ -1003,7 +1003,7 @@ don't exist in vpopmail. It is not compatible with system user mailboxes. \n\n";
                 "$src/mail/$package.tar.gz" );
         }
         else {
-            $util->file_get( url => "$site/$package.tar.gz" );
+            $util->get_url( "$site/$package.tar.gz" );
             unless ( -e "$package.tar.gz" ) {
                 die "install_qmail FAILED: couldn't fetch $package.tar.gz!\n";
             }
@@ -1011,7 +1011,7 @@ don't exist in vpopmail. It is not compatible with system user mailboxes. \n\n";
     }
 
     unless ( -e $patch ) {
-        $util->file_get( url => "$toaster_url/patches/$patch", debug=>$debug );
+        $util->get_url( "$toaster_url/patches/$patch", debug=>$debug );
         unless ( -e $patch ) { die "\n\nfailed to fetch patch $patch!\n\n"; }
     }
 
@@ -1052,11 +1052,10 @@ don't exist in vpopmail. It is not compatible with system user mailboxes. \n\n";
     }
 
     if ($chkusr) {
-        $util->chown(
-            file => "$qmaildir/bin/qmail-smtpd",
-            uid  => 'vpopmail',
-            gid  => 'vchkpw', 
-            debug=> $debug,
+        $util->chown( "$qmaildir/bin/qmail-smtpd",
+            uid   => 'vpopmail',
+            gid   => 'vchkpw', 
+            debug => $debug,
         );
 
         $util->chmod(
@@ -1290,12 +1289,12 @@ sub netqmail {
     # check to see if qmail-smtpd already has vpopmail support
     return 0 unless netqmail_rebuild();
 
-    $util->cwd_source_dir( dir => "$src/mail" );
+    $util->cwd_source_dir( "$src/mail" );
 
     netqmail_get_sources( $package ) or return;
     my @patches = netqmail_get_patches( $package ) or return;
 
-    $util->archive_expand( archive => "$package.tar.gz" );
+    $util->extract_archive( "$package.tar.gz" );
 
     # netqmail requires a "collate" step before it can be built
     chdir("$src/mail/$package")
@@ -1474,7 +1473,7 @@ sub netqmail_get_sources {
     }
     return 1 if -e "$package.tar.gz";
 
-    $util->file_get( url => "$site/$package.tar.gz" );
+    $util->get_url( "$site/$package.tar.gz" );
     return 1 if -e "$package.tar.gz";
 
     return $log->error( "couldn't fetch $package.tar.gz!" );
@@ -1503,7 +1502,7 @@ sub netqmail_get_patches {
 
     foreach my $patch (@patches) {
         next if -e $patch;
-        $util->file_get( url => "$toaster_url/patches/$patch" );
+        $util->get_url( "$toaster_url/patches/$patch" );
         next if -e $patch;
         return $log->error( "failed to fetch patch $patch!" );
     }
@@ -1558,8 +1557,7 @@ sub netqmail_makefile_fixups {
 sub netqmail_permissions {
 
     my $qmaildir = $conf->{'qmail_dir'} || "/var/qmail";
-    $util->chown(
-        file => "$qmaildir/bin/qmail-smtpd",
+    $util->chown( "$qmaildir/bin/qmail-smtpd",
         uid  => 'vpopmail',
         gid  => 'vchkpw', 
     );
@@ -1639,9 +1637,7 @@ sub netqmail_ssl {
 };
 
 sub netqmail_virgin {
-
     my $self = shift;
-
     my %p = validate( @_, {
             'package' => { type=>SCALAR,  optional=>1, },
             'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
@@ -1670,10 +1666,10 @@ sub netqmail_virgin {
 
     $self->install_qmail_groups_users();
 
-    $util->cwd_source_dir( dir => "$src/mail" );
+    $util->cwd_source_dir( "$src/mail" );
     netqmail_get_sources( $package );
 
-    unless ( $util->archive_expand( archive => "$package.tar.gz", debug=>$debug ) ) {
+    unless ( $util->extract_archive( "$package.tar.gz", debug=>$debug ) ) {
         die "couldn't expand $package.tar.gz\n";
     }
 
@@ -1828,8 +1824,7 @@ sub rebuild_ssl_temp_keys {
             fatal       => $fatal,
         );
 
-        $util->chown(
-            file  => "$cert.new",
+        $util->chown( "$cert.new",
             uid   => $user,
             gid   => $group,
             debug => $debug,
@@ -2027,13 +2022,12 @@ You will continue to get this notice every 5 minutes until you fix this.\n";
 
 sub smtp_set_rbls {
     my $self = shift;
-    my $debug = 1;
 
     return q{} if ( ! $conf->{'rwl_enable'} && ! $conf->{'rbl_enable'} );
 
     my $rbl_cmd_string;
 
-    my $rblsmtpd = $util->find_bin( "rblsmtpd", debug => $debug );
+    my $rblsmtpd = $util->find_bin( "rblsmtpd" );
     $rbl_cmd_string .= "\\\n\t$rblsmtpd ";
 
     $log->audit( "smtp_set_rbls: using rblsmtpd");
@@ -2045,22 +2039,18 @@ sub smtp_set_rbls {
     $rbl_cmd_string .= "-b " if !$conf->{'rbl_enable_soft_failure'};
 
     if ( $conf->{'rwl_enable'} && $conf->{'rwl_enable'} > 0 ) {
-        print "testing RWLs...." if $debug;
-
-        my $list = $self->get_list_of_rwls( debug=>$debug );
+        my $list = $self->get_list_of_rwls();
         foreach my $rwl (@$list) { $rbl_cmd_string .= "\\\n\t\t-a $rwl " }
-
-        print "done.\n" if $debug;
+        $log->audit( "tested DNS white lists" );
     }
-    else { print "no RWL's selected\n" if $debug }
+    else { $log->audit( "no RWLs selected"); };
 
     if ( $conf->{'rbl_enable'} && $conf->{'rbl_enable'} > 0 ) {
-        print "testing RBLs...." if $debug;
-        my $list = $self->get_list_of_rbls( debug => $debug );
+        my $list = $self->get_list_of_rbls();
         $rbl_cmd_string .= $list if $list;
-        print "done.\n" if $debug;
+        $log->audit( "tested DNS blacklists" );
     }
-    else { print "no RBL's selected\n" if $debug }
+    else { $log->audit( "no RBLs selected") };
 
     return "$rbl_cmd_string ";
 };
@@ -2824,7 +2814,6 @@ or must be installed separately.
 
     Params::Validate        - from CPAN
     Mail::Toaster           - with package
-    Mail::Toaster::Utility  - with package
  
 
 =head1 BUGS AND LIMITATIONS

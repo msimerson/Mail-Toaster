@@ -77,7 +77,7 @@ sub backup {
 
     print "backup: backup root is $backupdir.\n" if $debug;
 
-    $util->cwd_source_dir( dir => "$backupdir/$yy/$mm/$dd" );
+    $util->cwd_source_dir( "$backupdir/$yy/$mm/$dd" );
 
     print "backup: backup file is $backupfile.\n" if $debug;
 

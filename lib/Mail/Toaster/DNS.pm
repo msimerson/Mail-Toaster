@@ -15,29 +15,20 @@ my ( $toaster, $util );
 
 sub new {
     my $class = shift;
-    my %p = validate( @_,
-        {  toaster => { type => OBJECT, optional => 1 },
-        }
-    );
-
+    my %p = validate( @_, {  toaster => { type => OBJECT, optional => 1 }, });
     my $self = bless { class => $class }, $class;
-
     $toaster = $p{toaster} || Mail::Toaster->new();
     $util = $toaster->{util};
-
     return $self;
 }
 
 sub is_ip_address {
-
     my $self = shift;
-
     my %p = validate(
         @_,
         {   'ip'    => { type => SCALAR, },
             'rbl'   => { type => SCALAR, },
             'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
         },
     );
 
@@ -57,7 +48,6 @@ sub rbl_test {
         @_, {   
             'zone'  => SCALAR,
             'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
             'conf'  => {
                     type     => HASHREF,
                     optional => 1,
@@ -90,13 +80,11 @@ sub rbl_test_ns {
     my %p = validate( @_, {   
             'rbl'   => SCALAR,
             'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
             'conf'  => { type => HASHREF, optional => 1, },
         },
     );
 
-    my ( $conf, $rbl, $fatal, $debug )
-        = ( $p{'conf'}, $p{'rbl'}, $p{'fatal'}, $p{'debug'} );
+    my ( $conf, $rbl, $fatal ) = ( $p{'conf'}, $p{'rbl'}, $p{'fatal'} );
 
     my $testns = $rbl;
 
@@ -120,12 +108,11 @@ sub rbl_test_positive_ip {
         {   'conf' => { type => HASHREF, optional => 1, },
             'rbl'  => { type => SCALAR, },
             'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
         },
     );
 
-    my ( $conf, $rbl, $fatal, $debug )
-        = ( $p{'conf'}, $p{'rbl'}, $p{'fatal'}, $p{'debug'} );
+    my ( $conf, $rbl, $fatal )
+        = ( $p{'conf'}, $p{'rbl'}, $p{'fatal'} );
 
     # an IP that should always return an A record
     # for most RBL's this is 127.0.0.2, (2.0.0.127.bl.example.com)
@@ -156,19 +143,15 @@ sub rbl_test_positive_ip {
 }
 
 sub rbl_test_negative_ip {
-
     my $self = shift;
-
     my %p = validate( @_, {   
             'rbl'   => SCALAR,
             'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
             'conf'  => { type => HASHREF, optional => 1, },
         },
     );
 
-    my ( $conf, $rbl, $fatal, $debug )
-        = ( $p{'conf'}, $p{'rbl'}, $p{'fatal'}, $p{'debug'} );
+    my ( $conf, $rbl, $fatal ) = ( $p{'conf'}, $p{'rbl'}, $p{'fatal'} );
 
     my $test_ip = $rbl eq "korea.services.net"     ? "208.75.177.127"
                 : $rbl eq "kr.rbl.cluecentral.net" ? "208.75.177.127"
@@ -190,14 +173,11 @@ sub rbl_test_negative_ip {
 }
 
 sub resolve {
-
     my $self = shift;
-    
     my %p = validate(@_, {
             record => SCALAR,
             type   => SCALAR,
             timeout=> { type=>SCALAR,  optional=>1, default=>5  },
-            debug  => { type=>BOOLEAN, optional=>1, default=>1, },
             fatal  => { type=>BOOLEAN, optional=>1, default=>1, },
             conf   => { type=>HASHREF, optional=>1, },
         },
@@ -255,7 +235,7 @@ sub resolve_dig {
 
     $toaster->audit("resolving $record type $type with dig");
 
-    my $dig = $util->find_bin( 'dig', debug=>0 );
+    my $dig = $util->find_bin( 'dig' );
 
     my @records;
     foreach (`$dig $type $record +short`) {
@@ -307,9 +287,6 @@ After the demise of osirusoft and the DDoS attacks currently under way against R
  arguments required:
     zone - the zone of a blacklist to test
 
- arguments optional:
-    debug
-
 Tests to make sure that name servers are found for the zone and then run several test queries against the zone to verify that the answers it returns are sane. We want to detect if a RBL operator does something like whitelist or blacklist the entire planet.
 
 If the blacklist fails any test, the sub will return zero and you should not use that blacklist.
@@ -320,7 +297,6 @@ If the blacklist fails any test, the sub will return zero and you should not use
 	my $count = $t_dns->rbl_test_ns(
 	    conf  => $conf, 
 	    rbl   => $rbl, 
-	    debug => $debug,
 	);
 
  arguments required:
@@ -338,7 +314,6 @@ This script requires a zone name. It will then return a count of how many NS rec
 
  arguments optional:
     conf
-    debug
 
 A positive test is a test that should always return a RBL match. If it should and does not, then we assume that RBL has been disabled by its operator.
 

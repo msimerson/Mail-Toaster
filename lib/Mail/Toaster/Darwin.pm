@@ -143,7 +143,7 @@ EO_NO_PORTS
             exit 0;
         }
 
-        $util->cwd_source_dir( dir => "/usr", debug=>0 );
+        $util->cwd_source_dir( "/usr", debug=>0 );
 
         print
           "\n\nthe CVS password is blank, just hit return at the prompt\n\n";

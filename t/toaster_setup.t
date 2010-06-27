@@ -11,9 +11,8 @@ use Test::More 'no_plan';
 
 BEGIN { 
     use_ok( 'Mail::Toaster' );
-    use_ok( 'Mail::Toaster::Utility' );
 };
-require_ok( 'Mail::Toaster::Utility' );
+require_ok( 'Mail::Toaster' );
 
 my $toaster = Mail::Toaster->new(debug=>0);
 my $util = $toaster->get_util;

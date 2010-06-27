@@ -64,10 +64,10 @@ sub access_control
 
     return 0;
 
-    file_get("$http_url/$hosts_allow");
-    file_get("$http_url/$hosts_sshd");
-    file_get("$http_url/$hosts_mysql");
-    file_get("$http_url/$hosts_http");
+    get_url("$http_url/$hosts_allow");
+    get_url("$http_url/$hosts_sshd");
+    get_url("$http_url/$hosts_mysql");
+    get_url("$http_url/$hosts_http");
 };
 
 sub xploit_turds
@@ -101,8 +101,8 @@ sub valid_accounts
     my $good_users = "users.valid";
     my $bad_users  = "users.invalid";
 
-    file_get("$http_url/$good_users");
-    file_get("$http_url/$bad_users");
+    get_url("$http_url/$good_users");
+    get_url("$http_url/$bad_users");
 
     my @tmp = `cat $good_users`; chomp @tmp;
     push @valid_accounts, @tmp;
@@ -783,13 +783,13 @@ sub _changes
     sleep 2;
 };
 
-sub file_get {
+sub get_url {
 
     my ($url, $timer, $fatal, $debug) = @_;
 
     my ( $fetchbin, $found );
 
-    print "file_get: fetching $url\n" if $debug;
+    print "get_url: fetching $url\n" if $debug;
 
     if ( $OSNAME eq "freebsd" ) {
         $fetchbin = find_bin('fetch');

@@ -56,7 +56,7 @@ sub install_1_source {
     my $prefix   = $conf->{'toaster_prefix'}  || "/usr/local";
     my $src      = $conf->{'toaster_src_dir'} || "$prefix/src";
 
-    $util->cwd_source_dir( dir => "$src/www", debug=>0 );
+    $util->cwd_source_dir( "$src/www", debug=>0 );
 
     unless ( -e "$apache.tar.gz" ) {
         $util->get_file("http://www.apache.org/dist/httpd/$apache.tar.gz");
@@ -82,7 +82,7 @@ sub install_1_source {
             my $r = $util->source_warning( $package, 1 );
             unless ($r) { croak "sorry, I can't continue.\n" }
         }
-        $util->archive_expand( archive => "$package.tar.gz" );
+        $util->extract_archive( "$package.tar.gz" );
     }
 
     chdir($mod_ssl);
@@ -169,14 +169,10 @@ sub install_1_freebsd {
     my $log = "/var/log/apache";
     unless ( -d $log ) {
         mkdir( $log, oct('0755') ) or croak "Couldn't create $log: $!\n";
-        my $uid = getpwnam("www");
-        my $gid = getgrnam("www");
-        chown( $uid, $gid, $log );
+        $util->chown( $log, uid=>'www', gid=>'www' );
     }
 
     unless ( $freebsd->is_port_installed( "apache" ) ) {
-
-        # get it registered in the ports db
         $freebsd->package_install( port => "apache" );
     }
 
@@ -199,7 +195,7 @@ sub install_2 {
     my $src    = $conf->{'toaster_src_dir'} || "$prefix/src";
     $src .= "/www";
 
-    $util->cwd_source_dir( dir => $src, debug=>0 );
+    $util->cwd_source_dir( $src, debug=>0 );
 
     if ( $OSNAME eq "freebsd" ) {
         return $self->install_2_freebsd( $conf , $debug );

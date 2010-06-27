@@ -66,12 +66,11 @@ sub report_yesterdays_activity {
         return;
     };
 
-    print "processing log: $log\n" if $debug;
+    $log->audit( "processing log: $log" );
 
-    my $cat = $log =~ m/\.bz2$/ ? $util->find_bin( "bzcat",debug=>0 )
-            : $log =~ m/\.gz$/  ? $util->find_bin( "gzcat",debug=>0 )
-            : $util->find_bin( "cat", debug=>0)
-            ;
+    my $cat = $log =~ m/\.bz2$/ ? $util->find_bin( "bzcat" )
+            : $log =~ m/\.gz$/  ? $util->find_bin( "gzcat" )
+            : $util->find_bin( "cat" );
 
     my %cmds = (
         overall  => { cmd => "$qma_dir/zoverall"   },
@@ -81,13 +80,13 @@ sub report_yesterdays_activity {
 
     foreach ( keys %cmds ) {
         my $cmd = "$cat $log | $qma_dir/matchup 5>/dev/null | " . $cmds{$_}->{'cmd'};
-        print "calculating $_ stats with:\n$cmd\n" if $debug;
+        $log->audit( "calculating $_ stats with: $cmd");
         $cmds{'out'} = `$cmd`;
     };
 
-    my ( $dd, $mm, $yy ) = $util->get_the_date(bump=>0,debug=>$debug);
+    my ( $dd, $mm, $yy ) = $util->get_the_date(bump=>0);
     my $date = "$yy.$mm.$dd";
-    print "date: $yy.$mm.$dd\n" if $debug;
+    $log->date( "date: $yy.$mm.$dd" );
 
     ## no critic
     open my $EMAIL, "| /var/qmail/bin/qmail-inject";
@@ -113,7 +112,6 @@ EO_EMAIL
 
     close $EMAIL;
 
-    print "all done!\n" if $debug;
     return 1;
 }
 
@@ -175,23 +173,22 @@ sub get_yesterdays_send_log {
                 || $conf->{'qmail_log_base'}
                 || "/var/log/mail";
 
-    # set up our date variables for today
-    my ( $dd, $mm, $yy ) = $util->get_the_date(bump=>0,debug=>$debug);
+    my ( $dd, $mm, $yy ) = $util->get_the_date(bump=>0);
 
     # where todays logs are being archived
-    my $log = "$logbase/$yy/$mm/$dd/sendlog";
-    print "updating todays symlink for sendlogs\n" if $debug;
+    my $today = "$logbase/$yy/$mm/$dd/sendlog";
+    $log->audit( "updating todays symlink for sendlogs to $today");
     unlink "$logbase/sendlog" if -l "$logbase/sendlog";
-    symlink( $log, "$logbase/sendlog" );
+    symlink( $today, "$logbase/sendlog" );
 
     # where yesterdays logs are being archived
-    print "updating yesterdays symlink for sendlogs\n" if $debug;
-    ( $dd, $mm, $yy ) = $util->get_the_date(bump=>1,debug=>$debug);
-    $log = "$logbase/$yy/$mm/$dd/sendlog.gz";
-    unlink("$logbase/sendlog.gz") if -l "$logbase/sendlog.gz";
-    symlink( $log, "$logbase/sendlog.gz" );
+    ( $dd, $mm, $yy ) = $util->get_the_date(bump=>1);
+    my $yester = "$logbase/$yy/$mm/$dd/sendlog.gz";
+    $log->audit( "updating yesterdays symlink for sendlogs to $yester" );
+    unlink "$logbase/sendlog.gz" if -l "$logbase/sendlog.gz";
+    symlink( $yester, "$logbase/sendlog.gz" );
 
-    return $log;
+    return $yester;
 };
 
 sub get_yesterdays_send_log_syslog {
@@ -227,22 +224,23 @@ sub get_yesterdays_smtp_log {
         || "/var/log/mail";
 
     # set up our date variables for today
-    my ( $dd, $mm, $yy ) = $util->get_the_date(bump=>0,debug=>$debug);
+    my ( $dd, $mm, $yy ) = $util->get_the_date(bump=>0);
 
     # where todays logs are being archived
-    print "updating todays symlink for smtplogs\n" if $debug;
-    my $log = "$logbase/$yy/$mm/$dd/smtplog";
+    my $today = "$logbase/$yy/$mm/$dd/smtplog";
+    $log->audit( "updating todays symlink for smtplogs to $today" );
     unlink("$logbase/smtplog") if -l "$logbase/smtplog";
-    symlink( $log, "$logbase/smtplog" );
+    symlink( $today, "$logbase/smtplog" );
+
+    ( $dd, $mm, $yy ) = $util->get_the_date(bump=>1);
 
     # where yesterdays logs are being archived
-    print "updating yesterdays symlink for smtplogs\n" if $debug;
-    ( $dd, $mm, $yy ) = $util->get_the_date(bump=>1,debug=>$debug);
-    $log = "$logbase/$yy/$mm/$dd/smtplog.gz";
+    my $yester = "$logbase/$yy/$mm/$dd/smtplog.gz";
+    $log->audit( "updating yesterdays symlink for smtplogs" );
     unlink("$logbase/smtplog.gz") if -l "$logbase/smtplog.gz";
-    symlink( $log, "$logbase/smtplog.gz" );
+    symlink( $yester, "$logbase/smtplog.gz" );
 
-    return $log;
+    return $yester;
 };
 
 sub verify_settings {
@@ -254,29 +252,21 @@ sub verify_settings {
     my $user  = $conf->{'logs_user'}  || 'qmaill';
     my $group = $conf->{'logs_group'} || 'qnofiles';
 
-    my $uid   = getpwnam($user)
-        or return $log->error( "The log user ($user) does not exist",fatal=>0);
-    my $gid   = getgrnam($group)
-        or return $log->error( "The log group ($group) does not exist",fatal=>0);
-
     if ( !-e $logbase ) {
         mkpath( $logbase, 0, oct('0755') )
             or return $log->error( "Couldn't create $logbase: $!",fatal=>0);
-
-        chown( $uid, $gid, $logbase ) 
-            or return $log->error("Couldn't chown $logbase to $uid: $!",fatal=>0);
+        $util->chown($logbase, uid=>$user, gid=>$group) or return;
     };
 
     if ( -w $logbase ) {
-        chown( $uid, $gid, $logbase )
-            or return $log->error( "Couldn't chown $logbase to $uid: $!",fatal=>0);
+        $util->chown($logbase, uid=>$user, gid=>$group) or return;
     }
 
     my $dir = "$logbase/$counters";
 
     if ( ! -e $dir ) {
         mkpath( $dir, 0, oct('0755') ) or return $log->error( "Couldn't create $dir: $!",fatal=>0);
-        chown( $uid, $gid, $dir ) or return $log->error( "Couldn't chown $dir to $uid: $!",fatal=>0);
+        $util->chown($dir, uid=>$user, gid=>$group) or return;
     }
     $log->error( "$dir is not a directory!",fatal=>0) if ! -d $dir;
 
@@ -308,8 +298,7 @@ sub parse_cmdline_flags {
 
     return 1 if $prot eq "test";
 
-    print "parse_cmdline_flags: prot is $prot\nworking on protocol: $prot\n"
-        if $debug;
+    $log->audit( "parse_cmdline_flags: prot is $prot" );
 
        if ( $prot eq "smtp"         ) { $self->smtp_auth_count() }
     elsif ( $prot eq "rbl"          ) { $self->rbl_count  ()     }
@@ -328,9 +317,9 @@ sub what_am_i {
     my $self  = shift;
     my $debug = $self->{'debug'};
 
-    print "what_am_i: $0, \t" if $debug;
+    $log->audit( "what_am_i: $0");
     $0 =~ /([a-zA-Z0-9\.]*)$/;
-    print " returning $1\n" if $debug;
+    $log->audit( "  returning $1" );
     return $1;
 }
 
@@ -351,7 +340,7 @@ sub rbl_count {
 
     my $i = 0;
     while ( my ($description,$count) =  each %$spam_ref ) {
-        print ":" if ( $i > 0 );
+        print ":" if $i > 0;
         print "$description:$count";
         $i++;
     }
@@ -1464,7 +1453,7 @@ sub counter_create {
     my $user = $self->{'conf'}{'logs_user'} || "qmaill";
     my $group = $self->{'conf'}{'logs_group'} || "qnofiles";
 
-    $util->chown( file=>$file, uid=>$user, gid=>$group, debug=>0);
+    $util->chown( $file, uid=>$user, gid=>$group, debug=>0);
 
     print "done.\n";
     return 1;

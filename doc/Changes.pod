@@ -10,6 +10,18 @@
    renamed port_install to install_port (see DEVELOP)
    added crude munin install support
    updated t_setup -s mailtoaster target (from $util-> to $toaster->)
+   cleaned up more debug and log messages
+   changed API for cwd_source_dir, chown, extract_archive, get_url, is_readable,
+     is_writable, check_pidfile
+   changed some builtin chown calls to using $util->chown
+   renamed util->file_get to util->get_url
+   renamed util->file_archive to archive_file
+   renamed util->pidfile_check to check_pidfile
+   renamed M:T:U:archive_expand to extract_archive
+   for objects in classes beneath Mail::Toaster:
+     new objects inherit debug and fatal settings from the Mail::Toaster object
+     when loading a M:T:Utility, use $toaster->get_util instead of loading 
+   
 
 =head2 5.25 - Jun 10, 2010
 

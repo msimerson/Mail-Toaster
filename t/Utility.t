@@ -22,7 +22,7 @@ require_ok('Mail::Toaster::Utility');
 
 # let the testing begin
 my $log = my $toaster = Mail::Toaster->new( debug => 0 );
-my $util = Mail::Toaster::Utility->new( log => $toaster, debug => 0 );
+my $util = Mail::Toaster::Utility->new( log => $toaster );
 ok( defined $util, 'get Mail::Toaster::Utility object' );
 isa_ok( $util, 'Mail::Toaster::Utility' );
 
@@ -38,12 +38,11 @@ print "\t\twd: $cwd\n" if $debug;
 my $tmp = "$cwd/t/trash";
 mkdir $tmp, 0755;
 if ( ! -d $tmp ) {
-    $util->mkdir_system( dir => $tmp, debug => 0, fatal => 0 );
+    $util->mkdir_system( dir => $tmp, fatal => 0 );
 };
 skip "$tmp dir creation failed!\n", 2 if ( ! -d $tmp );
 ok( -d $tmp, "temp dir: $tmp" );
-ok( $util->syscmd( "cp TODO $tmp/", debug => 0, fatal => 0 ),
-    'cp TODO' );
+ok( $util->syscmd( "cp TODO $tmp/", fatal => 0 ), 'cp TODO' );
 
 
 # ask - asks a question and retrieves the answer
@@ -57,8 +56,7 @@ SKIP: {
         'ask, proper args'
     );
     is( lc($r), "yes", 'ask' );
-    ok( $r = $util->ask( 'any (non empty) answer' ),
-        'ask, tricky' );
+    ok( $r = $util->ask( 'any (non empty) answer' ), 'ask, tricky' );
 
     # multiline prompt
     ok( $r = $util->ask( 'test any (non empty) answer',
@@ -76,63 +74,50 @@ SKIP: {
     );
 }
 
-# archive_expand
-my $gzip = $util->find_bin( "gzip", fatal => 0, debug => 0 );
-my $tar  = $util->find_bin( "tar",  fatal => 0, debug => 0 );
+# extract_archive
+my $gzip = $util->find_bin( "gzip", fatal => 0 );
+my $tar  = $util->find_bin( "tar",  fatal => 0 );
+my $star  = $util->find_bin( "star",  fatal => 0 );
 
 SKIP: {
     skip "gzip or tar is missing!\n", 6 unless ( -x $gzip and -x $tar and -d $tmp );
-    ok( $util->syscmd( "$tar -cf $tmp/test.tar TODO", debug => 0, fatal => 0),
+    ok( $util->syscmd( "$tar -cf $tmp/test.tar TODO", fatal => 0),
         "tar -cf test.tar"
     );
-    ok( $util->syscmd( "$gzip -f $tmp/test.tar", debug => 0, fatal => 0), 'gzip test.tar'
+    ok( $util->syscmd( "$gzip -f $tmp/test.tar", fatal => 0), 'gzip test.tar'
     );
 
     my $archive = "$tmp/test.tar.gz";
     ok( -e $archive, 'temp archive exists' );
 
-    ok( $util->archive_expand(
-            archive => $archive,
-            debug   => 0,
-            fatal   => 0
-        ),
-        'archive_expand'
-    );
-
-    eval {
-        ok( !$util->archive_expand(
-                archie => $archive,
-                debug  => 0,
-                fatal  => 0
-            ),
-            'archive_expand'
-        );
-    };
+    ok( $util->extract_archive( $archive, fatal => 0 ), 'extract_archive +');
+    ok( ! $util->extract_archive( "$archive.fizzlefuzz", fatal => 0 ), 'extract_archive -');
 
     # clean up behind the tests
-    ok( $util->file_delete( file => $archive, fatal => 0, debug => 0 ),
-        'file_delete' );
+    ok( $util->file_delete( file => $archive, fatal => 0 ), 'file_delete' );
 }
 
-#	TODO: { my $why = "archive_expand, requires a valid archive to expand";
-#			this way to run them but not count them as failures
+$log->dump_audit(quiet=>1);
+$log->{last_error} = scalar @{$log->{errors}};
+
+#	TODO: { my $why = "extract_archive, requires a valid archive to expand";
+#			this is how to run them but not count them as failures
 #			local $TODO = $why if (! -e $archive);
 #			this way to skip them entirely and mark as TODO
 #			todo_skip $why, 3 if (! -e $archive); #}
 
 # cwd_source_dir
 # dir already exists
-ok( $util->cwd_source_dir( dir => $tmp, debug => 0 ), 'cwd_source_dir' );
+ok( $util->cwd_source_dir( $tmp ), 'cwd_source_dir' );
 
 # clean up after previous runs
 if ( -f "$tmp/foo" ) {
-    ok( $util->file_delete( file => "$tmp/foo", fatal => 0, debug => 0 ),
+    ok( $util->file_delete( file => "$tmp/foo", fatal => 0 ),
         'file_delete' );
 }
 
 # a dir to create
-ok( $util->cwd_source_dir( dir => "$tmp/foo", debug => 0 ),
-    'cwd_source_dir' );
+ok( $util->cwd_source_dir( "$tmp/foo" ), 'cwd_source_dir' );
 print "\t\t wd: " . cwd . "\n" if $debug;
 
 # go back to our previous working directory
@@ -140,33 +125,23 @@ chdir($cwd) or die;
 print "\t\t wd: " . cwd . "\n" if $debug;
 
 # chown_system
-my $sudo_bin = $util->find_bin( 'sudo', debug => 0, fatal => 0 );
+my $sudo_bin = $util->find_bin( 'sudo', fatal => 0 );
 if ( $UID == 0 && $sudo_bin && -x $sudo_bin ) {
 
     # avoid the possiblity of a sudo call in testing
-    ok( $util->chown_system(
-            dir   => $tmp,
-            user  => $<,
-            debug => 0,
-            fatal => 0
-        ),
-        'chown_system'
-    );
+    ok( $util->chown_system( $tmp, user => $<, fatal => 0,), 'chown_system');
 }
-
-# check_pidfile - deprecated (see pidfile_check)
 
 # clean_tmp_dir
 TODO: {
     my $why = " - no test written yet";
 }
-ok( $util->clean_tmp_dir( dir => $tmp, debug => 0 ), 'clean_tmp_dir' );
+ok( $util->clean_tmp_dir( dir => $tmp ), 'clean_tmp_dir' );
 
 print "\t\t wd: " . cwd . "\n" if $debug;
 
 # get_mounted_drives
-ok( my $drives = $util->get_mounted_drives( debug => 0 ),
-    'get_mounted_drives' );
+ok( my $drives = $util->get_mounted_drives(), 'get_mounted_drives' );
 isa_ok( $drives, 'HASH' );
 
 # example code working with the mounts
@@ -188,75 +163,56 @@ TODO: {
 
 # file_read
 my $rwtest = "$tmp/rw-test";
-ok( $util->file_write( $rwtest, lines => ["erase me please"], debug => 0),
-    'file_write'
-);
-my @lines = $util->file_read( $rwtest, debug => 0 );
+ok( $util->file_write( $rwtest, lines => ["erase me please"] ), 'file_write');
+my @lines = $util->file_read( $rwtest );
 ok( @lines == 1, 'file_read' );
 
 # file_append
 # a typical invocation
-ok( $util->file_write( $rwtest,
-        lines  => ["more junk"],
-        append => 1,
-        debug  => 0
-    ),
-    'file_append'
-);
+ok( $util->file_write( $rwtest, lines  => ["more junk"], append => 1 ), 'file_append');
 
-# file_archive
+# archive_file
 # a typical invocation
-my $backup = $util->file_archive( $rwtest, debug => 0, fatal => 0 );
-ok( -e $backup, 'file_archive' );
-ok( $util->file_delete( file => $backup, debug => 0, fatal => 0 ),
-    'file_delete' );
+my $backup = $util->archive_file( $rwtest, fatal => 0 );
+ok( -e $backup, 'archive_file' );
+ok( $util->file_delete( file => $backup, fatal => 0 ), 'file_delete' );
 
-ok( !$util->file_archive( $backup, debug => 0, fatal => 0 ),
-    'file_archive' );
+ok( !$util->archive_file( $backup, fatal => 0 ), 'archive_file' );
 
 #    eval {
 #        # invalid param, will raise an exception
-#	    $util->file_archive( $backup, debug=>0,fatal=>0 );
+#	    $util->archive_file( $backup, fatal=>0 );
 #    };
-#	ok( $EVAL_ERROR , "file_archive");
+#	ok( $EVAL_ERROR , "archive_file");
 
 # file_check_[readable|writable]
 # typical invocation
-ok( $util->is_readable( file => $rwtest, fatal => 0, debug => 1 ),
-    'is_readable' );
+ok( $util->is_readable( $rwtest, fatal => 0 ), 'is_readable' );
 
-# an invocation for a non-existing file (we already deleted it)
-ok( !$util->is_readable( file => $backup, fatal => 0, debug => 0 ),
-    'is_readable - negated' );
+# a non-existing file (we already deleted it)
+ok( !$util->is_readable( $backup, fatal => 0,debug=>0 ), 'is_readable - negated' );
 
-ok( $util->is_writable( file => $rwtest, debug => 0, fatal => 0 ),
-    'is_writable' );
+ok( $util->is_writable( $rwtest, fatal => 0 ), 'is_writable' );
 
-# file_get
+# get_url
 SKIP: {
     skip "avoiding network tests", 2 if ( !$network );
 
-    ok( $util->cwd_source_dir( dir => $tmp, debug => 0 ), 'cwd_source_dir' );
+    ok( $util->cwd_source_dir( $tmp ), 'cwd_source_dir' );
 
     my $url = "http://mail-toaster.org/etc/maildrop-qmail-domain";
-    ok( $util->file_get( url => $url ), 'file_get' );
-    ok( $util->file_get( url => $url, dir => $tmp ), 'file_get');
+    ok( $util->get_url( $url ), 'get_url' );
+    ok( $util->get_url( $url, dir => $tmp ), 'get_url');
 
-    #    print getcwd . "\n";
-    #    ok( $util->file_get(
-    #            url   => "http://mail-toaster.org/Mail-Toaster.tar.gz",
-    #            debug => 0,
-    #        ), 'file_get'
-    #    );
+    #print getcwd . "\n";
+    #ok( $util->get_url( "http://mail-toaster.org/Mail-Toaster.tar.gz",
+    #   ), 'get_url'
+    #);
     #
-## archive_expand
-    #    ok( $util->archive_expand(
-    #            archive => 'Mail-Toaster.tar.gz',
-    #            debug   => 0,
-    #            fatal   => 0
-    #        ), 'archive_expand'
-    #    );
-
+## extract_archive
+    # ok( $util->extract_archive( 'Mail-Toaster.tar.gz', fatal => 0
+    #     ), 'extract_archive'
+    # );
 }
 
 chdir($cwd);
@@ -266,18 +222,16 @@ print "\t\t  wd: " . Cwd::cwd . "\n" if $debug;
 my $uid = getpwuid($UID);
 my $gid = getgrgid($GID);
 my $root = 'root';
-my $grep = $util->find_bin( 'grep', debug =>  0 );
+my $grep = $util->find_bin( 'grep' );
 my $wheel = `$grep wheel /etc/group` ? 'wheel' : 'root';
 
 SKIP: {
     skip "the temp file for file_ch* is missing!", 4 if ( !-f $rwtest );
 
     # this one should work
-    ok( $util->chown(
-            file  => $rwtest,
+    ok( $util->chown( $rwtest,
             uid   => $uid,
             gid   => $gid,
-            debug => 0,
             sudo  => 0,
             fatal => 0
         ),
@@ -285,24 +239,20 @@ SKIP: {
     );
 
     if ( $UID == 0 ) {
-        ok( $util->chown(
-                file  => $rwtest,
+        ok( $util->chown( $rwtest,
                 uid   => $root,
                 gid   => $wheel,
-                debug => 0,
                 sudo  => 0,
-                fatal => 0
+                fatal => 0,
             ),
             'chown user'
         );
     }
 
     # try a user/group that does not exist
-    ok( !$util->chown(
-            file  => $rwtest,
+    ok( !$util->chown( $rwtest,
             uid   => 'frobnob6i',
             gid   => 'frobnob6i',
-            debug => 0,
             sudo  => 0,
             fatal => 0
         ),
@@ -311,11 +261,9 @@ SKIP: {
 
     # try a user/group that I may not have permission to
     if ( $UID != 0 && lc($OSNAME) ne 'irix') {
-        ok( !$util->chown(
-                file  => $rwtest,
+        ok( !$util->chown( $rwtest,
                 uid   => $root,
                 gid   => $wheel,
-                debug => 0,
                 sudo  => 0,
                 fatal => 0
             ),
@@ -325,12 +273,9 @@ SKIP: {
 }
 
 # tests system_chown because sudo is set, might cause testers to freak out
-#		ok ($util->chown( file => $rwtest,
-#			uid=>$uid, gid=>$gid, debug=>0, sudo=>1, fatal=>0 ), 'chown');
-#		ok ( ! $util->chown( file => $rwtest,
-#			uid=>'frobnob6i', gid=>'frobnob6i', debug=>0, sudo=>1, fatal=>0 ), 'chown');
-#		ok ( ! $util->chown( file => $rwtest,
-#			uid=>$root, gid=>$wheel,debug=>0, sudo=>1,fatal=>0), 'chown');
+#	ok ($util->chown( $rwtest, uid=>$uid, gid=>$gid, sudo=>1, fatal=>0 ), 'chown');
+#	ok ( ! $util->chown( $rwtest, uid=>'frobnob6i', gid=>'frobnob6i', sudo=>1, fatal=>0 ), 'chown');
+#	ok ( ! $util->chown( $rwtest, uid=>$root, gid=>$wheel, sudo=>1,fatal=>0), 'chown');
 
 # chmod
 # get the permissions of the file in octal file mode
@@ -346,16 +291,13 @@ if ( lc($OSNAME) ne 'irix' ) {
 # extinct, I'm not too motivated to find out why.
     ok( $util->chmod(
             file_or_dir => $rwtest,   mode        => '0700',
-            debug       => 0,         fatal       => 0,
+            fatal       => 0,
         ),
         'chmod'
     );
 
 # file_mode
-    my $result_mode = $util->file_mode(
-        file  => $rwtest,
-        debug => 0,
-    );
+    my $result_mode = $util->file_mode( file => $rwtest );
     cmp_ok( $result_mode, '==', 700, 'file_mode' );
 
 #$util->syscmd( "ls -al $rwtest" );
@@ -364,7 +306,7 @@ if ( lc($OSNAME) ne 'irix' ) {
     ok( $util->chmod(
             file_or_dir => $rwtest,
             mode        => $before,
-            debug       => 0, fatal => 0,
+            fatal => 0,
         ),
         'chmod'
     );
@@ -373,42 +315,32 @@ if ( lc($OSNAME) ne 'irix' ) {
 #$util->syscmd( "ls -al $rwtest" );
 
 # file_write
-ok( $util->file_write( $rwtest,
-        lines => ["17"],
-        debug => 0,
-        fatal => 0
-    ),
-    'file_write'
-);
+ok( $util->file_write( $rwtest, lines => ["17"], fatal => 0 ), 'file_write');
 
 #$ENV{PATH} = ""; print `/bin/cat $rwtest`;
 #print `/bin/cat $rwtest` . "\n";
 
 # files_diff
 # we need two files to work with
-$backup = $util->file_archive( $rwtest, debug => 0 );
+$backup = $util->archive_file( $rwtest );
 
 # these two files are identical, so we should get 0 back from files_diff
-ok( !$util->files_diff( f1 => $rwtest, f2 => $backup, debug => 0 ),
-    'files_diff' );
+ok( !$util->files_diff( f1 => $rwtest, f2 => $backup ), 'files_diff' );
 
 # now we change one of the files, and this time they should be different
 ok( $util->file_write( $rwtest,
         lines  => ["more junk"],
-        debug  => 0,
         append => 1
     ),
     'file_write'
 );
-ok( $util->files_diff( f1 => $rwtest, f2 => $backup, debug => 0 ),
-    'files_diff' );
+ok( $util->files_diff( f1 => $rwtest, f2 => $backup ), 'files_diff' );
 
 # make it use md5 checksums to compare
-$backup = $util->file_archive( $rwtest, debug => 0 );
+$backup = $util->archive_file( $rwtest );
 ok( !$util->files_diff(
         f1    => $rwtest,
         f2    => $backup,
-        debug => 0,
         type  => 'binary'
     ),
     'files_diff'
@@ -418,7 +350,6 @@ ok( !$util->files_diff(
 sleep 1;
 ok( $util->file_write( $rwtest,
         lines  => ["extra junk"],
-        debug  => 0,
         append => 1
     ),
     'file_write'
@@ -426,7 +357,6 @@ ok( $util->file_write( $rwtest,
 ok( $util->files_diff(
         f1    => $rwtest,
         f2    => $backup,
-        debug => 0,
         type  => 'binary'
     ),
     'files_diff'
@@ -437,18 +367,18 @@ ok( $util->files_diff(
 
 # find_bin
 # a typical invocation
-my $rm = $util->find_bin( "rm", debug => 0, fatal => 0 );
+my $rm = $util->find_bin( "rm", fatal => 0 );
 ok( $rm && -x $rm, 'find_bin' );
 
 # a test that should fail
-ok( !$util->find_bin( "globRe", fatal => 0, debug => 0 ), 'find_bin' );
+ok( !$util->find_bin( "globRe", fatal => 0 ), 'find_bin' );
 
 # a shortcut that should work
-$rm = $util->find_bin( "rm", debug => 0 );
+$rm = $util->find_bin( "rm" );
 ok( -x $rm, 'find_bin' );
 
 # fstab_list
-my $fs = $util->fstab_list( debug => 1 );
+my $fs = $util->fstab_list();
 if ($fs) {
     ok( $fs, 'fstab_list' );
 
@@ -471,9 +401,9 @@ SKIP: {
 my $mod = "Date::Format";
 if ( eval "require $mod" ) {
 
-    ok( @list = $util->get_the_date( debug => 0 ), 'get_the_date' );
+    ok( @list = $util->get_the_date(), 'get_the_date' );
 
-    my $date = $util->find_bin( "date", debug => 0 );
+    my $date = $util->find_bin( "date" );
     cmp_ok( $list[0], '==', `$date '+%d'`, 'get_the_date day' );
     cmp_ok( $list[1], '==', `$date '+%m'`, 'get_the_date month' );
     cmp_ok( $list[2], '==', `$date '+%Y'`, 'get_the_date year' );
@@ -483,7 +413,7 @@ if ( eval "require $mod" ) {
     # this will occasionally fail tests
     #cmp_ok( $list[6], '==', `$date '+%S'`, 'get_the_date seconds');
 
-    @list = $util->get_the_date( bump => 1, debug => 0 );
+    @list = $util->get_the_date( bump => 1 );
     cmp_ok( $list[0], '!=', `$date '+%d'`, 'get_the_date day' );
 # if today is the first day of the month
     if ( `$date '+%d'` == 1 ) {
@@ -504,14 +434,13 @@ else {
 # graceful_exit
 
 # install_if_changed
-$backup = $util->file_archive( $rwtest, debug => 0, fatal => 0 );
+$backup = $util->archive_file( $rwtest, fatal => 0 );
 
 # call it the new way
 ok( $util->install_if_changed(
         newfile  => $backup,
         existing => $rwtest,
         mode     => '0644',
-        debug    => 0,
         notify   => 0,
         clean    => 0,
     ),
@@ -528,7 +457,6 @@ ok( $util->install_from_source(
         url     => '/ripmime',
         targets        => [ 'make', 'make install' ],
         bintest        => 'ripmime',
-        debug          => 0,
         source_sub_dir => 'mail',
         test_ok        => 1,
     ),
@@ -536,7 +464,6 @@ ok( $util->install_from_source(
 );
 
 ok( !$util->install_from_source(
-        debug   => 0,
         package => "mt",
         site    => "mt",
         url     => "dl",
@@ -566,7 +493,6 @@ if ( eval "require $mod" ) {
             file  => $rwtest,
             prog  => $0,
             lines => ['running tests'],
-            debug => 0
         ),
         'logfile_append'
     );
@@ -577,7 +503,6 @@ if ( eval "require $mod" ) {
             file  => $rwtest,
             prog  => $0,
             lines => [ 'test1', 'test2' ],
-            debug => 0
         ),
         'logfile_append'
     );
@@ -588,7 +513,6 @@ if ( eval "require $mod" ) {
             file  => $rwtest,
             prog  => $0,
             lines => [ 'test1', 'test2' ],
-            debug => 0
         ),
         'logfile_append'
     );
@@ -599,8 +523,8 @@ if ( eval "require $mod" ) {
 
 # mkdir_system
 my $mkdir = "$tmp/bar";
-ok( $util->mkdir_system( dir => $mkdir, debug => 0 ), 'mkdir_system' );
-ok( $util->chmod( file_or_dir => $mkdir, mode => '0744', debug => 0, fatal => 0 ),
+ok( $util->mkdir_system( dir => $mkdir ), 'mkdir_system' );
+ok( $util->chmod( file_or_dir => $mkdir, mode => '0744', fatal => 0 ),
     'chmod' );
 ok( rmdir($mkdir), 'mkdir_system' );
 
@@ -611,34 +535,31 @@ ok( my ( $up1dir, $userdir ) = $util->path_parse("$pr/$bi"), 'path_parse' );
 ok( $pr eq $up1dir,  'path_parse' );
 ok( $bi eq $userdir, 'path_parse' );
 
-# pidfile_check
+$log->dump_audit(quiet=>1);
+$log->{last_error} = scalar @{$log->{errors}};
+
+# check_pidfile
 # will fail because the file is too new
-ok( !$util->pidfile_check( pidfile => $rwtest, debug => 0, fatal => 0 ),
-    'pidfile_check' );
+ok( !$util->check_pidfile( $rwtest, fatal => 0,debug=>0 ), 'check_pidfile' )
+    or $log->dump_audit();
 
 # will fail because the file is a directory
-ok( !$util->pidfile_check( pidfile => $tmp, debug => 0, fatal => 0 ),
-    'pidfile_check' );
+ok( !$util->check_pidfile( $tmp, fatal => 0,debug=>0 ), 'check_pidfile' )
+    or $log->dump_audit();
 
 # proper invocation
-ok( $util->pidfile_check(
-        pidfile => "${rwtest}.pid",
-        debug   => 0,
-        fatal   => 0
-    ),
-    'pidfile_check'
-);
+ok( $util->check_pidfile( "${rwtest}.pid", fatal => 0 ), 'check_pidfile')
+    or $log->error();
 
 # verify the contents of the file contains our PID
-my ($pid)
-    = $util->file_read( "${rwtest}.pid", debug => 0, fatal => 0 );
-ok( $PROCESS_ID == $pid, 'pidfile_check' );
+my ($pid) = $util->file_read( "${rwtest}.pid", fatal => 0 );
+ok( $PROCESS_ID == $pid, 'check_pidfile' );
 
 # regext_test
 ok( $util->regexp_test(
         exp    => 'toast',
         string => 'mailtoaster rocks',
-        debug  => 0
+        debug  => 0,
     ),
     'regexp_test'
 );
@@ -647,14 +568,14 @@ ok( $util->regexp_test(
 # do I really want a test script downloading stuff? probably not.
 
 # source_warning
-ok( $util->source_warning( package => 'foo', debug => 0 ), 'source_warning' );
+ok( $util->source_warning( package => 'foo' ), 'source_warning' );
 
 # sudo
 if ( !$< == 0 && $sudo_bin && -x $sudo_bin ) {
-    ok( $util->sudo( debug => 0 ), 'sudo' );
+    ok( $util->sudo(), 'sudo' );
 }
 else {
-    ok( !$util->sudo( debug => 0, fatal => 0 ), 'sudo' );
+    ok( !$util->sudo( fatal => 0 ), 'sudo' );
 }
 
 $log->dump_audit( quiet => 1 );
@@ -662,25 +583,24 @@ $log->{last_error} = scalar @{$log->{errors}};
 
 # syscmd
 my $tmpfile = '/tmp/provision-unix-test';
-ok( $util->syscmd( "touch $tmpfile", fatal => 0, debug => 0), 'syscmd +');
-ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0, debug => 0), 'syscmd -');
-ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0, debug => 0, timeout=>1), 'syscmd - (w/timeout)');
-ok( $util->syscmd( "rm $tmpfile", fatal => 0, debug => 0), 'syscmd +');
-ok( $util->syscmd( "$rm $tmp/maildrop-qmail-domain", fatal => 0, debug => 0),
+ok( $util->syscmd( "touch $tmpfile", fatal => 0 ), 'syscmd +');
+ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,debug=>0 ), 'syscmd -');
+ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,,debug=>0, timeout=>1), 'syscmd - (w/timeout)');
+ok( $util->syscmd( "rm $tmpfile", fatal => 0, ), 'syscmd +');
+ok( $util->syscmd( "$rm $tmp/maildrop-qmail-domain", fatal => 0, ),
     'syscmd +'
 ) if $network;
 
 # file_delete
-ok( $util->file_delete( file => $backup, debug => 0 ), 'file_delete' );
-ok( !$util->file_delete( file => $backup, debug => 0, fatal => 0 ),
+ok( $util->file_delete( file => $backup ), 'file_delete' );
+ok( !$util->file_delete( file => $backup, fatal => 0 ),
     'file_delete' );
 
-ok( $util->file_delete( file => $rwtest,       debug => 0, ), 'file_delete' );
-ok( $util->file_delete( file => "$rwtest.md5", debug => 0, ), 'file_delete' );
+ok( $util->file_delete( file => $rwtest       ), 'file_delete' );
+ok( $util->file_delete( file => "$rwtest.md5" ), 'file_delete' );
 
-ok( $util->clean_tmp_dir( dir => $tmp, debug => 0 ), 'clean_tmp_dir' );
+ok( $util->clean_tmp_dir( dir => $tmp ), 'clean_tmp_dir' );
 
 # yes_or_no
-ok( $util->yes_or_no( "test", timeout => 5, debug => 0 ),
-    'yes_or_no' );
+ok( $util->yes_or_no( "test", timeout => 5 ), 'yes_or_no' );
 

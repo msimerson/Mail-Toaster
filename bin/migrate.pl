@@ -1,10 +1,6 @@
 #!perl
 use strict;
 
-#
-# $Id: migrate.pl 1082 2010-06-11 00:03:24Z matt $
-#
-
 =head1 NAME
 
 migrate.pl
@@ -39,8 +35,11 @@ Create the new users using vadduser -s. Will be more reliable in fringe cases wh
 =cut
 
 use lib 'lib';
-use Mail::Toaster::Mysql;   my $mysql = new Mail::Toaster::Mysql;
-use Mail::Toaster::Utility; my $util = new Mail::Toaster::Utility;
+use Mail::Toaster::Mysql;   
+use Mail::Toaster::Utility; 
+
+my $mysql = new Mail::Toaster::Mysql;
+my $util = new Mail::Toaster::Utility;
 
 my ($type, $domain, $newhost) = @ARGV;
 my $vpopdir = "/usr/local/vpopmail";
