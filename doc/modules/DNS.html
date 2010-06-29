@@ -55,8 +55,10 @@
 <dd>
 <p>Create a new DNS method:</p>
 <pre>
+   use Mail::Toaster;
    use Mail::Toaster::DNS;
-   my $dns = Mail::Toaster::DNS-&gt;new;</pre>
+   my $toaster = Mail::Toaster-&gt;new();
+   my $dns     = Mail::Toaster::DNS-&gt;new(log=&gt;$toaster);</pre>
 </dd>
 <dt><strong><a name="rbl_test" class="item">rbl_test</a></strong></dt>
 
@@ -68,9 +70,6 @@
 <pre>
  arguments required:
     zone - the zone of a blacklist to test</pre>
-<pre>
- arguments optional:
-    debug</pre>
 <p>Tests to make sure that name servers are found for the zone and then run several test queries against the zone to verify that the answers it returns are sane. We want to detect if a RBL operator does something like whitelist or blacklist the entire planet.</p>
 <p>If the blacklist fails any test, the sub will return zero and you should not use that blacklist.</p>
 </dd>
@@ -81,7 +80,6 @@
         my $count = $t_dns-&gt;rbl_test_ns(
             conf  =&gt; $conf, 
             rbl   =&gt; $rbl, 
-            debug =&gt; $debug,
         );</pre>
 <pre>
  arguments required:
@@ -98,8 +96,7 @@
     rbl   - the reverse zone we use to test this rbl.</pre>
 <pre>
  arguments optional:
-    conf
-    debug</pre>
+    conf</pre>
 <p>A positive test is a test that should always return a RBL match. If it should and does not, then we assume that RBL has been disabled by its operator.</p>
 <p>Some RBLs have test IP(s) to verify they are working. For geographic RBLs (like korea.services.net) we can simply choose any IP within their allotted space. Most other RBLs use 127.0.0.2 as a positive test.</p>
 <p>In the case of rfc-ignorant.org, they have no known test IPs and thus we have to skip testing them.</p>

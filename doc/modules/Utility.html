@@ -42,8 +42,9 @@
 <hr />
 <h1><a name="synopsis">SYNOPSIS</a></h1>
 <pre>
-  use Mail::Toaster::Utility;
-  my $util = Mail::Toaster::Utility-&gt;new;</pre>
+  use Mail::Toaster;
+  my $toaster = Mail::Toaster-&gt;new;
+  my $util = $toaster-&gt;get_util;</pre>
 <pre>
   $util-&gt;file_write($file, lines=&gt; @lines);</pre>
 <p>This is just one of the many handy little methods I have amassed here. Rather than try to remember all of the best ways to code certain functions and then attempt to remember them, I have consolidated years of experience and countless references from Learning Perl, Programming Perl, Perl Best Practices, and many other sources into these subroutines.</p>
@@ -68,7 +69,7 @@
 <pre>
   Perl.
   Scalar::Util -  built-in as of perl 5.8</pre>
-<p>Almost nothing else. A few of the methods do require certian things, like archive_expand requires tar and file. But in general, this package (Mail::Toaster::Utility) should run flawlessly on any UNIX-like system. Because I recycle this package in other places (not just Mail::Toaster), I avoid creating dependencies here.</p>
+<p>Almost nothing else. A few of the methods do require certian things, like extract_archive requires tar and file. But in general, this package (Mail::Toaster::Utility) should run flawlessly on any UNIX-like system. Because I recycle this package in other places (not just Mail::Toaster), I avoid creating dependencies here.</p>
 <p>
 </p>
 <hr />
@@ -110,14 +111,13 @@
   # Throws     : no exceptions
   # See Also   : yes_or_no</pre>
 </dd>
-<dt><strong><a name="archive_expand" class="item">archive_expand</a></strong></dt>
+<dt><strong><a name="extract_archive" class="item">extract_archive</a></strong></dt>
 
 <dd>
 <p>Decompresses a variety of archive formats using your systems built in tools.</p>
 <pre>
-  ############### archive_expand ##################
-  # Usage      : $util-&gt;archive_expand(
-  #            :     archive =&gt; 'example.tar.bz2' );
+  ############### extract_archive ##################
+  # Usage      : $util-&gt;extract_archive( 'example.tar.bz2' );
   # Purpose    : test the archiver, determine its contents, and then
   #              use the best available means to expand it.
   # Returns    : 0 - failure, 1 - success
@@ -129,7 +129,7 @@
 <p>Changes the current working directory to the supplied one. Creates it if it does not exist. Tries to create the directory using perl's builtin mkdir, then the system mkdir, and finally the system mkdir with sudo.</p>
 <pre>
   ############ cwd_source_dir ###################
-  # Usage      : $util-&gt;cwd_source_dir( dir=&gt;&quot;/usr/local/src&quot; );
+  # Usage      : $util-&gt;cwd_source_dir( &quot;/usr/local/src&quot; );
   # Purpose    : prepare a location to build source files in
   # Returns    : 0 - failure,  1 - success
   # Parameters : S - dir - a directory to build programs in</pre>
@@ -147,11 +147,6 @@
   #   Optional : I - auto - no prompts, just fix everything
   # See Also   : sysadmin</pre>
 <p>Comments: Auto mode should be run with great caution. Run it first to see the results and then, if everything looks good, run in auto mode to do the actual repairs.</p>
-</dd>
-<dt><strong><a name="check_pidfile" class="item">check_pidfile</a></strong></dt>
-
-<dd>
-<p>see pidfile_check</p>
 </dd>
 <dt><strong><a name="chown_system" class="item">chown_system</a></strong></dt>
 
@@ -190,13 +185,13 @@
   # Purpose    : Uses mount to fetch a list of mounted drive/partitions
   # Returns    : a hashref of mounted slices and their mount points.</pre>
 </dd>
-<dt><strong><a name="file_archive" class="item">file_archive</a></strong></dt>
+<dt><strong><a name="archive_file" class="item">archive_file</a></strong></dt>
 
 <dd>
 <pre>
-  ############### file_archive #################
+  ############### archive_file #################
   # Purpose    : Make a backup copy of a file by copying the file to $file.timestamp.
-  # Usage      : my $archived_file = $util-&gt;file_archive( $file );
+  # Usage      : my $archived_file = $util-&gt;archive_file( $file );
   # Returns    : the filename of the backup file, or 0 on failure.
   # Parameters : S - file - the filname to be backed up
   # Comments   : none</pre>
@@ -268,11 +263,11 @@
 <pre>
  Uses unlink if we have appropriate permissions, otherwise uses a system rm call, using sudo if it is not being run as root. This sub will try very hard to delete the file!</pre>
 </dd>
-<dt><strong><a name="file_get" class="item">file_get</a></strong></dt>
+<dt><strong><a name="get_url" class="item">get_url</a></strong></dt>
 
 <dd>
 <pre>
-   $util-&gt;file_get( url=&gt;$url, debug=&gt;1 );</pre>
+   $util-&gt;get_url( $url, debug=&gt;1 );</pre>
 <p>Use the standard URL fetching utility (fetch, curl, wget) for your OS to download a file from the $url handed to us.</p>
 <pre>
  arguments required:
@@ -403,11 +398,6 @@
    0 - failure
    success will return the full path to the binary.</pre>
 </dd>
-<dt><strong><a name="get_file" class="item">get_file</a></strong></dt>
-
-<dd>
-<p>an alias for file_get for legacy purposes. Do not use.</p>
-</dd>
 <dt><strong><a name="get_my_ips" class="item">get_my_ips</a></strong></dt>
 
 <dd>
@@ -444,7 +434,7 @@
 <p>If the file exists, it checks to see if it is writable. If the file does not exist, it checks to see if the enclosing directory is writable.</p>
 <pre>
   ############################################
-  # Usage      : $util-&gt;is_writable(file =&gt;&quot;/tmp/boogers&quot;);
+  # Usage      : $util-&gt;is_writable( &quot;/tmp/boogers&quot;);
   # Purpose    : make sure a file is writable
   # Returns    : 0 - no (not writable), 1 - yes (is writeable)
   # Parameters : S - file - a path name to a file
@@ -588,12 +578,12 @@
    $util-&gt;mkdir_system( dir =&gt; $dir, debug=&gt;$debug );</pre>
 <p>creates a directory using the system mkdir binary. Can also make levels of directories (-p) and utilize sudo if necessary to escalate.</p>
 </dd>
-<dt><strong><a name="pidfile_check" class="item">pidfile_check</a></strong></dt>
+<dt><strong><a name="check_pidfile" class="item">check_pidfile</a></strong></dt>
 
 <dd>
-<p>pidfile_check is a process management method. It will check to make sure an existing pidfile does not exist and if not, it will create the pidfile.</p>
+<p>check_pidfile is a process management method. It will check to make sure an existing pidfile does not exist and if not, it will create the pidfile.</p>
 <pre>
-   $pidfile = $util-&gt;pidfile_check( pidfile=&gt;&quot;/var/run/program.pid&quot; );</pre>
+   $pidfile = $util-&gt;check_pidfile( &quot;/var/run/program.pid&quot; );</pre>
 <p>The above example is all you need to do to add process checking (avoiding multiple daemons running at the same time) to a program or script. This is used in toaster-watcher.pl. toaster-watcher normally completes a run in a few seconds and is run every 5 minutes.</p>
 <p>However, toaster-watcher can be configured to do things like expire old messages from maildirs and feed spam through a processor like sa-learn. This can take a long time on a large mail system so we don't want multiple instances of toaster-watcher running.</p>
 <pre>
@@ -601,7 +591,7 @@
    the path to the pidfile (on success).</pre>
 <p>Example:</p>
 <pre>
-        my $pidfile = $util-&gt;pidfile_check( pidfile=&gt;&quot;/var/run/changeme.pid&quot; );
+        my $pidfile = $util-&gt;check_pidfile( &quot;/var/run/changeme.pid&quot; );
         unless ($pidfile) {
                 warn &quot;WARNING: couldn't create a process id file!: $!\n&quot;;
                 exit 0;
@@ -635,8 +625,8 @@
 <pre>
  Usage:</pre>
 <pre>
-   $util-&gt;source_warning( 
-                package =&gt; &quot;Mail-Toaster-4.10&quot;, 
+   $util-&gt;source_warning(
+                package =&gt; &quot;Mail-Toaster-5.26&quot;,
                 clean   =&gt; 1, 
                 src     =&gt; &quot;/usr/local/src&quot; 
    );</pre>

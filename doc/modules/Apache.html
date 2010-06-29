@@ -59,8 +59,10 @@
 
 <dd>
 <pre>
+   use Mail::Toaster;
    use Mail::Toaster::Apache
-   my $apache = Mail::Toaster::Apache-&gt;new();</pre>
+   my $log = Mail::Toaster-&gt;new(debug=&gt;0)
+   my $apache = Mail::Toaster::Apache-&gt;new( 'log' =&gt; $log );</pre>
 <p>use this function to create a new apache object. From there you can use all the functions
 included in this document.</p>
 <p>Each method expect to recieve one or two hashrefs. The first hashref must have a value set for &lt;i&gt;vhost&lt;/i&gt; and optional values set for the following: ip, serveralias serveradmin, documentroot, redirect, ssl, sslcert, sslkey, cgi, customlog, customerror.</p>
@@ -69,9 +71,6 @@ included in this document.</p>
 <dt><strong><a name="installapache1" class="item">InstallApache1</a></strong></dt>
 
 <dd>
-<pre>
-        use Mail::Toaster::Apache;
-        my $apache = new Mail::Toaster::Apache;</pre>
 <pre>
         $apache-&gt;install_apache1(src=&gt;&quot;/usr/local/src&quot;)</pre>
 <p>Builds Apache from sources with DSO for all but mod_perl which must be compiled statically in order to work at all.</p>
@@ -95,9 +94,6 @@ included in this document.</p>
 
 <dd>
 <pre>
-        use Mail::Toaster::Apache;
-        my $apache = Mail::Toaster::Apache-&gt;new();</pre>
-<pre>
         $apache-&gt;apache_conf_patch(conf=&gt;$conf);</pre>
 <p>Patch apache's default httpd.conf file. See the patch in contrib of Mail::Toaster to see what changes are being made.</p>
 </dd>
@@ -120,87 +116,6 @@ included in this document.</p>
 <p>On FreeBSD, we use the rc.d script if it's available because it's smarter than apachectl. Under some instances, sending apache a restart signal will cause it to crash and not restart. The control script sends it a TERM, waits until it has done so, then starts it back up.</p>
 <pre>
     $apache-&gt;restart($vals);</pre>
-</dd>
-<dt><strong><a name="vhost_create" class="item">vhost_create</a></strong></dt>
-
-<dd>
-<p>Create an Apache vhost container like this:</p>
-<pre>
-  &lt;VirtualHost *:80 &gt;
-    ServerName blockads.com
-    ServerAlias ads.blockads.com
-    DocumentRoot /usr/home/blockads.com/ads
-    ServerAdmin admin@blockads.com
-    CustomLog &quot;| /usr/local/sbin/cronolog /usr/home/example.com/logs/access.log&quot; combined
-    ErrorDocument 404 &quot;blockads.com
-  &lt;/VirtualHost&gt;</pre>
-<pre>
-        my $apache-&gt;vhost_create($vals, $conf);</pre>
-<pre>
-        Required values:</pre>
-<pre>
-         ip  - an ip address
-       name  - vhost name (ServerName)
-     docroot - Apache DocumentRoot</pre>
-<pre>
-    Optional values</pre>
-<pre>
- serveralias - Apache ServerAlias names (comma seperated)
- serveradmin - Server Admin (email address)
-         cgi - CGI directory
-   customlog - obvious
- customerror - obvious
-      sslkey - SSL certificate key
-     sslcert - SSL certificate</pre>
-<p>This sub works great. :-)</p>
-</dd>
-<dt><strong><a name="vhost_enable" class="item">vhost_enable</a></strong></dt>
-
-<dd>
-<p>Enable a (previously) disabled virtual host.</p>
-<pre>
-    $apache-&gt;vhost_enable($vals, $conf);</pre>
-</dd>
-<dt><strong><a name="vhost_disable" class="item">vhost_disable</a></strong></dt>
-
-<dd>
-<p>Disable a previously disabled vhost.</p>
-<pre>
-    $apache-&gt;vhost_disable($vals, $conf);</pre>
-</dd>
-<dt><strong><a name="vhost_delete" class="item">vhost_delete</a></strong></dt>
-
-<dd>
-<p>Delete's an Apache vhost.</p>
-<pre>
-    $apache-&gt;vhost_delete();</pre>
-</dd>
-<dt><strong><a name="vhost_exists" class="item">vhost_exists</a></strong></dt>
-
-<dd>
-<p>Tests to see if a vhost definition already exists in your Apache config file(s).</p>
-</dd>
-<dt><strong><a name="vhost_show" class="item">vhost_show</a></strong></dt>
-
-<dd>
-<p>Shows the contents of a virtualhost block that matches the virtual domain name passed in the $vals hashref.</p>
-<pre>
-        $apache-&gt;vhost_show($vals, $conf);</pre>
-</dd>
-<dt><strong><a name="vhosts_get_file" class="item">vhosts_get_file</a></strong></dt>
-
-<dd>
-<p>If vhosts are each in their own file, this determines the file name the vhost will live in and returns it. The general methods on my systems works like this:</p>
-<pre>
-   example.com would be stored in $apache/vhosts/example.com.conf</pre>
-<p>so would any subdomains of example.com.</p>
-<p>thus, a return value for *.example.com will be &quot;$apache/vhosts/example.com.conf&quot;.</p>
-<p>$apache is looked up from the contents of $conf.</p>
-</dd>
-<dt><strong><a name="vhosts_get_match" class="item">vhosts_get_match</a></strong></dt>
-
-<dd>
-<p>Find a vhost declaration block in the Apache config file(s).</p>
 </dd>
 <dt><strong><a name="install_dsa_cert" class="item">install_dsa_cert</a></strong></dt>
 

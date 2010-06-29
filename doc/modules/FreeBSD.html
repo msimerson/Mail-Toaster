@@ -171,7 +171,6 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
                 check =&gt; &quot;openldap-2.2&quot;,
                 flags =&gt; &quot;NOPORTDOCS=true&quot;, 
                 fatal =&gt; 0,
-                debug =&gt; 1,
         );</pre>
 <pre>
  arguments required:
@@ -187,14 +186,14 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
  NOTES:</pre>
 <p>#1 - On rare occasion, a port will get installed as a name other than the ports name. Of course, that wreaks all sorts of havoc so when one of them nasties is found, you can optionally pass along a fourth parameter which can be used as the port installation name to check with.</p>
 </dd>
-<dt><strong><a name="package_install" class="item">package_install</a></strong></dt>
+<dt><strong><a name="install_package" class="item">install_package</a></strong></dt>
 
 <dd>
 <pre>
-        $fbsd-&gt;package_install( port=&gt;&quot;ispell&quot; );</pre>
+        $fbsd-&gt;install_package( port=&gt;&quot;ispell&quot; );</pre>
 <p>Suggested usage:</p>
 <pre>
-        unless ( $fbsd-&gt;package_install( port=&gt;&quot;ispell&quot; ) ) {
+        unless ( $fbsd-&gt;install_package( port=&gt;&quot;ispell&quot; ) ) {
                 $fbsd-&gt;install_port( &quot;ispell&quot; );
         };</pre>
 <p>Installs the selected package from FreeBSD packages. If the first install fails, it will try again using an alternate FTP site (ftp2.freebsd.org). If that fails, it returns 0 (failure) so you know it failed and can try something else, like installing via ports.</p>
@@ -208,12 +207,12 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
     url  - a URL to fetch the package from</pre>
 <p>See the pkg_add man page for more details on using an alternate URL.</p>
 </dd>
-<dt><strong><a name="ports_update" class="item">ports_update</a></strong></dt>
+<dt><strong><a name="update_ports" class="item">update_ports</a></strong></dt>
 
 <dd>
 <p>Updates the FreeBSD ports tree (/usr/ports/).</p>
 <pre>
-    $fbsd-&gt;ports_update(conf=&gt;$conf);</pre>
+    $fbsd-&gt;update_ports();</pre>
 <pre>
  arguments required:
    conf - a hashref
