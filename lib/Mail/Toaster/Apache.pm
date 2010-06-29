@@ -1,46 +1,58 @@
 package Mail::Toaster::Apache;
 
-our $VERSION = '5.25';
+our $VERSION = '5.26';
 
 use strict;
 use warnings;
 
 use Carp;
 use English qw( -no_match_vars );
+use File::Copy;
 use Params::Validate qw( :all );
 
 use lib 'lib';
-use Mail::Toaster;     
-my ($toaster, $log, $util );
+my ( $log, $util, %std_opts );
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, {
-            toaster => { type=>OBJECT, optional => 1 },
-        },
+    my %p = validate( @_, 
+        {   'log' => { type=>OBJECT },
+            fatal => { type => BOOLEAN, optional => 1, default => 1 },
+            debug => { type => BOOLEAN, optional => 1 },
+        } 
     );
 
-    my $self = { };
-    bless( $self, $class );
+    $log  = $p{'log'};
+    $util = $log->get_util;
 
-    $toaster = $log = $p{toaster} || Mail::Toaster->new;
-    $util = $toaster->{util};
+    my $debug = $log->get_debug;    # inherit from our parent
+    my $fatal = $log->get_fatal;
+    $debug = $p{debug} if defined $p{debug};  # explicity overridden
+    $fatal = $p{fatal} if defined $p{fatal};
 
-    bless( $self, $class );
+    my $self = {
+        'log' => $log,
+        debug => $debug,
+        fatal => $fatal,    
+    };    
+    bless $self, $class;
+
+# globally scoped hash, populated with defaults requested by the caller
+    %std_opts = (
+        'test_ok' => { type => BOOLEAN, optional => 1 },
+        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
+        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },    
+    );
+
     return $self;
 }
 
 sub install_apache1 {
+    my $self = shift;
+    my ( $src, $conf ) = @_;
 
-    my ( $self, $src, $conf ) = @_;
-    
     return if $OSNAME eq "darwin";
-
-    use File::Copy;
-
-    if ( $OSNAME eq "freebsd" ) {
-        return $self->install_1_freebsd();
-    };
+    return $self->install_1_freebsd() if $OSNAME eq "freebsd";
 
     $self->install_1_source($conf);
 };
@@ -147,15 +159,16 @@ For re-installs:
 
 sub install_1_freebsd {
     my ($self, $conf) = @_;
+
     require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
+    my $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
 
     if ( $conf->{'package_install_method'} eq "packages" ) {
-        $freebsd->package_install( port => "mm" );
-        $freebsd->package_install( port => "gettext" );
-        $freebsd->package_install( port => "libtool" );
-        $freebsd->package_install( port => "apache" );
-        $freebsd->package_install( port => "p5-libwww" );
+        $freebsd->install_package( port => "mm" );
+        $freebsd->install_package( port => "gettext" );
+        $freebsd->install_package( port => "libtool" );
+        $freebsd->install_package( port => "apache" );
+        $freebsd->install_package( port => "p5-libwww" );
     }
     else {
         $freebsd->install_port( "mm",      );
@@ -173,7 +186,7 @@ sub install_1_freebsd {
     }
 
     unless ( $freebsd->is_port_installed( "apache" ) ) {
-        $freebsd->package_install( port => "apache" );
+        $freebsd->install_package( port => "apache" );
     }
 
     $freebsd->conf_check( check=>"apache_enable", line=>'apache_enable="YES"' );
@@ -183,9 +196,8 @@ sub install_2 {
     my $self = shift;
 
     my %p = validate( @_, {
-            'conf'    => { type=>HASHREF, },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
+            'conf' => { type=>HASHREF, },
+            %std_opts,
         },
     );
 
@@ -212,7 +224,7 @@ http://www.tnpi.net/internet/mail/toaster/darwin.shtml.\n";
         }
 
         require Mail::Toaster::Darwin;
-        my $darwin = Mail::Toaster::Darwin->new( toaster => $toaster );
+        my $darwin = Mail::Toaster::Darwin->new( 'log' => $log );
 
         $darwin->install_port( "apache2" );
         $darwin->install_port( "php5", opts => "+apache2" );
@@ -236,7 +248,7 @@ sub install_2_freebsd {
     $log->audit( "install_2: v$ver from www/$ports_dir on FreeBSD");
 
     require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
+    my $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
 
     # if some variant of apache 2 is installed
     my $r = $freebsd->is_port_installed( "apache-2", debug=>$debug );
@@ -246,9 +258,9 @@ sub install_2_freebsd {
         # fixup Apache 2 installs
         $self->apache2_fixups( $conf, $ports_dir );
         $self->freebsd_extras( $conf, $freebsd );
-        $self->install_ssl_certs(conf=>$conf, debug=>$debug);
-        $self->apache_conf_patch(conf=>$conf, debug=>$debug);
-        $self->startup(conf=>$conf, debug=>$debug);
+        $self->install_ssl_certs(conf=>$conf );
+        $self->apache_conf_patch(conf=>$conf );
+        $self->startup(conf=>$conf );
         return 1;
     }
 
@@ -260,8 +272,8 @@ sub install_2_freebsd {
         }
         else {
             print "install_2: attempting package install.\n";
-            $freebsd->package_install( port => $ports_dir, alt => "apache-2" );
-            $freebsd->package_install( port => "p5-libwww" );
+            $freebsd->install_package( port => $ports_dir, alt => "apache-2" );
+            $freebsd->install_package( port => "p5-libwww" );
         }
     }
 
@@ -301,9 +313,9 @@ WITH_DEVRANDOM=true",
     # fixup Apache 2 installs
     $self->apache2_fixups( $conf, $ports_dir ) if ( $ver =~ /2/ );
     $self->freebsd_extras( $conf, $freebsd );
-    $self->install_ssl_certs( conf=>$conf, debug=>$debug);
-    $self->apache_conf_patch( conf=>$conf, debug=>$debug);
-    $self->startup(conf=>$conf, debug=>$debug);
+    $self->install_ssl_certs( conf=>$conf );
+    $self->apache_conf_patch( conf=>$conf );
+    $self->startup(conf=>$conf );
     return 1;
 }
 
@@ -338,13 +350,11 @@ sub install_2_freebsd_flags {
 }
 
 sub startup {
-
     my $self = shift;
 
     my %p = validate( @_, {
             'conf'    => { type=>HASHREF, },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
     );
 
@@ -375,20 +385,17 @@ sub startup_freebsd {
     my ($conf, $debug) = @_;
 
     require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
+    my $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
 
+    $freebsd->conf_check( check=>"apache2_enable", line=>'apache2_enable="YES"' );
+    $freebsd->conf_check( check=>"apache22_enable", line=>'apache22_enable="YES"' );
     $freebsd->conf_check( 
-        check=>"apache2_enable", line=>'apache2_enable="YES"', debug=>$debug );
-    $freebsd->conf_check( 
-        check=>"apache22_enable", line=>'apache22_enable="YES"', debug=>$debug );
-    $freebsd->conf_check( 
-        check=>"apache2ssl_enable", line=>'apache2ssl_enable="YES"', debug=>$debug );
+        check=>"apache2ssl_enable", line=>'apache2ssl_enable="YES"' );
 
     my $etcdir = $conf->{'system_config_dir'} || "/usr/local/etc";
     my @rcs = qw/ apache22 apache2 apache apache22.sh apache2.sh apache.sh /;
     foreach ( @rcs ) {
-        $util->syscmd( "$etcdir/rc.d/$_ start", debug=>$debug ) 
-            if -x "$etcdir/rc.d/$_";
+        $util->syscmd( "$etcdir/rc.d/$_ start" ) if -x "$etcdir/rc.d/$_";
     };
 }
 
@@ -456,7 +463,7 @@ sub apache2_install_vhost {
     my $redirect_host = $hostname;
 
     require Mail::Toaster::DNS;
-    my $dns = Mail::Toaster::DNS->new;
+    my $dns = Mail::Toaster::DNS->new( 'log' => $log );
 
     if ( ! $dns->resolve(type=>"A", record=>$hostname) ) {
         $redirect_host = $local_ip;
@@ -669,8 +676,8 @@ WITHOUT_KERBEROS=true\n",
 
     # php stuff
     if ( $conf->{'package_install_method'} eq "packages" ) {
-        $freebsd->package_install( port => "bison", debug=>0 );
-        $freebsd->package_install( port => "gd", debug=>0 );
+        $freebsd->install_package( port => "bison" );
+        $freebsd->install_package( port => "gd"  );
     }
     $freebsd->install_port( "bison" );
     $freebsd->install_port( "gd"    );
@@ -693,11 +700,7 @@ WITHOUT_KERBEROS=true\n",
 
 sub conf_get_dir {
     my $self = shift;
-    my %p = validate( @_, {
-            'conf'  => HASHREF,
-            'debug' => {type=>SCALAR, optional=>1, default=>1},
-        },
-    );
+    my %p = validate( @_, { 'conf' => HASHREF, %std_opts } );
 
     my $conf = $p{'conf'};
 
@@ -705,7 +708,7 @@ sub conf_get_dir {
     my $apachectl = "$prefix/sbin/apachectl";
 
     if ( ! -x $apachectl ) {
-        $apachectl = $util->find_bin( "apachectl", debug=>0 );
+        $apachectl = $util->find_bin( "apachectl" );
     }
 
     # the -V flag to apachectl returns this string:
@@ -758,18 +761,10 @@ sub conf_get_dir {
 }
 
 sub apache_conf_patch {
-
     my $self = shift;
+    my %p = validate(@_, { 'conf' => HASHREF, %std_opts } );
 
-    my %p = validate(@_, {
-            'conf'  => HASHREF,
-            'debug' => {type=>SCALAR, optional=>1, default=>1,},
-            'test_ok' => {type=>SCALAR, optional=>1, },
-        },
-    );
-
-    my ( $conf, $debug ) = ( $p{'conf'}, $p{'debug'} );
-
+    my $conf   = $p{'conf'};
     my $prefix = $conf->{'toaster_prefix'}    || "/usr/local";
     my $etcdir = $conf->{'system_config_dir'} || "/usr/local/etc";
     my $patchdir   = "$etcdir/apache";
@@ -782,10 +777,7 @@ sub apache_conf_patch {
         return 1;
     };
 
-    if ( defined $p{'test_ok'} ) { return $p{'test_ok'} };
-
-    #print "\t applying toaster patches to httpd.conf\n" if $debug;
-    #print "\t httpd.conf is at $apacheconf\n" if $debug;
+    return $p{'test_ok'} if defined $p{'test_ok'};
 
     if ( $conf->{'install_apache'} == 2 && $OSNAME eq "darwin" ) {
         $apacheconf = "/etc/httpd/httpd.conf";
@@ -816,25 +808,21 @@ sub apache_conf_patch {
             $line = '#ScriptAlias /cgi-bin/ "/usr/local/www/apache22/cgi-bin/"';
         };
     };
-    $util->file_write( $apacheconf, lines=>\@lines, debug=>$debug);
+    $util->file_write( $apacheconf, lines=>\@lines );
 }
 
 sub install_ssl_certs {
-
     my $self = shift;
-
     my %p = validate (@_, {
             'conf'  => { type => HASHREF, },
             'type'  => { type => SCALAR, optional=>1, },
-            'debug' => { type => SCALAR, optional=>1, default=>1, },
-            'test_ok' => {type=>SCALAR, optional=>1, },
+            %std_opts,
         }
     );
 
-    my ( $conf, $type, $debug ) = ( $p{'conf'}, $p{'type'}, $p{'debug'} );
+    my ( $conf, $type ) = ( $p{'conf'}, $p{'type'} );
 
-    $log->audit( "install_ssl_certs: installing self-signed SSL certs for Apache.")
-      if $debug;
+    $log->audit( "install_ssl_certs: installing self-signed SSL certs for Apache.");
 
     my $prefix = $conf->{'toaster_prefix'}    || "/usr/local";
     my $etcdir = $conf->{'system_config_dir'} || "/usr/local/etc";
@@ -842,7 +830,7 @@ sub install_ssl_certs {
     my $apacheconf = $self->conf_get_dir(conf=>$conf);
     my ($apacheetc) = $util->path_parse($apacheconf);
 
-    print "   detected apache config dir $apacheetc.\n" if $debug;
+    $log->audit( "   detected apache config dir $apacheetc.");
 
     my $crtdir = "$apacheetc/ssl.crt";
     my $keydir = "$apacheetc/ssl.key";
@@ -852,14 +840,14 @@ sub install_ssl_certs {
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    $util->mkdir_system( dir => $crtdir, debug=>$debug ) if ! -d $crtdir;
-    $util->mkdir_system( dir => $keydir, debug=>$debug ) if ! -d $crtdir;
+    $util->mkdir_system( dir => $crtdir ) if ! -d $crtdir;
+    $util->mkdir_system( dir => $keydir ) if ! -d $crtdir;
 
     if ( $type && $type eq "dsa" ) {
         install_dsa_cert($crtdir, $keydir);
     }
     else {
-        $self->install_rsa_cert( crtdir=>$crtdir, keydir=>$keydir, debug=>$debug );
+        $self->install_rsa_cert( crtdir=>$crtdir, keydir=>$keydir );
     }
     return 1;
 }
@@ -886,503 +874,6 @@ sub restart {
 
         $util->syscmd( "$sudo $apachectl graceful" );
     }
-}
-
-sub vhost_create {
-
-    my ( $self, $vals, $conf ) = @_;
-
-    if ( $self->vhost_exists( $vals, $conf ) ) {
-        return {
-            error_code => 400,
-            error_desc => "Sorry, that virtual host already exists!"
-        };
-    }
-
-    # test all the values and make sure we've got enough to form a vhost
-    # minimum needed: vhost servername, ip[:port], documentroot
-
-    my $ip      = $vals->{'ip'} || '*:80';            # a default value
-    my $name    = lc( $vals->{'vhost'} );
-    my $docroot = $vals->{'documentroot'};
-    my $home    = $vals->{'admin_home'} || "/home";
-
-    unless ($docroot) {
-        if ( -d "$home/$name" ) { $docroot = "$home/$name" }
-        return {
-            error_code => 400,
-            error_desc =>
-              "documentroot was not set and could not be determined!",
-          }
-          unless -d $docroot;
-    }
-
-    if ( $vals->{'debug'} ) { use Data::Dumper; print Dumper($vals); }
-
-    # define the vhost
-    my @lines = "\n<VirtualHost $ip>";
-    push @lines, "	ServerName $name";
-    push @lines, "	DocumentRoot $docroot";
-    push @lines, "	ServerAdmin " . $vals->{'serveradmin'}
-      if $vals->{'serveradmin'};
-    push @lines, "	ServerAlias " . $vals->{'serveralias'}
-      if $vals->{'serveralias'};
-    if ( $vals->{'cgi'} ) {
-        if ( $vals->{'cgi'} eq "basic" ) {
-            push @lines,
-              "	ScriptAlias /cgi-bin/ \"/usr/local/www/cgi-bin.basic/";
-        }
-        elsif ( $vals->{'cgi'} eq "advanced" ) {
-            push @lines,
-              "	ScriptAlias /cgi-bin/ \"/usr/local/www/cgi-bin.advanced/\"";
-        }
-        elsif ( $vals->{'cgi'} eq "custom" ) {
-            push @lines,
-              "	ScriptAlias /cgi-bin/ \""
-              . $vals->{'documentroot'}
-              . "/cgi-bin/\"";
-        }
-        else {
-            push @lines, "	ScriptAlias " . $vals->{'cgi'};
-        }
-
-    }
-
- # options needs some directory logic included if it's going to be used
- # I won't be using this initially, but maybe eventually...
- #push @lines, "	Options "      . $vals->{'options'}      if $vals->{'options'};
-
-    push @lines, "	CustomLog " . $vals->{'customlog'} if $vals->{'customlog'};
-    push @lines, "	CustomError " . $vals->{'customerror'}
-      if $vals->{'customerror'};
-    if ( $vals->{'ssl'} ) {
-        if (   $vals->{'sslkey'}
-            && $vals->{'sslcert'}
-            && -f $vals->{'sslkey'}
-            && $vals->{'sslcert'} )
-        {
-            push @lines, "	SSLEngine on";
-            push @lines, "	SSLCertificateKey " . $vals->{'sslkey'}
-              if $vals->{'sslkey'};
-            push @lines, "	SSLCertificateFile " . $vals->{'sslcert'}
-              if $vals->{'sslcert'};
-        }
-        else {
-            return {
-                error_code => 400,
-                error_desc =>
-                  "FATAL: ssl is enabled but either the key or cert is missing!"
-            };
-        }
-    }
-    push @lines, "</VirtualHost>\n";
-
-    #print join ("\n", @lines) if $vals->{'debug'};
-
-    # write vhost definition to a file
-    my ($vhosts_conf) = $self->vhosts_get_file( $vals, $conf );
-
-    if ( -f $vhosts_conf ) {
-        print "appending to file: $vhosts_conf\n" if $vals->{'debug'};
-        $util->file_write( $vhosts_conf, lines  => \@lines, append => 1 );
-    }
-    else {
-        print "writing to file: $vhosts_conf\n" if $vals->{'debug'};
-        $util->file_write( $vhosts_conf, lines => \@lines );
-    }
-
-    $self->restart($vals);
-
-    print "returning success or error\n" if $vals->{'debug'};
-    return { error_code => 200, error_desc => "vhost creation successful" };
-}
-
-sub vhost_enable {
-
-    my ( $self, $vals, $conf ) = @_;
-
-    if ( $self->vhost_exists( $vals, $conf ) ) {
-        return {
-            error_code => 400,
-            error_desc => "Sorry, that virtual host is already enabled."
-        };
-    }
-
-    print "enabling $vals->{'vhost'} \n";
-
-    # get the file the disabled vhost would live in
-    my ($vhosts_conf) = $self->vhosts_get_file( $vals, $conf );
-
-    print "the disabled vhost should be in $vhosts_conf.disabled\n"
-      if $vals->{'debug'};
-
-    unless ( -s "$vhosts_conf.disabled" ) {
-        return {
-            error_code => 400,
-            error_desc => "That vhost is not disabled, I cannot enable it!"
-        };
-    }
-
-    $vals->{'disabled'} = 1;
-
-    # slit the file into two parts
-    ( undef, my $match, $vals ) = $self->vhosts_get_match( $vals, $conf );
-
-    print "enabling: \n", join( "\n", @$match ), "\n";
-
-    # write vhost definition to a file
-    if ( -f $vhosts_conf ) {
-        print "appending to file: $vhosts_conf\n" if $vals->{'debug'};
-        $util->file_write( $vhosts_conf, lines  => $match, append => 1);
-    }
-    else {
-        print "writing to file: $vhosts_conf\n" if $vals->{'debug'};
-        $util->file_write( $vhosts_conf, lines => $match );
-    }
-
-    $self->restart($vals);
-
-    if ( $vals->{'documentroot'} ) {
-        print "docroot: $vals->{'documentroot'} \n";
-
-        # chmod 755 the documentroot directory
-        if ( $vals->{'documentroot'} && -d $vals->{'documentroot'} ) {
-            my $sudo = $util->sudo();
-            my $chmod = $util->find_bin( "chmod" );
-            $util->syscmd( "$sudo $chmod 755 $vals->{'documentroot'}" );
-        }
-    }
-
-    print "returning success or error\n" if $vals->{'debug'};
-    return { error_code => 200, error_desc => "vhost enabled successfully" };
-}
-
-sub vhost_disable {
-
-    my ( $self, $vals, $conf ) = @_;
-
-    unless ( $self->vhost_exists( $vals, $conf ) ) {
-        return {
-            error_code => 400,
-            error_desc => "Sorry, that virtual host does not exist."
-        };
-    }
-
-    print "disabling $vals->{'vhost'}\n";
-
-    # get the file the vhost lives in
-    $vals->{'disabled'} = 0;
-    my ($vhosts_conf) = $self->vhosts_get_file( $vals, $conf );
-
-    # split the file into two parts
-    ( my $new, my $match, $vals ) = $self->vhosts_get_match( $vals, $conf );
-
-    print "Disabling: \n" . join( "\n", @$match ) . "\n";
-
-    $util->file_write( "$vhosts_conf.new", lines => [$new] );
-
-    # write out the .disabled file (append if existing)
-    if ( -f "$vhosts_conf.disabled" ) {
-
-        # check to see if it's already in there
-        $vals->{'disabled'} = 1;
-        ( undef, my $dis_match, $vals ) =
-          $self->vhosts_get_match( $vals, $conf );
-
-        if ( @$dis_match[1] ) {
-            print "it's already in $vhosts_conf.disabled. skipping append.\n";
-        }
-        else {
-
-            # if not, append it
-            print "appending to file: $vhosts_conf.disabled\n"
-              if $vals->{'debug'};
-            $util->file_write( "$vhosts_conf.disabled", lines => $match, append => 1);
-        }
-    }
-    else {
-        print "writing to file: $vhosts_conf.disabled\n" if $vals->{'debug'};
-        $util->file_write( "$vhosts_conf.disabled", lines => [$match] );
-    }
-
-    my $sudo = $util->sudo();
-
-    if ( ( -s "$vhosts_conf.new" ) && ( -s "$vhosts_conf.disabled" ) ) {
-        print "Yay, success!\n" if $vals->{'debug'};
-        if ( $< eq 0 ) {
-            use File::Copy;    # this only works if we're root
-            move( "$vhosts_conf.new", $vhosts_conf );
-        }
-        else {
-            my $mv = $util->find_bin( "move" );
-            $util->syscmd( "$sudo $mv $vhosts_conf.new $vhosts_conf" );
-        }
-    }
-    else {
-        return {
-            error_code => 500,
-            error_desc =>
-"Oops, the size of $vhosts_conf.new or $vhosts_conf.disabled is zero. This is a likely indication of an error. I have left the files for you to examine and correct"
-        };
-    }
-
-    $self->restart($vals);
-
-    # chmod 0 the HTML directory
-    if ( $vals->{'documentroot'} && -d $vals->{'documentroot'} ) {
-        my $chmod = $util->find_bin( "chmod" );
-        $util->syscmd( "$sudo $chmod 0 $vals->{'documentroot'}" );
-    }
-
-    print "returning success or error\n" if $vals->{'debug'};
-    return { error_code => 200, error_desc => "vhost disabled successfully" };
-}
-
-sub vhost_delete {
-
-    my ( $self, $vals, $conf ) = @_;
-
-    unless ( $self->vhost_exists( $vals, $conf ) ) {
-        return {
-            error_code => 400,
-            error_desc => "Sorry, that virtual host does not exist."
-        };
-    }
-
-    print "deleting vhost " . $vals->{'vhost'} . "\n";
-
-# this isn't going to be pretty.
-# basically, we need to parse through the config file, find the right vhost container, and then remove only that vhost
-# I'll do that by setting a counter that trips every time I enter a vhost and counts the lines (so if the servername declaration is on the 5th or 1st line, I'll still know where to nip the first line containing the virtualhost opening declaration)
-#
-
-    my ($vhosts_conf) = $self->vhosts_get_file( $vals, $conf );
-    my ( $new, $drop ) = $self->vhosts_get_match( $vals, $conf );
-
-    print "Dropping: \n" . join( "\n", @$drop ) . "\n";
-
-    if ( length @$new == 0 || length @$drop == 0 ) {
-        return {
-            error_code => 500,
-            error_desc => "yikes, something went horribly wrong!"
-        };
-    }
-
-    # now, just for fun, lets make sure things work out OK
-    # we'll write out @new and @drop and compare them to make sure
-    # the two total the same size as the original
-
-    $util->file_write( "$vhosts_conf.new",  lines => [$new] );
-    $util->file_write( "$vhosts_conf.drop", lines => [$drop] );
-
-    if ( ( ( -s "$vhosts_conf.new" ) + ( -s "$vhosts_conf.drop" ) ) ==
-        -s $vhosts_conf )
-    {
-        print "Yay, success!\n";
-        use File::Copy;
-        move( "$vhosts_conf.new", $vhosts_conf );
-        unlink("$vhosts_conf.drop");
-    }
-    else {
-        return {
-            error_code => 500,
-            error_desc =>
-"Oops, the size of $vhosts_conf.new and $vhosts_conf.drop combined is not the same as $vhosts_conf. This is a likely indication of an error. I have left the files for you to examine and correct"
-        };
-    }
-
-    $self->restart($vals);
-
-    print "returning success or error\n" if $vals->{'debug'};
-    return { error_code => 200, error_desc => "vhost deletion successful" };
-}
-
-sub vhost_exists {
-
-    my ( $self, $vals, $conf ) = @_;
-
-    my $vhost       = lc( $vals->{'vhost'} );
-    my $vhosts_conf = $conf->{'apache_dir_vhosts'};
-
-    unless ($vhosts_conf) {
-        croak "FATAL: you must set apache_dir_vhosts in sysadmin.conf\n";
-    }
-
-    if ( -d $vhosts_conf ) {
-
-        # test to see if the vhosts exists
-        # this almost implies some sort of unique naming mechanism for vhosts
-        # For now, this requires that the file be the same as the domain name
-        # (example.com) for the domain AND any subdomains. This means subdomain
-        # declarations live within the domain file.
-
-        my ($vh_file_name) = $vhost =~ /([a-z0-9-]+\.[a-z0-9-]+)(\.)?$/;
-        print "cleaned up vhost name: $vh_file_name\n" if $vals->{'debug'};
-
-        print "searching for vhost $vhost in $vh_file_name\n"
-          if $vals->{'debug'};
-        my $vh_file_path = "$vhosts_conf/$vh_file_name.conf";
-
-        unless ( -f $vh_file_path ) {
-
-            # file does not exist, return invalid
-            return 0;
-        }
-
-        # OK, so the file exists that the virtual host should be in. Now we need
-        # to determine if there our virtual is defined in it
-
-        $util->install_module( "Apache::ConfigFile" );
-        my $ac =
-          Apache::ConfigFile->read( file => $vh_file_path, ignore_case => 1 );
-
-        for my $vh ( $ac->cmd_context( VirtualHost => '*:80' ) ) {
-            my $server_name = $vh->directive('ServerName');
-            print "ServerName $server_name\n" if $vals->{'debug'};
-            return 1 if ( $vhost eq $server_name );
-
-            my $alias = 0;
-            foreach my $server_alias ( $vh->directive('ServerAlias') ) {
-                return 1 if ( $vhost eq $server_alias );
-                if ( $vals->{'debug'} ) {
-                    print "\tServerAlias  " unless $alias;
-                    print "$server_alias ";
-                }
-                $alias++;
-            }
-            print "\n" if ( $alias && $vals->{'debug'} );
-        }
-        return 0;
-    }
-    else {
-        print "parsing vhosts from file $vhosts_conf\n";
-
-        $util->install_module( "Apache::ConfigFile" );
-        my $ac =
-          Apache::ConfigFile->read( file => $vhosts_conf, ignore_case => 1 );
-
-        for my $vh ( $ac->cmd_context( VirtualHost => '*:80' ) ) {
-            my $server_name = $vh->directive('ServerName');
-            print "ServerName $server_name\n" if $vals->{'debug'};
-            return 1 if ( $vhost eq $server_name );
-
-            my $alias = 0;
-            foreach my $server_alias ( $vh->directive('ServerAlias') ) {
-                return 1 if ( $vhost eq $server_alias );
-                if ( $vals->{'debug'} ) {
-                    print "\tServerAlias  " unless $alias;
-                    print "$server_alias ";
-                }
-                $alias++;
-            }
-            print "\n" if ( $alias && $vals->{'debug'} );
-        }
-
-        return 0;
-    }
-}
-
-sub vhost_show {
-
-    my ( $self, $vals, $conf ) = @_;
-
-    unless ( $self->vhost_exists( $vals, $conf ) ) {
-        return {
-            error_code => 400,
-            error_desc => "Sorry, that virtual host does not exist."
-        };
-    }
-
-    my ($vhosts_conf) = $self->vhosts_get_file( $vals, $conf );
-
-    ( my $new, my $match, $vals ) = $self->vhosts_get_match( $vals, $conf );
-    print "showing: \n" . join( "\n", @$match ) . "\n";
-
-    return { error_code => 100, error_desc => "exiting normally" };
-}
-
-sub vhosts_get_file {
-
-    my ( $self, $vals, $conf ) = @_;
-
-    # determine the path to the file the vhost is stored in
-    my $vhosts_conf = $conf->{'apache_dir_vhosts'};
-    if ( -d $vhosts_conf ) {
-        my ($vh_file_name) =
-          lc( $vals->{'vhost'} ) =~ /([a-z0-9-]+\.[a-z0-9-]+)(\.)?$/;
-        $vhosts_conf .= "/$vh_file_name.conf";
-    }
-    else {
-        $vhosts_conf .= ".conf";
-    }
-
-    return $vhosts_conf;
-}
-
-sub vhosts_get_match {
-
-    my ( $self, $vals, $conf ) = @_;
-
-    my ($vhosts_conf) = $self->vhosts_get_file( $vals, $conf );
-    if ( $vals->{'disabled'} ) { $vhosts_conf .= ".disabled" }
-
-    print "reading in the vhosts file $vhosts_conf\n" if $vals->{'debug'};
-    my @lines = $util->file_read($vhosts_conf);
-
-    my ( $in, $match, @new, @drop );
-  LINE: foreach my $line (@lines) {
-        if ($match) {
-            print "match: $line\n" if $vals->{'debug'};
-            push @drop, $line;
-            if ( $line =~ /documentroot[\s+]["]?(.*?)["]?[\s+]?$/i ) {
-                print "setting documentroot to $1\n" if $vals->{'debug'};
-                $vals->{'documentroot'} = $1;
-            }
-        }
-        else { push @new, $line }
-
-        if ( $line =~ /^[\s+]?<\/virtualhost/i ) {
-            $in    = 0;
-            $match = 0;
-            next LINE;
-        }
-
-        $in++ if $in;
-
-        if ( $line =~ /^[\s+]?<virtualhost/i ) {
-            $in = 1;
-            next LINE;
-        }
-
-        my ($servername) = $line =~ /([a-z0-9-\.]+)(:\d+)?(\s+)?$/i;
-        if ( $servername && $servername eq lc( $vals->{'vhost'} ) ) {
-            $match = 1;
-
-            # determine how many lines are in @new
-            my $length = @new;
-            print "array length: $length\n" if $vals->{'debug'};
-
-          # grab the lines from @new going back to the <virtualhost> declaration
-          # and push them onto @drop
-            for ( my $i = $in ; $i > 0 ; $i-- ) {
-                push @drop, @new[ ( $length - $i ) ];
-                unless ( $vals->{'documentroot'} ) {
-                    if ( @new[ ( $length - $i ) ] =~
-                        /documentroot[\s+]["]?(.*?)["]?[\s+]?$/i )
-                    {
-                        print "setting documentroot to $1\n"
-                          if $vals->{'debug'};
-                        $vals->{'documentroot'} = $1;
-                    }
-                }
-            }
-
-            # remove those lines from @new
-            for ( my $i = 0 ; $i < $in ; $i++ ) { pop @new; }
-        }
-    }
-
-    return \@new, \@drop, $vals;
 }
 
 sub RemoveOldApacheSources {
@@ -1529,8 +1020,10 @@ Perl methods for working with Apache. See METHODS.
 
 =item new
 
+   use Mail::Toaster;
    use Mail::Toaster::Apache
-   my $apache = Mail::Toaster::Apache->new();
+   my $log = Mail::Toaster->new(debug=>0)
+   my $apache = Mail::Toaster::Apache->new( 'log' => $log );
 
 use this function to create a new apache object. From there you can use all the functions
 included in this document.
@@ -1541,9 +1034,6 @@ The second hashref is key/value pairs from sysadmin.conf. See that file for deta
 
 
 =item InstallApache1
-
-	use Mail::Toaster::Apache;
-	my $apache = new Mail::Toaster::Apache;
 
 	$apache->install_apache1(src=>"/usr/local/src")
 
@@ -1572,9 +1062,6 @@ Values in $conf are set in toaster-watcher.conf. Please refer to that file to se
 
 =item apache_conf_patch
 
-	use Mail::Toaster::Apache;
-	my $apache = Mail::Toaster::Apache->new();
-
 	$apache->apache_conf_patch(conf=>$conf);
 
 Patch apache's default httpd.conf file. See the patch in contrib of Mail::Toaster to see what changes are being made.
@@ -1600,90 +1087,6 @@ On FreeBSD, we use the rc.d script if it's available because it's smarter than a
 
     $apache->restart($vals);
 
-
-=item vhost_create
-
-Create an Apache vhost container like this:
-
-  <VirtualHost *:80 >
-    ServerName blockads.com
-    ServerAlias ads.blockads.com
-    DocumentRoot /usr/home/blockads.com/ads
-    ServerAdmin admin@blockads.com
-    CustomLog "| /usr/local/sbin/cronolog /usr/home/example.com/logs/access.log" combined
-    ErrorDocument 404 "blockads.com
-  </VirtualHost>
-
-	my $apache->vhost_create($vals, $conf);
-
-	Required values:
-
-         ip  - an ip address
-       name  - vhost name (ServerName)
-     docroot - Apache DocumentRoot
-
-    Optional values
-
- serveralias - Apache ServerAlias names (comma seperated)
- serveradmin - Server Admin (email address)
-         cgi - CGI directory
-   customlog - obvious
- customerror - obvious
-      sslkey - SSL certificate key
-     sslcert - SSL certificate
-
-This sub works great. :-)
-
-
-=item vhost_enable
-
-Enable a (previously) disabled virtual host. 
-
-    $apache->vhost_enable($vals, $conf);
-
-
-=item vhost_disable
-
-Disable a previously disabled vhost.
-
-    $apache->vhost_disable($vals, $conf);
-
-
-=item vhost_delete
-
-Delete's an Apache vhost.
-
-    $apache->vhost_delete();
-
-
-=item vhost_exists
-
-Tests to see if a vhost definition already exists in your Apache config file(s).
-
-
-=item vhost_show
-
-Shows the contents of a virtualhost block that matches the virtual domain name passed in the $vals hashref. 
-
-	$apache->vhost_show($vals, $conf);
-
-
-=item vhosts_get_file
-
-If vhosts are each in their own file, this determines the file name the vhost will live in and returns it. The general methods on my systems works like this:
-
-   example.com would be stored in $apache/vhosts/example.com.conf
-
-so would any subdomains of example.com.
-
-thus, a return value for *.example.com will be "$apache/vhosts/example.com.conf".
-
-$apache is looked up from the contents of $conf.
-
-
-=item vhosts_get_match
-
-Find a vhost declaration block in the Apache config file(s).
 
 
 =item install_dsa_cert

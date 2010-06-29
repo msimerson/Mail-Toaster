@@ -18,5 +18,5 @@ else {
 
 require_ok('Mail::Toaster::Darwin');
 
-ok( Mail::Toaster::Darwin->new( toaster => $toaster ), 'new darwin object' );
+ok( Mail::Toaster::Darwin->new( 'log' => $toaster ), 'new darwin object' );
 

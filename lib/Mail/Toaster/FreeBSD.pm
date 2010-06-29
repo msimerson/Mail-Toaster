@@ -14,53 +14,58 @@ use vars qw($err);
 
 use lib 'lib';
 use Mail::Toaster 5.25;
-my ($toaster, $log, $util );
+my ($toaster, $log, $util, %std_opts );
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, {
-            toaster => { type=>HASHREF, optional => 1 },
-        },
+    my %p     = validate( @_,
+        {   'log' => { type => OBJECT  },
+            fatal => { type => BOOLEAN, optional => 1, default => 1 },
+            debug => { type => BOOLEAN, optional => 1 },
+        }
     );
 
-    my $self = { };
-    bless( $self, $class );
+    $toaster = $log = $p{'log'};
+    $util = $toaster->get_util;
 
-    $toaster = $log = $p{toaster} || Mail::Toaster->new;
-    $util = $toaster->{util};
+    my $debug = $log->get_debug;  # inherit from our parent
+    my $fatal = $log->get_fatal;
+    $debug = $p{debug} if defined $p{debug};  # explicity overridden
+    $fatal = $p{fatal} if defined $p{fatal};
 
-    bless( $self, $class );
+    my $self = {
+        'log' => $log,
+        debug => $debug,
+        fatal => $fatal,
+    };
+    bless $self, $class;
+
+    # globally scoped hash, populated with defaults as requested by the caller
+    %std_opts = (
+        'test_ok' => { type => BOOLEAN, optional => 1 },
+        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
+        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+    );
+
     return $self;
 }
 
 sub drive_spin_down {
-
     my $self = shift;
+    my %p = validate( @_, { 'drive' => SCALAR, %std_opts } );
 
-    my %p = validate(
-        @_,
-        {   'drive'   => { type => SCALAR, },
-            'test_ok' => { type => BOOLEAN, optional => 1 },
-            'fatal'   => { type => BOOLEAN, optional => 1 },
-            'debug'   => { type => BOOLEAN, optional => 1 },
-        },
-    );
-
-    my ( $drive, $fatal, $debug )
-        = ( $p{'drive'}, $p{'fatal'}, $p{'debug'} );
+    my $drive = $p{'drive'};
+    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     #TODO: see if the drive exists!
 
-    my $camcontrol = $util->find_bin( "camcontrol", debug => 0, fatal => 0 );
-    if ( ! -x $camcontrol ) {
-        print "couldn't find camcontrol!\n";
-        return;
-    };
+    my $camcontrol = $util->find_bin( "camcontrol", %args) 
+        or return $log->error( "couldn't find camcontrol", %args );
 
     print "spinning down backup drive $drive...";
-    $util->syscmd( "$camcontrol stop $drive", debug => 0 );
+    $util->syscmd( "$camcontrol stop $drive", %args );
     print "done.\n";
     return 1;
 }
@@ -69,15 +74,15 @@ sub get_port_category {
     my $self = shift;
     my $port = shift or die "missing port in request\n";
 
-		my ($path) = </usr/ports/*/$port/distinfo>;
-        if ( ! $path ) {
-            $path = </usr/ports/*/$port/Makefile>;
-        };
+    my ($path) = </usr/ports/*/$port/distinfo>;
+    if ( ! $path ) {
+        $path = </usr/ports/*/$port/Makefile>;
+    };
 #warn "path: $path\n";
-		return if ! $path;
-		my @bits = split( '/', $path );
+    return if ! $path;
+    my @bits = split( '/', $path );
 #warn "bits3: $bits[3]\n";
-		return $bits[3];
+    return $bits[3];
 }
 
 sub get_version {
@@ -104,12 +109,12 @@ sub install_port {
             check    => { type => SCALAR,  optional => 1 },
             flags    => { type => SCALAR,  optional => 1 },
             options  => { type => SCALAR,  optional => 1 },
-            fatal    => { type => BOOLEAN, optional => 1 },
-            test_ok  => { type => BOOLEAN, optional => 1 },
+            %std_opts,
         },
     );
 
-    my ( $options, $fatal ) = ( $p{options}, $p{fatal} );
+    my $options = $p{options};
+    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     my $make_defines = "";
     my @defs;
@@ -117,11 +122,7 @@ sub install_port {
     return $p{test_ok} if defined $p{test_ok};
 
     my $check = $p{check} || $portname;
-    my $as = $self->is_port_installed( $check, fatal => $fatal );
-    if ($as) {
-        $log->audit( "install_port: $portname install, ok ($as)" );
-        return 1;
-    }
+    return 1 if $self->is_port_installed( $check, debug=>1);
 
     my $port_dir = $p{dir} || $portname;
     $port_dir =~ s/::/-/g if $port_dir =~ /::/;
@@ -177,11 +178,7 @@ sub install_port {
     # return to our original working directory
     chdir($start_directory);
 
-    $as = $self->is_port_installed( $check, fatal => $fatal,);
-    if ($as) {
-        $log->audit( "install_port: $portname install, ok ($as)" );
-        return 1;
-    }
+    return 1 if $self->is_port_installed( $check, debug=>1 );
 
     $log->audit( "install_port: $portname install, FAILED" );
     $self->install_port_try_manual( $portname, $path );
@@ -199,10 +196,7 @@ manually installing via CPAN. Try something like this:
 EO_PERL_MODULE_MANUAL
     };
 
-    croak
-        "FATAL FAILURE: Install of $portname failed. Please fix and try again.\n"
-        if $fatal;
-    return;
+    return $log->error( "Install of $portname failed. Please fix and try again.", %args);
 }
 
 sub is_port_installed {
@@ -210,43 +204,40 @@ sub is_port_installed {
     my $port = shift or return $log->error("missing port/package name", fatal=>0);
     my %p    = validate(
         @_,
-        {   'alt'     => { type => SCALAR | UNDEF, optional => 1 },
-            'fatal'   => { type => BOOLEAN, optional => 1 },
-            'debug'   => { type => BOOLEAN, optional => 1 },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
+        {   'alt' => { type => SCALAR | UNDEF, optional => 1 },
+            %std_opts,
         },
     );
 
-    my $debug = $p{debug}; my $fatal = $p{fatal};
     my $alt = $p{'alt'} || $port;
 
     my ( $r, @args );
 
-    $log->audit( "checking for $port");
+    $log->audit( "  checking for port $port", debug=>0);
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    my $pkg_info = $util->find_bin( 'pkg_info' );
+    my $pkg_info = $util->find_bin( 'pkg_info', debug => 0 );
     my @packages = `pkg_info`; chomp @packages;
-    my @matches = grep { $_ =~ /^$port|$alt/ } @packages;
-    return if scalar @matches == 0;   # no matches
+    my @matches = grep {/^$port/} @packages;
+    if ( scalar @matches == 0 ) {
+        @matches = grep {/^$alt/} @packages;
+    };   
+    return if scalar @matches == 0; # no matches
+    $toaster->audit( "WARN: found multiple matches for port $port",debug=>1)
+        if scalar @matches != 1;
 
     my ($installed_as) = split(/\s/, $matches[0]);
-    $toaster->audit( "port search for $port found $installed_as" );
+    $toaster->audit( "found port $port installed as $installed_as",debug=>$p{debug} );
     return $installed_as;
 }
 
 sub install_portupgrade {
     my $self = shift;
-    my %p = validate(
-        @_,
-        {   conf    => { type => HASHREF, optional => 1, },
-            fatal   => { type => BOOLEAN, optional => 1, default => 1 },
-            test_ok => { type => BOOLEAN, optional => 1 },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
-    my ( $conf, $fatal ) = ( $p{'conf'}, $p{'fatal'} );
+    my $conf = $toaster->get_config;
+    my %args = $toaster->get_std_args( %p );
 
     my $package = $conf->{'package_install_method'} || "packages";
 
@@ -257,135 +248,78 @@ sub install_portupgrade {
     # of portupgrade from ports
 
     if ( $self->get_version =~ m/\A6/ ) {
-        $self->package_install(
-            port  => "portupgrade",
-            debug => 0,
-            fatal => 0,
-        );
+        $self->install_package( port => "portupgrade", %args );
     }
 
     if ( $package eq "packages" ) {
-        $self->package_install(
+        $self->install_package(
             port  => "ruby18_static",
             alt   => "ruby-1.8",
-            debug => 0,
-            fatal => 0,
+            %args,
         );
     }
 
-    $self->install_port( port => "portupgrade", fatal => $fatal,);
+    $self->install_port( port => "portupgrade", %args );
 
     return 1 if $self->is_port_installed( "portupgrade" );
     return;
 }
 
-sub package_install {
-
+sub install_package {
     my $self = shift;
     my %p    = validate(
         @_,
         {   'port'  => { type => SCALAR, },
             'alt'   => { type => SCALAR, optional => 1, },
             'url'   => { type => SCALAR, optional => 1, },
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
-            'test_ok' => { type => BOOLEAN, optional => 1 },
+            %std_opts,
         },
     );
 
-    my ( $package, $alt, $pkg_url, $fatal, $debug )
-        = ( $p{'port'}, $p{'alt'}, $p{'url'}, $p{'fatal'}, $p{'debug'} );
+    my ( $package, $alt, $pkg_url ) = ( $p{'port'}, $p{'alt'}, $p{'url'} );
+    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
-    if ( !$package ) {
-        return $util->error("sorry, but I really need a package name!");
-    }
+    return $util->error("sorry, but I really need a package name!") if !$package;
 
-    $log->audit("package_install: checking if $package is installed")
-        if $debug;
+    $log->audit("install_package: checking if $package is installed");
 
-    if ( defined $p{'test_ok'} ) { return $p{'test_ok'}; }
+    return $p{'test_ok'} if defined $p{'test_ok'};
 
-    my $r = $self->is_port_installed( $package,
-        alt   => $alt,
-        debug => $debug,
-        fatal => $fatal,
-    );
-    if ($r) {
-        printf "package_install: %-20s installed as (%s).\n", $package, $r
-            if $debug;
-        return $r;
-    }
+    return 1 if $self->is_port_installed( $package, alt => $alt, %args );
 
-    print "package_install: installing $package....\n" if $debug;
+    print "install_package: installing $package....\n";
     $ENV{"PACKAGESITE"} = $pkg_url if $pkg_url;
 
-    my $pkg_add = $util->find_bin( "pkg_add",
-        debug => $debug,
-        fatal => $fatal
-    );
-    if ( !$pkg_add || !-x $pkg_add ) {
-        carp "couldn't find pkg_add, giving up.";
-        return;
-    }
+    my $pkg_add = $util->find_bin( "pkg_add", %args );
+    return $log->error( "couldn't find pkg_add, giving up.",fatal=>0)
+        if ( !$pkg_add || !-x $pkg_add );
 
     my $r2 = $util->syscmd( "$pkg_add -r $package", debug => 0 );
 
     if   ( !$r2 ) { print "\t pkg_add failed\t "; }
-    else          { print "\t pkg_add success\t " if $debug }
+    else          { print "\t pkg_add success\t " };
 
-    print "done.\n" if $debug;
-
-    unless (
-        $self->is_port_installed( $package,
-            alt   => $alt,
-            debug => $debug,
-            fatal => $fatal,
-        )
-        )
-    {
-        print "package_install: Failed #1, trying alternate package site.\n";
+    unless ( $self->is_port_installed( $package, alt => $alt, %args )) {
+        print "Failure #1, trying alternate package site.\n";
         $ENV{"PACKAGEROOT"} = "ftp://ftp2.freebsd.org";
         $util->syscmd( "$pkg_add -r $package", debug => 0 );
 
-        unless (
-            $self->is_port_installed( $package,
-                alt   => $alt,
-                debug => $debug,
-                fatal => $fatal,
-            )
-            )
-        {
-            print
-                "package_install: Failed #2, trying alternate package site.\n";
+        unless ( $self->is_port_installed( $package, alt => $alt, %args,)) {
+            print "Failure #2, trying alternate package site.\n";
             $ENV{"PACKAGEROOT"} = "ftp://ftp3.freebsd.org";
             $util->syscmd( "$pkg_add -r $package", debug => 0 );
 
-            unless (
-                $self->is_port_installed( $package,
-                    alt   => $alt,
-                    debug => $debug,
-                    fatal => $fatal,
-                )
-                )
-            {
-                print
-                    "package_install: Failed #3, trying alternate package site.\n";
+            unless ( $self->is_port_installed( $package, alt => $alt, %args,)) {
+                print "Failure #3, trying alternate package site.\n";
                 $ENV{"PACKAGEROOT"} = "ftp://ftp4.freebsd.org";
                 $util->syscmd( "$pkg_add -r $package", debug => 0 );
             }
         }
     }
 
-    unless (
-        $self->is_port_installed( $package,
-            alt   => $alt,
-            debug => $debug,
-            fatal => $fatal,
-        )
-        )
-    {
-        carp
-            "package_install: Failed again! Sorry, I can't install the package $package!\n";
+    my $r = $self->is_port_installed( $package, alt => $alt, %args );
+    if ( ! $r ) {
+        carp "  : Failed again! Sorry, I can't install the package $package!\n";
         return;
     }
 
@@ -425,86 +359,55 @@ sub port_options {
         @_,
         {   port  => SCALAR,
             opts  => SCALAR,
-            debug => { type => BOOLEAN, optional => 1, default => 1, },
-            fatal => { type => BOOLEAN, optional => 1, default => 1, },
-            test_ok => { type => BOOLEAN, optional => 1, },
+            %std_opts,
         },
     );
 
-    my ( $port, $opts, $fatal ) = ( $p{port}, $p{opts}, $p{fatal} );
+    my ( $port, $opts ) = ( $p{port}, $p{opts} );
+    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $p{test_ok} if defined $p{test_ok};
 
     if ( !-d "/var/db/ports/$port" ) {
-        $util->mkdir_system(
-            dir   => "/var/db/ports/$port",
-            debug => 0,
-            fatal => $fatal
-        );
+        $util->mkdir_system( dir => "/var/db/ports/$port", %args,);
     }
 
-    $util->file_write( "/var/db/ports/$port/options",
-        lines => [$opts],
-        debug => 0,
-        fatal => $fatal
-    );
+    $util->file_write( "/var/db/ports/$port/options", lines => [$opts], %args );
 }
 
-sub ports_update {
-
+sub update_ports {
     my $self = shift;
-
-    my %p = validate(
-        @_,
-        {   conf    => { type => HASHREF, optional => 1, },
-            fatal   => { type => BOOLEAN, optional => 1, default => 1 },
-            debug   => { type => BOOLEAN, optional => 1, default => 1 },
-            test_ok => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my ( $conf, $fatal, $debug ) = ( $p{'conf'}, $p{'fatal'}, $p{'debug'} );
+    my %p = validate( @_, { %std_opts, } );
+    my %args = $toaster->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
-    if ( !-w "/usr/ports" ) {
-        carp
-            "you do not have write permission on /usr/ports, I cannot update your ports tree.";
-        return;
-    }
+    return $log->error( "you do not have write permission to /usr/ports.",%args) if ! $util->is_writable('/usr/ports', %args);
 
+    my $conf = $toaster->get_config;
     my $supfile = $conf->{'cvsup_supfile_ports'} || "portsnap";
 
-    return $self->portsnap( debug => $debug, fatal => $fatal );
-
-    $self->install_portupgrade( conf  => $conf ) if $conf->{'install_portupgrade'};
+    return $self->portsnap( %args);
 
     return 1;
 }
 
 sub portsnap {
-
     my $self = shift;
-    my %p    = validate(
-        @_,
-        {   'fatal'   => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug'   => { type => BOOLEAN, optional => 1, default => 1 },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
+    my %p    = validate( @_, { %std_opts, },);
 
-    my ( $conf, $fatal, $debug ) = ( $p{'conf'}, $p{'fatal'}, $p{'debug'} );
+    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     # should be installed already on FreeBSD 5.5 and 6.x
-    my $portsnap
-        = $util->find_bin( "portsnap", fatal => 0, debug => $debug );
-    my $ps_conf = "/usr/local/etc/portsnap.conf";
+    my $portsnap = $util->find_bin( "portsnap", fatal => 0 );
+    my $ps_conf = "/etc/portsnap.conf";
 
     unless ( $portsnap && -x $portsnap ) {
         $self->install_port( "portsnap" );
 
+        $ps_conf = '/usr/local/etc/portsnap.conf';
         if ( !-e $ps_conf ) {
             if ( -e "$ps_conf.sample" ) {
                 copy( "$ps_conf.sample", $ps_conf );
@@ -514,7 +417,7 @@ sub portsnap {
             }
         }
 
-        $portsnap = $util->find_bin( "portsnap", fatal => 0, debug => $debug);
+        $portsnap = $util->find_bin( "portsnap", fatal => 0 );
         unless ( $portsnap && -x $portsnap ) {
             return $util->error(
                 "portsnap is not installed (correctly). I cannot go on!");
@@ -526,7 +429,7 @@ sub portsnap {
     }
 
     # grabs the latest updates from the portsnap servers
-    $util->syscmd( "$portsnap fetch", debug => 0, fatal => $fatal );
+    system $portsnap, 'fetch';
 
     if ( !-e "/usr/ports/.portsnap.INDEX" ) {
         print "\a
@@ -535,31 +438,27 @@ sub portsnap {
     doing a cvsup and require less bandwidth (good for you, and the FreeBSD 
     servers). Please be patient.\n\n";
         sleep 2;
-        $util->syscmd( "$portsnap extract", debug => 0, fatal => $fatal);
+        system $portsnap, "extract";
     }
     else {
-        $util->syscmd( "$portsnap update", debug => 0, fatal => $fatal);
+        system $portsnap, "update";
     }
 
     return 1;
 }
 
 sub conf_check {
-
     my $self = shift;
-
     my %p = validate(
         @_,
         {   'check' => { type => SCALAR, },
             'line'  => { type => SCALAR, },
             'file'  => { type => SCALAR,  optional => 1, },
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
-            test_ok => { type => BOOLEAN, optional => 1, },
+            %std_opts,
         },
     );
 
-    my %std_opts = ( fatal => $p{fatal}, debug => $p{debug} );
+    my %args = $log->get_std_args( %p );
     my $check = $p{check};
     my $line  = $p{line};
     my $file  = $p{file} || "/etc/rc.conf";
@@ -567,7 +466,8 @@ sub conf_check {
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     my $changes;
-    my @lines = $util->file_read( $file );
+    my @lines;
+    @lines = $util->file_read( $file ) if -f $file;
     foreach ( @lines ) {
         next if $_ !~ /^$check\=/;
         return $log->audit("conf_check: no change to $check") if $_ eq $line;
@@ -576,15 +476,10 @@ sub conf_check {
         $changes++;
     };
     if ( $changes ) {
-        $util->file_write( $file, lines => \@lines, %std_opts ) and return 1;
+        return $util->file_write( $file, lines => \@lines, %args );
     };
 
-    $util->file_write( $file, append => 1, lines => [$line], %std_opts ) and return 1;
-
-    @lines = $util->file_read( $file );
-    return 1 if scalar grep { /$check/ } @lines;
-
-    return $log->error( "conf_check tried to write to $file:\n$line: $!", %std_opts);
+    return $util->file_write( $file, append => 1, lines => [$line], %args );
 }
 
 1;
@@ -760,13 +655,13 @@ So, a full complement of settings could look like:
 #1 - On rare occasion, a port will get installed as a name other than the ports name. Of course, that wreaks all sorts of havoc so when one of them nasties is found, you can optionally pass along a fourth parameter which can be used as the port installation name to check with.
 
 
-=item package_install
+=item install_package
 
-	$fbsd->package_install( port=>"ispell" );
+	$fbsd->install_package( port=>"ispell" );
 
 Suggested usage: 
 
-	unless ( $fbsd->package_install( port=>"ispell" ) ) {
+	unless ( $fbsd->install_package( port=>"ispell" ) ) {
 		$fbsd->install_port( "ispell" );
 	};
 
@@ -784,11 +679,11 @@ If the package is registered in FreeBSD's package registry as another name and y
 See the pkg_add man page for more details on using an alternate URL.
 
 
-=item ports_update
+=item update_ports
 
 Updates the FreeBSD ports tree (/usr/ports/).
 
-    $fbsd->ports_update(conf=>$conf);
+    $fbsd->update_ports();
 
  arguments required:
    conf - a hashref

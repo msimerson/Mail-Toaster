@@ -18,24 +18,21 @@ use Mail::Toaster 5.25;
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, {
-            toaster => { type=>HASHREF, optional => 1 },
-        },
-    );
+    my %p = validate( @_, { 'log' => OBJECT } );
 
     my $self = { };
     bless( $self, $class );
 
-    $toaster = $log = $p{toaster} || Mail::Toaster->new(debug=>0);
+    $toaster = $log = $p{'log'};
     $util = $toaster->get_util;
 
     if ( $OSNAME eq "freebsd" ) {
         require Mail::Toaster::FreeBSD;
-        $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
+        $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
     }
     elsif ( $OSNAME eq "darwin" ) {
         require Mail::Toaster::Darwin;
-        $darwin = Mail::Toaster::Darwin->new( toaster => $toaster );
+        $darwin = Mail::Toaster::Darwin->new( 'log' => $log );
     };
 
     return $self;

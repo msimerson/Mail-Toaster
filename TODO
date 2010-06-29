@@ -1,14 +1,11 @@
  
-#
-# $Id: TODO,v 4.5 2006/07/07 02:57:54 matt Exp $
-#
-
+ - t/Ezmlm.t needs work
  - qmail-verh patch
  - qscanq support
  - make sure [service]_debug works
  - add support to maillogs for submit postprocessing
- - require strong encryption - https://www.tnpi.net/support/forums/index.php/topic,793.0.html
- -
+ - require strong encryption - 
+     https://www.tnpi.net/support/forums/index.php/topic,793.0.html
 
 - DONE - 03/07/2006
  - launchd startup script for Darwin implemented

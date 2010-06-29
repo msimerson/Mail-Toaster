@@ -20,14 +20,14 @@ require_ok( 'Mail::Toaster' );
 require_ok( 'Mail::Toaster::Ezmlm' );
 
 # basic OO mechanism
-my $ezmlm = Mail::Toaster::Ezmlm->new;                       # create an object
-ok ( defined $ezmlm, 'get Mail::Toaster::Ezmlm object' );    # check it
+my $toaster = Mail::Toaster->new();
+my $ezmlm = Mail::Toaster::Ezmlm->new( 'log' => $toaster );
+
+ok ( defined $ezmlm, 'get Mail::Toaster::Ezmlm object' );
 ok ( $ezmlm->isa('Mail::Toaster::Ezmlm'), 'check object class' );
 
-
-my $toaster = Mail::Toaster->new();
-my $conf = $toaster->{conf};
-my $util = $toaster->{util};
+my $conf = $toaster->get_config;
+my $util = $toaster->get_util;
 
 ok( $conf, 'toaster-watcher.conf loaded');
 

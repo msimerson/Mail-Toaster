@@ -10,7 +10,7 @@ use File::Copy;
 use File::Path;
 use Params::Validate qw( :all );
 
-use vars qw/ $conf $toaster $setup $t_dns $log $util /;
+use vars qw/ $conf $toaster $setup $t_dns $log $util %std_opts /;
 
 use lib 'lib';
 use Mail::Toaster;          
@@ -19,30 +19,42 @@ use Mail::Toaster::Setup;
 
 sub new {
     my $class = shift;
+    my %p     = validate( @_,
+        {   'log' => { type => OBJECT   },
+            fatal => { type => BOOLEAN, optional => 1, default => 1 },
+            debug => { type => BOOLEAN, optional => 1 },
+        }
+    );
 
-    my %p = validate( @_, {
-            toaster => { type=>OBJECT, optional => 1 },
-            debug   => { type=>SCALAR, optional => 1 },
-        },
-    );  
-
-    $toaster = $log = $p{toaster} || Mail::Toaster->new(debug=>0);
+    $toaster = $log = $p{'log'};
        $util = $toaster->get_util();
        $conf = $toaster->get_config();
 
-    my $self = bless { 
-        conf  => $conf, 
-        debug => defined $p{debug} ? $p{debug} : $toaster->{debug},
-    }, $class;
+    my $debug = $log->get_debug;  # inherit from our parent
+    my $fatal = $log->get_fatal;
+    $debug = $p{debug} if defined $p{debug};  # explicity overridden
+    $fatal = $p{fatal} if defined $p{fatal};
+
+    my $self = {
+        'log' => $log,
+        debug => $debug,
+        fatal => $fatal,
+    };
+    bless $self, $class;
+
+    # globally scoped hash, populated with defaults as requested by the caller
+    %std_opts = (
+        'test_ok' => { type => BOOLEAN, optional => 1 },
+        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
+        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+    );
 
     return $self;
 }
 
 sub build_pop3_run {
     my $self = shift;
-    my %p = validate( @_, { },);
-
-    return 1 if $conf->{'pop3_daemon'} ne 'qpop3d';
+    my %p = validate( @_, { %std_opts } );
 
     my $vdir       = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
     my $qctrl      = $conf->{'qmail_dir'} . "/control";
@@ -76,13 +88,9 @@ sub build_pop3_run {
 
 sub build_send_run {
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
-    $toaster->audit( "generating send/run..." );
+    $log->audit( "generating send/run..." );
 
     my $qsup = $conf->{'qmail_supervise'} or
         return $log->error( "qmail_supervise not set in toaster-watcher.conf!",
@@ -114,7 +122,7 @@ exec qmail-start $mailbox 2>&1\n";
 
 sub build_smtp_run {
     my $self = shift;
-    my %p = validate( @_, { },);
+    my %p = validate( @_, { %std_opts } );
 
     $log->audit( "generating smtp/run...");
 
@@ -144,7 +152,7 @@ sub build_smtp_run {
     $exec .= "\\\n\tfixcrio "  if $conf->{'smtpd_fixcrio'};
     $exec .= "\\\n\tqmail-smtpd ";
     $exec .= $self->smtp_auth_enable();
-    $exec .= $toaster->supervised_log_method( prot => "smtpd" );
+    $exec .= $toaster->supervised_log_method( prot => "smtpd" ) or return;
 
     push @smtp_run_cmd, $exec;
 
@@ -156,19 +164,13 @@ sub build_smtp_run {
 
 sub build_submit_run {
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
-
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
+    my %p = validate( @_, { %std_opts, } );
 
     return if ! $conf->{'submit_enable'};
 
     $log->audit( "generating submit/run...");
 
-    return $log->error( "SMTPd config values failed tests!", fatal => $fatal)
+    return $log->error( "SMTPd config values failed tests!", %p )
         if ! $self->_test_smtpd_config_values();
 
     my $vdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
@@ -207,7 +209,7 @@ sub build_submit_run {
         $exec .= "/usr/bin/true ";
     }
 
-    $exec .= $toaster->supervised_log_method( prot => "submit" );
+    $exec .= $toaster->supervised_log_method( prot => "submit" ) or return;
 
     push @lines, $exec;
 
@@ -218,25 +220,22 @@ sub build_submit_run {
 }
 
 sub check_control {
-    my $self = shift;    # used in qqtool.pl
-    my %p = validate( @_, {
-            'dir'     => { type=>SCALAR,  },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
+    my $self = shift;   
+    my %p = validate( @_, { 'dir' => SCALAR, %std_opts } );
+
+    # used in qqtool.pl
 
     my ( $dir, $fatal, $debug ) = ( $p{'dir'}, $p{'fatal'}, $p{'debug'} );
 
     if ( -d $dir ) {
-        $log->audit( "check_control: checking $dir, ok" ) if $debug;
+        $log->audit( "check_control: checking $dir, ok" );
         return 1;
     }
 
     my $qcontrol = $toaster->service_dir_get( prot => "send" );
 
+    $log->audit( "check_control: checking $qcontrol/$dir, FAILED" );
     if ($debug) {
-        $log->audit( "check_control: checking $qcontrol/$dir, FAILED" );
         print "
 	HEY! The control directory for qmail-send is not
 	in $dir where I expected. Please edit this script
@@ -307,13 +306,9 @@ sub config {
     my $self = shift;
     my %p = validate( @_, {
             first_time => { type=>BOOLEAN, optional=>1, default=>1 },
-            fatal      => { type=>BOOLEAN, optional=>1, default=>1 },
-            debug      => { type=>BOOLEAN, optional=>1, default=>1 },
-            test_ok    => { type=>BOOLEAN, optional=>1, },
+            %std_opts,
         },
     );
-
-    my ( $fatal, $debug ) = ( $p{fatal}, $p{debug} );
 
     my $qdir    = $conf->{'qmail_dir'}       || "/var/qmail";
     my $tmp     = $conf->{'toaster_tmp_dir'} || "/tmp";
@@ -328,7 +323,7 @@ sub config {
     if ( $ciphers =~ /^[a-z]+$/ ) {
         if ( ! $setup ) {
             require Mail::Toaster::Setup;
-            $setup = Mail::Toaster::Setup->new(conf=>$conf, toaster => $toaster);
+            $setup = Mail::Toaster::Setup->new(conf=>$conf, 'log' => $toaster);
         };
         $ciphers = $setup->openssl_get_ciphers( $ciphers );
     };
@@ -379,17 +374,17 @@ user $dbuser\npass $password\ntime 1800\n"
     chmod oct('0640'), "$control/sql";
     chmod oct('0644'), "$control/concurrencyremote";
 
-    config_freebsd( $debug ) if $OSNAME eq "freebsd";
+    $self->config_freebsd() if $OSNAME eq "freebsd";
 
     # no need to run the rest of the tests every 5 minutes
     return 1 if ! $p{'first_time'};
 
     # install the qmail control script (qmail cdb, qmail restart, etc)
-    $self->control_create(debug=>$debug);
+    $self->control_create();
 
     # create all the service and supervised dirs
-    $toaster->service_dir_create( debug => $debug );
-    $toaster->supervise_dirs_create( debug => $debug );
+    $toaster->service_dir_create();
+    $toaster->supervise_dirs_create();
 
     # install the supervised control files
     $self->install_qmail_control_files();
@@ -397,25 +392,23 @@ user $dbuser\npass $password\ntime 1800\n"
 }
 
 sub config_freebsd {
-    my $debug = shift;
+    my $self = shift;
 
     my $tmp      = $conf->{'toaster_tmp_dir'} || "/tmp";
 
     # disable sendmail
     require Mail::Toaster::FreeBSD;
-    my $freebsd  = Mail::Toaster::FreeBSD->new( toaster => $toaster );
+    my $freebsd  = Mail::Toaster::FreeBSD->new( 'log' => $toaster );
 
     $freebsd->conf_check( 
         check => "sendmail_enable", 
         line  => 'sendmail_enable="NONE"', 
-        debug => $debug,
     );
 
     # don't build sendmail when we rebuild the world
     $util->file_write( "/etc/make.conf",
         lines  => ["NO_SENDMAIL=true"],
         append => 1,
-        debug  => $debug,
     )
     if ! `grep NO_SENDMAIL /etc/make.conf`;
 
@@ -451,7 +444,6 @@ purgestat       /var/qmail/bin/qmail-tcpok
         existing => "/etc/mail/mailer.conf",
         notify   => 1,
         clean    => 1,
-        debug    => $debug,
     );
     close $MAILER_CONF;
 };
@@ -471,7 +463,7 @@ sub config_write {
 
         if ( -e "$qdir/$file" ) {
             my @now = $util->file_read( "$qdir/$file" );
-            if ( $now[0] eq $value ) {
+            if ( @now && $now[0] && $now[0] eq $value ) {
                 $log->audit( "config_write: $file to '$value', ok (same)" ) if $value !~ /pass/;
                 next;
             };
@@ -781,11 +773,7 @@ sub get_domains_from_assign {
 
 sub get_list_of_rbls {
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'  => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'  => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
     # two arrays, one for sorted elements, one for unsorted
     my ( @sorted, @unsorted );
@@ -793,7 +781,7 @@ sub get_list_of_rbls {
 
     foreach my $key ( keys %$conf ) {
 
-        # discard everything that doesn't start wih rbl
+        # ignore everything that doesn't start wih rbl
         next unless ( $key =~ /^rbl/ );
 
         # ignore other similar keys in $conf
@@ -805,15 +793,15 @@ sub get_list_of_rbls {
 
         $key =~ /^rbl_([a-zA-Z0-9\.\-]*)\s*$/;
 
-        $toaster->audit( "good key: $1 ");
+        $log->audit( "good key: $1 ");
 
         # test for custom sort key
         if ( $conf->{$key} > 1 ) {
-            $toaster->audit( "  sorted value $conf->{$key}" );
+            $log->audit( "  sorted value $conf->{$key}" );
             @sorted[ $conf->{$key} - 2 ] = $1;
         }
         else {
-            $toaster->audit( "  unsorted, $conf->{$key}" );
+            $log->audit( "  unsorted, $conf->{$key}" );
             push @unsorted, $1;
         }
     }
@@ -823,7 +811,7 @@ sub get_list_of_rbls {
     @sorted = grep { defined $_ } @sorted;   # weed out blanks
     @sorted = grep { $_ =~ /\S/ } @sorted;
 
-    $toaster->audit( "sorted order: " . join( "\n\t", @sorted ) );
+    $log->audit( "sorted order: " . join( "\n\t", @sorted ) );
 
     # test each RBL in the list
     my $good_rbls = $self->test_each_rbl( rbls => \@sorted ) or return q{};
@@ -838,19 +826,13 @@ sub get_list_of_rbls {
         }
     }
 
-    $toaster->audit( $string_of_rbls );
+    $log->audit( $string_of_rbls );
     return $string_of_rbls;
 }
 
 sub get_list_of_rwls {
-
     my $self = shift;
-
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
     my @list;
 
@@ -861,7 +843,7 @@ sub get_list_of_rwls {
 
         $key =~ /^rwl_([a-zA-Z_\.\-]*)\s*$/;
 
-        $toaster->audit( "good key: $1");
+        $log->audit( "good key: $1");
         push @list, $1;
     }
     return \@list;
@@ -926,18 +908,14 @@ sub get_qmailscanner_virus_sender_ips {
 }
 
 sub install_qmail {
-
     my $self = shift;
-
     my %p = validate( @_, {
             'package' => { type=>SCALAR,  optional=>1, },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
+            %std_opts,
         },
     );
 
-    my ( $package, $fatal, $debug ) = ( $p{'package'}, $p{'fatal'}, $p{'debug'} );
+    my $package = $p{'package'};
 
     my ( $patch, $chkusr );
 
@@ -945,7 +923,7 @@ sub install_qmail {
 
     # redirect if netqmail is selected
     if ( $conf->{'install_netqmail'} ) {
-        return $self->netqmail(debug=>$debug );
+        return $self->netqmail();
     }
 
     my $ver = $conf->{'install_qmail'} or do {
@@ -953,7 +931,7 @@ sub install_qmail {
         return;
     };
 
-    $self->install_qmail_groups_users( debug=>$debug );
+    $self->install_qmail_groups_users();
 
     $package ||= "qmail-$ver";
 
@@ -966,7 +944,7 @@ sub install_qmail {
     my $dl_url  = $conf->{'toaster_dl_url'}  || "/internet/mail/toaster";
     my $toaster_url = "$dl_site$dl_url";
 
-    $util->cwd_source_dir( "$src/mail", debug=>$debug );
+    $util->cwd_source_dir( "$src/mail" );
 
     if ( -e $package ) {
         unless ( $util->source_warning( package=>$package, src=>$src ) ) {
@@ -1011,26 +989,26 @@ don't exist in vpopmail. It is not compatible with system user mailboxes. \n\n";
     }
 
     unless ( -e $patch ) {
-        $util->get_url( "$toaster_url/patches/$patch", debug=>$debug );
+        $util->get_url( "$toaster_url/patches/$patch" );
         unless ( -e $patch ) { die "\n\nfailed to fetch patch $patch!\n\n"; }
     }
 
-    my $tar      = $util->find_bin( "tar", debug=>$debug );
-    my $patchbin = $util->find_bin( "patch", debug=>$debug );
+    my $tar      = $util->find_bin( "tar"  );
+    my $patchbin = $util->find_bin( "patch" );
     unless ( $tar && $patchbin ) { die "couldn't find tar or patch!\n"; }
 
-    $util->syscmd( "$tar -xzf $package.tar.gz", debug=>$debug );
+    $util->syscmd( "$tar -xzf $package.tar.gz" );
     chdir("$src/mail/$package")
       or die "install_qmail: cd $src/mail/$package failed: $!\n";
-    $util->syscmd( "$patchbin < $src/mail/$patch", debug=>$debug );
+    $util->syscmd( "$patchbin < $src/mail/$patch" );
 
-    $util->file_write( "conf-qmail", lines => [$qmaildir], debug=>$debug )
+    $util->file_write( "conf-qmail", lines => [$qmaildir] )
       or die "couldn't write to conf-qmail: $!";
 
-    $util->file_write( "conf-vpopmail", lines => [$vpopdir], debug=>$debug )
+    $util->file_write( "conf-vpopmail", lines => [$vpopdir] )
       or die "couldn't write to conf-vpopmail: $!";
 
-    $util->file_write( "conf-mysql", lines => [$mysql], debug=>$debug )
+    $util->file_write( "conf-mysql", lines => [$mysql] )
       or die "couldn't write to conf-mysql: $!";
 
     my $servicectl = "/usr/local/sbin/services";
@@ -1038,30 +1016,27 @@ don't exist in vpopmail. It is not compatible with system user mailboxes. \n\n";
     if ( -x $servicectl ) {
 
         print "Stopping Qmail!\n";
-        $util->syscmd( "$servicectl stop", debug=>$debug );
+        $util->syscmd( "$servicectl stop" );
         $self->send_stop();
     }
 
-    my $make = $util->find_bin( "gmake", fatal => 0, debug=>$debug );
-    $make  ||= $util->find_bin( "make", debug=>$debug );
+    my $make = $util->find_bin( "gmake", fatal => 0 );
+    $make  ||= $util->find_bin( "make" );
 
-    $util->syscmd( "$make setup", debug=>$debug );
+    $util->syscmd( "$make setup" );
 
     unless ( -f "$qmaildir/control/servercert.pem" ) {
-        $util->syscmd( "$make cert", debug=>$debug );
+        $util->syscmd( "$make cert" );
     }
 
     if ($chkusr) {
         $util->chown( "$qmaildir/bin/qmail-smtpd",
-            uid   => 'vpopmail',
-            gid   => 'vchkpw', 
-            debug => $debug,
+            uid => 'vpopmail',
+            gid => 'vchkpw', 
         );
 
-        $util->chmod(
-            file  => "$qmaildir/bin/qmail-smtpd",
+        $util->chmod( file => "$qmaildir/bin/qmail-smtpd",
             mode  => '6555',
-            debug => $debug,
         );
     }
 
@@ -1071,17 +1046,17 @@ don't exist in vpopmail. It is not compatible with system user mailboxes. \n\n";
 # $util->syscmd( "$qmaildir/bin/maildirmake /usr/share/skel/Maildir" );
     }
 
-    $self->config( debug => $debug );
+    $self->config();
 
     if ( -x $servicectl ) {
         print "Starting Qmail & supervised services!\n";
-        $util->syscmd( "$servicectl start", debug=>$debug );
+        $util->syscmd( "$servicectl start" );
     }
 }
 
 sub install_qmail_control_files {
     my $self = shift;
-    my %p = validate( @_, { 'test_ok' => { type=>BOOLEAN, optional=>1, }, },);
+    my %p = validate( @_, { %std_opts } );
 
     my $supervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
 
@@ -1105,14 +1080,7 @@ sub install_qmail_control_files {
 
 sub install_qmail_groups_users {
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
-        },
-    );
-
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
+    my %p = validate( @_, { %std_opts },);
 
     my $err = "ERROR: You need to update your toaster-watcher.conf file!\n";
 
@@ -1126,7 +1094,6 @@ sub install_qmail_groups_users {
     my $qmaill   = $conf->{'qmail_user_log'}    || 'qmaill';
     my $nofiles  = $conf->{'qmail_log_group'}   || 'nofiles';
 
-    # do not change anything during "make test"
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     my $uid = 81;
@@ -1136,7 +1103,7 @@ sub install_qmail_groups_users {
 
     if ( ! $setup ) {
         require Mail::Toaster::Setup;
-        $setup = Mail::Toaster::Setup->new(conf=>$conf, toaster => $toaster);
+        $setup = Mail::Toaster::Setup->new(conf=>$conf, 'log' => $toaster);
     };
     $setup->group_add( 'qnofiles', $gid );
     $setup->group_add( $qmailg, $gid + 1 );
@@ -1165,7 +1132,7 @@ sub install_supervise_run {
             'tmpfile'     => { type=>SCALAR,  },
             'destination' => { type=>SCALAR,  optional=>1, },
             'prot'        => { type=>SCALAR,  optional=>1, },
-            'test_ok'     => { type=>BOOLEAN, optional=>1, },
+            %std_opts,
         },
     );
 
@@ -1202,12 +1169,11 @@ sub install_qmail_control_log_files {
     my $self = shift;
     my %p = validate( @_, {
             prots   => { type=>ARRAYREF,optional=>1, default=>['smtp', 'send', 'pop3', 'submit'] },
-            fatal   => { type=>BOOLEAN, optional=>1, default=>1 },
-            test_ok => { type=>BOOLEAN, optional=>1, },
+            %std_opts,
         },
     );
 
-    my ( $prots, $fatal ) = ( $p{prots}, $p{fatal} );
+    my $prots = $p{prots};
 
     my $supervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
 
@@ -1239,8 +1205,7 @@ sub install_qmail_control_log_files {
             $util->install_if_changed(
                 newfile  => $tmpfile, existing => $run_f,
                 mode     => '0755',   clean    => 1,
-                notify   => $notify,
-                email    => $conf->{'toaster_admin_email'},
+                notify   => $notify,  email    => $conf->{'toaster_admin_email'},
             ) or return;
             $log->audit( " updating $run_f, ok" );
         }
@@ -1266,33 +1231,28 @@ sub netqmail {
     my $self = shift;
     my %p = validate( @_, {
             'package' => { type=>SCALAR,  optional=>1, },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
+            %std_opts,
         },
     );
 
-    my ( $package, $fatal, $debug ) = ( $p{package}, $p{fatal}, $p{debug} );
-
-    my $ver      = $conf->{'install_netqmail'} || "1.05";
-    my $src      = $conf->{'toaster_src_dir'}  || "/usr/local/src";
+    my $package = $p{package};
+    my $ver     = $conf->{'install_netqmail'} || "1.05";
+    my $src     = $conf->{'toaster_src_dir'}  || "/usr/local/src";
+    my $vhome   = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
 
     $package ||= "netqmail-$ver";
 
-    my $vhome       = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
-
-    # do not try installing during "make test"
     return $p{test_ok} if defined $p{test_ok};
 
-    $self->install_qmail_groups_users( debug => $debug );
+    $self->install_qmail_groups_users();
 
     # check to see if qmail-smtpd already has vpopmail support
-    return 0 unless netqmail_rebuild();
+    return 0 unless $self->netqmail_rebuild();
 
     $util->cwd_source_dir( "$src/mail" );
 
-    netqmail_get_sources( $package ) or return;
-    my @patches = netqmail_get_patches( $package ) or return;
+    $self->netqmail_get_sources( $package ) or return;
+    my @patches = $self->netqmail_get_patches( $package ) or return;
 
     $util->extract_archive( "$package.tar.gz" );
 
@@ -1300,7 +1260,7 @@ sub netqmail {
     chdir("$src/mail/$package")
         or die "netqmail: cd $src/mail/$package failed: $!\n";
 
-    $util->syscmd( "./collate.sh", debug=>$debug );
+    $util->syscmd( "./collate.sh" );
 
     chdir("$src/mail/$package/$package")
         or die "netqmail: cd $src/mail/$package/$package failed: $!\n";
@@ -1313,11 +1273,11 @@ sub netqmail {
         $util->syscmd( "$patchbin < $src/mail/$patch" );
     };
 
-    netqmail_makefile_fixups( $debug );
-    netqmail_queue_extra( $debug ) if $conf->{'qmail_queue_extra'};
-    netqmail_darwin_fixups() if $OSNAME eq "darwin";
-    netqmail_conf_cc( $debug );
-    netqmail_conf_fixups();
+    $self->netqmail_makefile_fixups();
+    $self->netqmail_queue_extra()   if $conf->{'qmail_queue_extra'};
+    $self->netqmail_darwin_fixups() if $OSNAME eq "darwin";
+    $self->netqmail_conf_cc();
+    $self->netqmail_conf_fixups();
 
     my $servicectl = '/usr/local/sbin/services';
     $servicectl = '/usr/local/bin/services' if ! -x $servicectl;
@@ -1328,13 +1288,13 @@ sub netqmail {
     }
 
     my $make = $util->find_bin( "gmake", fatal => 0 ) || $util->find_bin( "make" );
-    $util->syscmd( "$make setup", debug=>$debug );
+    $util->syscmd( "$make setup" );
 
-    netqmail_ssl( $make );
-    netqmail_permissions();
+    $self->netqmail_ssl( $make );
+    $self->netqmail_permissions();
 
     $self->maildir_in_skel();
-    $self->config( debug=>$debug );
+    $self->config();
 
     if ( -x $servicectl ) {
         print "Starting Qmail & supervised services!\n";
@@ -1343,7 +1303,7 @@ sub netqmail {
 }
 
 sub netqmail_conf_cc {
-    my $debug = shift;
+    my $self = shift;
 
     my $vpopdir    = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
     my $domainkeys = $conf->{'qmail_domainkeys'};
@@ -1384,7 +1344,7 @@ sub netqmail_conf_cc {
         if ( ! -e "/usr/local/include/domainkeys.h" ) {
             if ( ! $setup ) {
                 require Mail::Toaster::Setup;
-                $setup = Mail::Toaster::Setup->new(conf=>$conf, toaster => $toaster);
+                $setup = Mail::Toaster::Setup->new(conf=>$conf, 'log' => $toaster);
             };
             $setup->domainkeys();
         };
@@ -1397,6 +1357,7 @@ sub netqmail_conf_cc {
 };
 
 sub netqmail_conf_fixups {
+    my $self = shift;
 
     print "netqmail: fixing up conf-qmail\n";
     my $qmaildir = $conf->{'qmail_dir'}        || "/var/qmail";
@@ -1417,6 +1378,7 @@ sub netqmail_conf_fixups {
 };
 
 sub netqmail_darwin_fixups {
+    my $self = shift;
 
     print "netqmail: fixing up conf-ld\n";
     $util->file_write( "conf-ld", lines => ["cc -Xlinker -x"] )
@@ -1458,6 +1420,7 @@ sub netqmail_darwin_fixups {
 }
 
 sub netqmail_get_sources {
+    my $self = shift;
     my $package = shift;
     my $site = "http://www.qmail.org";
     my $src  = $conf->{'toaster_src_dir'}  || "/usr/local/src";
@@ -1480,6 +1443,7 @@ sub netqmail_get_sources {
 };
 
 sub netqmail_get_patches {
+    my $self = shift;
     my $package = shift;
 
     my $patch_version = $conf->{'qmail_toaster_patch_version'} || 3.1;
@@ -1510,7 +1474,7 @@ sub netqmail_get_patches {
 };
 
 sub netqmail_makefile_fixups {
-    my ( $debug) = @_;
+    my $self = shift;
     my $vpopdir    = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
 
     # find those pesky openssl libraries
@@ -1524,7 +1488,7 @@ sub netqmail_makefile_fixups {
     }
 
 
-    my @lines = $util->file_read( "Makefile", debug=>$debug );
+    my @lines = $util->file_read( "Makefile" );
     foreach my $line (@lines) {
         if ( $vpopdir ne "/home/vpopmail" ) {    # fix up vpopmail home dir
             if ( $line =~ /^VPOPMAIL_HOME/ ) {
@@ -1550,11 +1514,12 @@ sub netqmail_makefile_fixups {
               . ' -lssl -lcrypto \\';
         }
     }
-    $util->file_write( "Makefile", lines => \@lines, debug=>$debug );
+    $util->file_write( "Makefile", lines => \@lines );
 
 };
 
 sub netqmail_permissions {
+    my $self = shift;
 
     my $qmaildir = $conf->{'qmail_dir'} || "/var/qmail";
     $util->chown( "$qmaildir/bin/qmail-smtpd",
@@ -1569,11 +1534,11 @@ sub netqmail_permissions {
 };
 
 sub netqmail_queue_extra {
-    my $debug = shift;
+    my $self = shift;
 
     print "netqmail: enabling QUEUE_EXTRA...\n";
     my $success = 0;
-    my @lines = $util->file_read( "extra.h", debug=>$debug );
+    my @lines = $util->file_read( "extra.h" );
     foreach my $line (@lines) {
         if ( $line =~ /#define QUEUE_EXTRA ""/ ) {
             $line = '#define QUEUE_EXTRA "Tlog\0"';
@@ -1588,7 +1553,7 @@ sub netqmail_queue_extra {
 
     if ( $success == 2 ) {
         print "success.\n";
-        $util->file_write( "extra.h", lines => \@lines, debug=>$debug );
+        $util->file_write( "extra.h", lines => \@lines );
     }
     else {
         print "FAILED.\n";
@@ -1596,6 +1561,7 @@ sub netqmail_queue_extra {
 }
 
 sub netqmail_rebuild {
+    my $self = shift;
 
     # check to see if qmail-smtpd has vpopmail support already
     if ( -x "/var/qmail/bin/qmail-smtpd"
@@ -1610,6 +1576,7 @@ sub netqmail_rebuild {
 }
 
 sub netqmail_ssl {
+    my $self = shift;
     my $make = shift;
 
     my $qmaildir = $conf->{'qmail_dir'} || "/var/qmail";
@@ -1640,16 +1607,12 @@ sub netqmail_virgin {
     my $self = shift;
     my %p = validate( @_, {
             'package' => { type=>SCALAR,  optional=>1, },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
+            %std_opts,
         },
     );
 
-    my ( $package, $fatal, $debug )
-        = ( $p{'package'}, $p{'fatal'}, $p{'debug'} );
-
-    my ($chkusr);
+    my $package = $p{'package'};
+    my $chkusr;
 
     my $ver      = $conf->{'install_netqmail'} || "1.05";
     my $src      = $conf->{'toaster_src_dir'}  || "/usr/local/src";
@@ -1667,56 +1630,50 @@ sub netqmail_virgin {
     $self->install_qmail_groups_users();
 
     $util->cwd_source_dir( "$src/mail" );
-    netqmail_get_sources( $package );
+    $self->netqmail_get_sources( $package );
 
-    unless ( $util->extract_archive( "$package.tar.gz", debug=>$debug ) ) {
+    unless ( $util->extract_archive( "$package.tar.gz" ) ) {
         die "couldn't expand $package.tar.gz\n";
     }
 
     # netqmail requires a "collate" step before it can be built
     chdir("$src/mail/$package")
       or die "netqmail: cd $src/mail/$package failed: $!\n";
-    $util->syscmd( "./collate.sh", debug=>$debug );
+    $util->syscmd( "./collate.sh" );
     chdir("$src/mail/$package/$package")
       or die "netqmail: cd $src/mail/$package/$package failed: $!\n";
 
-    netqmail_conf_fixups();
-    netqmail_darwin_fixups() if $OSNAME eq 'darwin';
+    $self->netqmail_conf_fixups();
+    $self->netqmail_darwin_fixups() if $OSNAME eq 'darwin';
 
     print "netqmail: fixing up conf-cc\n";
-    $util->file_write( "conf-cc", lines => ["cc -O2"], debug=>$debug )
+    $util->file_write( "conf-cc", lines => ["cc -O2"] )
       or die "couldn't write to conf-cc: $!";
 
     my $servicectl = "/usr/local/sbin/services";
     if ( -x $servicectl ) {
         print "Stopping Qmail!\n";
         $self->send_stop();
-        $util->syscmd( "$servicectl stop", debug=>$debug );
+        $util->syscmd( "$servicectl stop" );
     }
 
     my $make = $util->find_bin( "gmake", fatal => 0 ) || $util->find_bin( "make" );
-    $util->syscmd( "$make setup", debug=>$debug );
+    $util->syscmd( "$make setup" );
 
     $self->maildir_in_skel();
-    $self->config(debug=>$debug);
+    $self->config();
 
     if ( -x $servicectl ) {
         print "Starting Qmail & supervised services!\n";
-        $util->syscmd( "$servicectl start", debug=>$debug );
+        $util->syscmd( "$servicectl start" );
     }
 }
 
 sub queue_check {
-
     # used in qqtool.pl
 
     my $self = shift;
-
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
+    my %p = validate( @_, { %std_opts } ); 
 
     my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
 
@@ -1760,59 +1717,44 @@ sub rebuild_simscan_control {
 };
 
 sub rebuild_ssl_temp_keys {
-
     my $self = shift;
+    my %p = validate( @_, { %std_opts } );
 
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
-        },
-    );
-
-    my ( $fatal, $debug )
-        = ( $p{'fatal'}, $p{'debug'} );
-
-    my $openssl = $util->find_bin( "openssl", debug => $debug, fatal=>$fatal );
+    my $openssl = $util->find_bin( "openssl" );
+    my $fatal = $p{fatal};
 
     my $qmdir = $conf->{'qmail_dir'} || "/var/qmail";
     my $cert  = "$qmdir/control/rsa512.pem";
 
-    if ( defined $p{'test_ok'} ) { return $p{'test_ok'}; }
-    
-    if ( -M $cert >= 1 || !-e $cert ) {
-        print "rebuild_ssl_temp_keys: rebuilding RSA key\n" if $debug;
-        $util->syscmd( "$openssl genrsa -out $cert.new 512 2>/dev/null",
-            debug   => $debug,
-            fatal   => $fatal,
-        );
+    return $p{'test_ok'} if defined $p{'test_ok'};
 
-        install_ssl_temp_key( $cert, $debug, $fatal );
+    if ( -M $cert >= 1 || !-e $cert ) {
+        $log->audit( "rebuild_ssl_temp_keys: rebuilding RSA key");
+        $util->syscmd( "$openssl genrsa -out $cert.new 512 2>/dev/null" );
+
+        install_ssl_temp_key( $cert, $fatal );
     }
 
     $cert = "$qmdir/control/dh512.pem";
     if ( -M $cert >= 1 || !-e $cert ) {
-        print "rebuild_ssl_temp_keys: rebuilding DSA 512 key\n" if $debug;
-        $util->syscmd( "$openssl dhparam -2 -out $cert.new 512 2>/dev/null",
-            debug   => $debug,
-            fatal   => $fatal,
-        );
+        $log->audit( "rebuild_ssl_temp_keys: rebuilding DSA 512 key");
+        $util->syscmd( "$openssl dhparam -2 -out $cert.new 512 2>/dev/null" );
 
-        install_ssl_temp_key( $cert, $debug, $fatal );
+        install_ssl_temp_key( $cert, $fatal );
     }
 
     $cert = "$qmdir/control/dh1024.pem";
     if ( -M $cert >= 1 || !-e $cert ) {
-        print "rebuild_ssl_temp_keys: rebuilding DSA 1024 key\n" if $debug;
+        $log->audit( "rebuild_ssl_temp_keys: rebuilding DSA 1024 key");
         system  "$openssl dhparam -2 -out $cert.new 1024 2>/dev/null";
-        install_ssl_temp_key( $cert, $debug, $fatal );
+        install_ssl_temp_key( $cert, $fatal );
     }
 
     return 1;
 
     sub install_ssl_temp_key {
 
-        my ( $cert, $debug, $fatal ) = @_;
+        my ( $cert, $fatal ) = @_;
 
         my $user  = $conf->{'smtpd_run_as_user'} || "vpopmail";
         my $group = $conf->{'qmail_group'}       || "qmail";
@@ -1820,14 +1762,12 @@ sub rebuild_ssl_temp_keys {
         $util->chmod(
             file_or_dir => "$cert.new",
             mode        => '0660',
-            debug       => $debug,
             fatal       => $fatal,
         );
 
         $util->chown( "$cert.new",
             uid   => $user,
             gid   => $group,
-            debug => $debug,
             fatal => $fatal,
         );
 
@@ -1839,47 +1779,39 @@ sub restart {
     my $self = shift;
     my %p = validate( @_, {
             'prot'    => { type=>SCALAR },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
+            %std_opts,
         },
     );
 
+    return $p{'test_ok'} if defined $p{'test_ok'};
+
     my $prot = $p{'prot'};
-    my $dir = $toaster->service_dir_get( prot => $prot );
+    my $dir = $toaster->service_dir_get( prot => $prot ) or return;
 
     return $log->error( "no such dir: $dir!" ) unless ( -d $dir || -l $dir );
-
-    $log->audit( "restarting qmail $prot");
-    return $p{'test_ok'} if defined $p{'test_ok'};
 
     $toaster->supervise_restart($dir);
 }
 
 sub send_start {
-
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts, },);
 
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
+    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     my $qcontrol = $toaster->service_dir_get( prot => "send" );
 
     return $p{'test_ok'}  if defined $p{'test_ok'};
 
     return $log->error( "uh oh, the service directory $qcontrol is missing!",
-        fatal => $fatal ) if ! -d $qcontrol;
+        %args ) if ! -d $qcontrol;
 
-    if ( ! $toaster->supervised_dir_test( prot=>"send",  debug=>$debug ) ) {
-        return $log->error( "something is wrong with the service/send dir.",
-            fatal => $fatal);
+    if ( ! $toaster->supervised_dir_test( prot=>"send", %args ) ) {
+        return $log->error( "something is wrong with the service/send dir.", %args );
     }
 
     return $log->error( "Only root can control supervised daemons, and you aren't root!",
-        fatal => $fatal ) if $UID != 0;
+        %args ) if $UID != 0;
 
     my $svc    = $util->find_bin( "svc", debug=>0 );
     my $svstat = $util->find_bin( "svstat", debug=>0 );
@@ -1902,14 +1834,9 @@ sub send_start {
 
 sub send_stop {
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
+    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
@@ -1918,13 +1845,14 @@ sub send_stop {
 
     my $qcontrol = $toaster->service_dir_get( prot => "send" );
 
-    return $log->error( "uh oh, the service directory $qcontrol is missing! Giving up.", fatal => $fatal ) unless $qcontrol;
+    return $log->error( "uh oh, the service directory $qcontrol is missing! Giving up.", 
+        %args ) unless $qcontrol;
 
-    return $log->error( "something was wrong with the service/send dir.", fatal => $fatal )
-        if ! $toaster->supervised_dir_test( prot=>"send", dir=>$qcontrol, debug=>$debug );
+    return $log->error( "something was wrong with the service/send dir.", %args )
+        if ! $toaster->supervised_dir_test( prot=>"send", dir=>$qcontrol, %args );
 
     return $log->error( "Only root can control supervised daemons, and you aren't root!",
-        fatal => $fatal ) if $UID != 0;
+        %args ) if $UID != 0;
 
     # send qmail-send a TERM signal
     system "$svc -d $qcontrol";
@@ -1963,7 +1891,6 @@ sub set_config {
 
 sub smtp_auth_enable {
     my $self = shift;
-    my $debug = 1;
 
     return '' if ! $conf->{'smtpd_auth_enable'};
 
@@ -1985,7 +1912,7 @@ sub smtp_auth_enable {
 
 sub smtp_set_qmailqueue {
     my $self = shift;
-    my %p = validate( @_, { 'prot' => { type=>SCALAR,  optional=>1, }, },);
+    my %p = validate( @_, { 'prot' => { type=>SCALAR,  optional=>1 } } );
 
     my $prot = $p{'prot'};
     my $qdir = $conf->{'qmail_dir'} || '/var/qmail';
@@ -2055,23 +1982,56 @@ sub smtp_set_rbls {
     return "$rbl_cmd_string ";
 };
 
+sub supervised_hostname_qmail {
+    my $self = shift;
+    my %p = validate( @_, { 'prot' => { type=>SCALAR } } );
+
+    my $prot = $p{'prot'};
+
+    my $qsupervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
+
+    my $prot_val = "qmail_supervise_" . $prot;
+    my $prot_dir = $conf->{$prot_val} || "$qsupervise/$prot";
+
+    $log->audit( "supervise dir is $prot_dir");
+
+    if ( $prot_dir =~ /^qmail_supervise\/(.*)$/ ) {
+        $prot_dir = "$qsupervise/$1";
+        $log->audit( "expanded supervise dir to $prot_dir");
+    }
+
+    my $qmaildir = $conf->{'qmail_dir'} || '/var/qmail';
+    my $me = "$qmaildir/control/me"; # the qmail file for the hostname
+
+    my @lines = <<EORUN
+LOCAL=\`head -1 $me\`
+if [ -z \"\$LOCAL\" ]; then
+    echo ERROR: $prot_dir/run tried reading your hostname from $me and failed!
+    exit 1
+fi\n
+EORUN
+;
+    $log->audit( "hostname set to contents of $me");
+
+    return @lines;
+}
+
 sub test_each_rbl {
     my $self = shift;
     my %p = validate( @_, {
             'rbls'    => { type=>ARRAYREF },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
     );
 
     my $rbls = $p{'rbls'};
 
-    $t_dns ||= Mail::Toaster::DNS->new( toaster => $toaster );
+    $t_dns ||= Mail::Toaster::DNS->new( 'log' => $toaster );
 
     my @valid_dnsbls;
     foreach my $rbl (@$rbls) {
         if ( ! $rbl ) {
-            $toaster->error("how did a blank RBL make it in here?", fatal=>0);
+            $log->error("how did a blank RBL make it in here?", fatal=>0);
             next;
         };
         next if ! $t_dns->rbl_test( zone => $rbl );
@@ -2085,18 +2045,9 @@ sub UpdateVirusBlocks {
     # deprecated function - no longer maintained.
 
     my $self = shift;
+    my %p = validate( @_, { 'ips' => ARRAYREF, %std_opts } );
 
-    my %p = validate( @_, {
-            'ips'     => { type=>ARRAYREF, },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
-        },
-    );
-
-    my ( $ips, $fatal, $debug, $test_ok )
-        = ( $p{'ips'}, $p{'fatal'}, $p{'debug'}, $p{'test_ok'} );
-
+    my $ips   = $p{'ips'};
     my $time  = $conf->{'qs_block_virus_senders_time'};
     my $relay = $conf->{'smtpd_relay_database'};
     my $vpdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
@@ -2111,7 +2062,7 @@ sub UpdateVirusBlocks {
 
     my @lines;
 
-    $debug = 0;
+    my $debug = 0;
     my $in     = 0;
     my $done   = 0;
     my $now    = time;
@@ -2159,7 +2110,7 @@ sub UpdateVirusBlocks {
         if ($debug) {
             foreach (@lines) { print "$_\n"; };
         }
-        $util->file_write( $relay, lines => \@lines, debug=>$debug );
+        $util->file_write( $relay, lines => \@lines );
     }
     else {
         print
@@ -2171,10 +2122,9 @@ sub UpdateVirusBlocks {
 ";
     }
 
-    my $tcprules = $util->find_bin( "tcprules", debug=>$debug );
+    my $tcprules = $util->find_bin( "tcprules" );
     $util->syscmd( "$tcprules $vpdir/etc/tcp.smtp.cdb $vpdir/etc/tcp.smtp.tmp "
             . "< $vpdir/etc/tcp.smtp",
-		  debug   => $debug,
     );
     chmod oct('0644'), "$vpdir/etc/tcp.smtp*";
 }
@@ -2182,10 +2132,8 @@ sub UpdateVirusBlocks {
 sub _memory_explanation {
 
     my ( $self, $prot, $maxcon ) = @_;
-    my (
-        $sysmb,         $maxsmtpd,   $memorymsg,
-        $perconnection, $connectmsg, $connections
-    );
+    my ( $sysmb,        $maxsmtpd,   $memorymsg,
+        $perconnection, $connectmsg, $connections  );
 
     warn "\nbuild_${prot}_run: your "
       . "${prot}_max_memory_per_connection and "
@@ -2333,40 +2281,6 @@ sub _set_checkpasswd_bin {
         unless -x $chkpass;
 
     return "$chkpass ";
-}
-
-sub supervised_hostname_qmail {
-    my $self = shift;
-    my %p = validate( @_, { 'prot' => { type=>SCALAR } } );
-
-    my $prot = $p{'prot'};
-
-    my $qsupervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
-
-    my $prot_val = "qmail_supervise_" . $prot;
-    my $prot_dir = $conf->{$prot_val} || "$qsupervise/$prot";
-
-    $log->audit( "supervise dir is $prot_dir");
-
-    if ( $prot_dir =~ /^qmail_supervise\/(.*)$/ ) {
-        $prot_dir = "$qsupervise/$1";
-        $log->audit( "expanded supervise dir to $prot_dir");
-    }
-
-    my $qmaildir = $conf->{'qmail_dir'} || '/var/qmail';
-    my $me = "$qmaildir/control/me"; # the qmail file for the hostname
-
-    my @lines = <<EORUN
-LOCAL=\`head -1 $me\`
-if [ -z \"\$LOCAL\" ]; then
-    echo ERROR: $prot_dir/run tried reading your hostname from $me and failed!
-    exit 1
-fi\n
-EORUN
-;
-    $log->audit( "hostname set to contents of $me");
-
-    return @lines;
 }
 
 

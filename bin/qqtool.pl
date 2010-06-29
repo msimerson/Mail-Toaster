@@ -20,7 +20,7 @@ use Mail::Toaster::Qmail 5.25;
 my $debug   = $opt_v ? 1 : 0;
 my $toaster = Mail::Toaster->new( debug => $debug );
 my $util    = $toaster->get_util;
-my $qmail   = Mail::Toaster::Qmail->new();
+my $qmail   = Mail::Toaster::Qmail->new( 'log' => $toaster );
 
 print "           Qmail Queue Tool   v $VERSION\n\n";
 print "NOTICE: only the root user has permission to read the email queues.

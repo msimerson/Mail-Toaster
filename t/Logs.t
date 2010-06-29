@@ -25,7 +25,7 @@ else {
 
 require_ok('Mail::Toaster::Logs');
 
-my $log = Mail::Toaster::Logs->new(toaster => $toaster, conf=>$conf);
+my $log = Mail::Toaster::Logs->new('log' => $toaster, conf=>$conf);
 ok( defined $log, 'get Mail::Toaster::Logs object' );
 ok( $log->isa('Mail::Toaster::Logs'), 'check object class' );
 
@@ -41,7 +41,7 @@ SKIP: {
 
 # verify_settings
         # this will fail before Mail::Toaster is installed
-    if (  $log->verify_settings ) {
+    if (  $log->verify_settings(fatal=>0) ) {
         ok( $log->verify_settings(), 'verify_settings');
     };
 

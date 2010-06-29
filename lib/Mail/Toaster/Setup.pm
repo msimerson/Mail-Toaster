@@ -5,7 +5,7 @@ use warnings;
 
 our $VERSION = '5.26';
 
-use vars qw/ $conf $log $freebsd $darwin $err $qmail $toaster $util /;
+use vars qw/ $conf $log $freebsd $darwin $err $qmail $toaster $util %std_opts /;
 
 use Carp;
 use Config;
@@ -20,46 +20,47 @@ use Sys::Hostname;
 use lib 'lib';
 use Mail::Toaster       5.25; 
 
-my @std_opts = qw/ test_ok debug fatal /;
-my %std_opts = (
-    test_ok => { type => BOOLEAN, optional => 1 },
-    debug   => { type => BOOLEAN, optional => 1, default => 1 },
-    fatal   => { type => BOOLEAN, optional => 1, default => 1 },
-);
-
-
 sub new {
     my $class = shift;
-    my %p = validate(@_,
-        {   toaster => { type => HASHREF, optional => 1 },
-            conf    => { type => HASHREF, optional => 1 },
-        } 
+    my %p     = validate( @_,
+        {   'log' => { type => OBJECT,  optional => 1 },
+            conf  => { type => HASHREF, optional => 1 },
+            fatal => { type => BOOLEAN, optional => 1, default => 1 },
+            debug => { type => BOOLEAN, optional => 1 },
+        }
     );
 
-    $toaster = $log = $p{toaster} || Mail::Toaster->new(debug=>0);
+    $toaster = $log = $p{'log'};
     $conf    = $p{conf} || $toaster->get_config;
-    $util    = $toaster->{util};
+    $util    = $toaster->get_util;
+
+    my $debug = $log->get_debug;  # inherit from our parent
+    my $fatal = $log->get_fatal;
+    $debug = $p{debug} if defined $p{debug};  # explicity overridden
+    $fatal = $p{fatal} if defined $p{fatal};
+
+    my $self = {
+        'log' => $log,
+        debug => $debug,
+        fatal => $fatal,
+    };
+    bless $self, $class;
+
+    # globally scoped hash, populated with defaults as requested by the caller
+    %std_opts = (
+        'test_ok' => { type => BOOLEAN, optional => 1 },
+        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
+        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+    );
 
     if ( $OSNAME eq "freebsd" ) {
         require Mail::Toaster::FreeBSD;
-        $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
+        $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
     }
     elsif ( $OSNAME eq "darwin" ) {
         require Mail::Toaster::Darwin;
-        $darwin = Mail::Toaster::Darwin->new( toaster => $toaster );
+        $darwin = Mail::Toaster::Darwin->new( 'log' => $log );
     }
-
-    my $self = { 
-        conf  => $conf,
-        debug => $conf->{toaster_debug},
-        fatal => 1,
-    };
-    bless( $self, $class );
-
-    if ( $self->{debug} ) {
-        $toaster->{debug} = 1;
-        print "toaster_debug is set, prepare for lots of verbosity!\n";
-    };
 
     return $self;
 }
@@ -72,9 +73,6 @@ sub apache {
         },
     );
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
-
     return $p{test_ok} if defined $p{test_ok};
 
     my $ver   = $p{'ver'} || $conf->{install_apache} or do {
@@ -83,7 +81,7 @@ sub apache {
     };
 
     require Mail::Toaster::Apache;
-    my $apache = Mail::Toaster::Apache->new();
+    my $apache = Mail::Toaster::Apache->new( 'log' => $log );
 
     require Cwd;
     my $old_directory = Cwd::cwd();
@@ -93,14 +91,14 @@ sub apache {
         $apache->install_apache1( $src, $conf );
     }
     elsif ( lc($ver) eq "ssl" ) {
-        $apache->install_ssl_certs( conf=>$conf, type=>"rsa", debug=>$debug );
+        $apache->install_ssl_certs( conf=>$conf, type=>"rsa" );
     }
     else {
-        $apache->install_2( conf=>$conf, debug=>$debug );
+        $apache->install_2( conf=>$conf );
     }
 
     chdir $old_directory if $old_directory;
-    $apache->startup( conf=>$conf, debug=>$debug );
+    $apache->startup( conf=>$conf );
     return 1;
 }
 
@@ -108,19 +106,12 @@ sub apache_conf_fixup {
 # makes changes necessary for Apache to start while running in a jail
 
     my $self  = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type => BOOLEAN, optional => 1 },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts },);
 
     return $p{test_ok} if defined $p{test_ok};
 
-    my $fatal = $self->set_fatal( $p{fatal} );
-    my $debug = $self->set_debug();
-
     require Mail::Toaster::Apache;
-    my $apache    = Mail::Toaster::Apache->new;
+    my $apache    = Mail::Toaster::Apache->new('log'=>$log);
     my $httpdconf = $apache->conf_get_dir( conf=> $conf );
 
     unless ( -e $httpdconf ) {
@@ -130,7 +121,7 @@ sub apache_conf_fixup {
 
     return if hostname !~ /^jail/;    # we're running in a jail
 
-    my @lines = $util->file_read( $httpdconf, debug=>$debug );
+    my @lines = $util->file_read( $httpdconf );
     foreach my $line (@lines) {
         if ( $line =~ /^Listen 80/ ) { # this is only tested on FreeBSD
             my @ips = $util->get_my_ips(only=>"first", debug=>0);
@@ -138,32 +129,27 @@ sub apache_conf_fixup {
         }
     }
 
-    $util->file_write( "/var/tmp/httpd.conf", lines => \@lines, debug=>$debug );
+    $util->file_write( "/var/tmp/httpd.conf", lines => \@lines );
 
     return unless $util->install_if_changed(
         newfile  => "/var/tmp/httpd.conf",
         existing => $httpdconf,
         clean    => 1,
         notify   => 1,
-        debug    => $debug,
     );
 
     return 1;
 }
 
 sub autorespond {
-
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    return $p{test_ok} if defined $p{test_ok}; # for testing
 
     my $ver = $conf->{'install_autorespond'};
     if ( ! $ver ) {
-        $log->audit( "autorespond install skipped (disabled)" ) if $debug;
+        $log->audit( "autorespond install skipped (disabled)" );
         return;
     }
 
@@ -175,7 +161,7 @@ sub autorespond {
 
     # return success if it is installed.
     if ( $autorespond &&  -x $autorespond ) {
-        $log->audit( "autorespond: installed ok (exists)" ) if $debug;
+        $log->audit( "autorespond: installed ok (exists)" );
         return 1;
     }
 
@@ -205,7 +191,6 @@ sub autorespond {
         url            => '/devel',
         targets        => \@targets,
         bintest        => 'autorespond',
-        debug          => $debug,
         source_sub_dir => 'mail',
     );
 
@@ -222,8 +207,6 @@ sub clamav {
     my %p = validate( @_, { %std_opts } );
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
 
     my $prefix   = $conf->{'toaster_prefix'}      || "/usr/local";
     my $confdir  = $conf->{'system_config_dir'}   || "/usr/local/etc";
@@ -232,19 +215,19 @@ sub clamav {
     my $ver      = $conf->{'install_clamav'};
 
     unless ($ver) {
-        $log->audit( "clamav: installing, skipping (disabled)" ) if $debug;
-        return 0;
+        $log->audit( "clamav: installing, skipping (disabled)" );
+        return;
     }
 
-    my $installed;    # once installed, we'll set this
+    my $installed;
 
     # install via ports if selected
     if ( $OSNAME eq "freebsd" && $ver eq "port" ) {
         $freebsd->install_port( "clamav", flags => "BATCH=yes WITHOUT_LDAP=1",);
 
-        $self->clamav_update( debug=>$debug );
-        $self->clamav_perms ( debug=>$debug );
-        $self->clamav_start ( debug=>$debug );
+        $self->clamav_update() or return;
+        $self->clamav_perms () or return;
+        $self->clamav_start () or return;
         return 1;
     }
 
@@ -264,9 +247,9 @@ sub clamav {
         if ( $darwin->install_port( "clamav" ) ) {
             $log->audit( "clamav: installing, ok" );
         }
-        $self->clamav_update( debug=>$debug );
-        $self->clamav_perms ( debug=>$debug );
-        $self->clamav_start ( debug=>$debug );
+        $self->clamav_update( ) or return;
+        $self->clamav_perms ( ) or return;
+        $self->clamav_start ( ) or return;
         return 1;
     }
 
@@ -283,20 +266,16 @@ sub clamav {
         targets        => [ './configure', 'make', 'make install' ],
         bintest        => 'clamdscan',
         source_sub_dir => 'mail',
-        debug          => $debug,
     );
 
-    if ( -x $util->find_bin( "clamdscan", fatal => 0, debug => $debug)) {
-        $log->audit( "clamav: installed ok" );
-    }
-    else {
-        $log->audit( "clamav: install FAILED" );
-        return 0;
-    }
+    $util->find_bin( "clamdscan", fatal => 0 ) or
+        return $log->error( "clamav: install FAILED" );
 
-    $self->clamav_update(  debug=>$debug );
-    $self->clamav_perms (  debug=>$debug );
-    $self->clamav_start (  debug=>$debug );
+    $log->audit( "clamav: installed ok" );
+
+    $self->clamav_update() or return;
+    $self->clamav_perms () or return;
+    $self->clamav_start () or return;
 }
 
 sub clamav_perms {
@@ -315,68 +294,10 @@ sub clamav_perms {
         $util->chown( $file, uid => $clamuid, gid => 'clamav' ) if -e $file;
     }
 
-    $util->syscmd( "pw user mod clamav -G qmail", debug => $p{debug} );
-}
+    $util->syscmd( "pw user mod clamav -G qmail" )
+        or return $log->error( "failed to add clamav to the qmail group" );
 
-sub clamav_run {
-# create a FreeBSD rc.d startup file
-
-    my $self = shift;
-    my %p = validate( @_, {
-            'confdir' => { type => SCALAR,  },
-            %std_opts
-        },
-    );
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
-    my $confdir = $p{'confdir'};
-
-    my $RUN;
-    my $run_f = "$confdir/rc.d/clamav.sh";
-
-    unless ( -s $run_f ) {
-        print "Creating $confdir/rc.d/clamav.sh startup file.\n";
-        open( $RUN, ">", $run_f )
-          or croak "clamav: couldn't open $run_f for write: $!";
-
-        print $RUN <<EO_CLAM_RUN;
-#!/bin/sh
-
-case "\$1" in
-    start)
-        /usr/local/bin/freshclam -d -c 2 -l /var/log/freshclam.log
-        echo -n " freshclam"
-        ;;
-
-    stop)
-        /usr/bin/killall freshclam > /dev/null 2>&1
-        echo -n " freshclam"
-        ;;
-
-    *)
-        echo ""
-        echo "Usage: `basename \$0` { start | stop }"
-        echo ""
-        exit 64
-        ;;
-esac
-EO_CLAM_RUN
-
-        close $RUN;
-
-        $util->chmod(
-            file => "$confdir/rc.d/freshclam.sh",
-            mode => '0755',
-            debug=> $debug,
-        );
-
-        $util->chmod(
-            file => "$confdir/rc.d/clamav.sh",
-            mode => '0755',
-            debug=> $debug,
-        );
-    }
+    return 1;
 }
 
 sub clamav_start {
@@ -385,9 +306,6 @@ sub clamav_start {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
-
     if ( $util->is_process_running('clamd') ) {
         $log->audit( "clamav: starting up, ok (already running)" );
     }
@@ -395,8 +313,7 @@ sub clamav_start {
     print "Starting up ClamAV...\n";
 
     if ( $OSNAME ne "freebsd" ) {
-        $util->_incomplete_feature(
-            {
+        $util->_incomplete_feature( {
                 mess   => "start up ClamAV on $OSNAME",
                 action =>
 'You will need to start up ClamAV yourself and make sure it is configured to launch at boot time.',
@@ -408,13 +325,11 @@ sub clamav_start {
     $freebsd->conf_check(
         check => "clamav_clamd_enable",
         line  => 'clamav_clamd_enable="YES"',
-        debug => $debug,
     );
 
     $freebsd->conf_check(
         check => "clamav_freshclam_enable",
         line  => 'clamav_freshclam_enable="YES"',
-        debug => $debug,
     );
 
     print "(Re)starting ClamAV's clamd...";
@@ -441,23 +356,16 @@ sub clamav_start {
 
     # These are no longer required as the FreeBSD ports now installs
     # startup files of its own.
-    #clamav_run($confdir);
-    if ( -e "/usr/local/etc/rc.d/clamav.sh" ) {
-        unlink "/usr/local/etc/rc.d/clamav.sh";
-    }
+    foreach ( qw/ clamav.sh freshclam.sh / ) {
+        unlink "/usr/local/etc/rc.d/$_" if -e "/usr/local/etc/rc.d/$_";
+    };
 
-    if ( -e "/usr/local/etc/rc.d/freshclam.sh" ) {
-        unlink "/usr/local/etc/rc.d/freshclam.sh";
-    }
+    return 1;
 }
 
 sub clamav_update {
-
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
 
     # set up freshclam (keeps virus databases updated)
     my $logfile = "/var/log/freshclam.log";
@@ -467,32 +375,24 @@ sub clamav_update {
         $self->clamav_perms(  debug=>0 );
     }
 
-    my $freshclam = $util->find_bin( "freshclam", debug=>0 );
+    my $freshclam = $util->find_bin( "freshclam", debug=>0 ) 
+        or return $log->error( "couldn't find freshclam!", fatal=>0);
 
-    if ( -x $freshclam ) {
-        $util->syscmd( "$freshclam", debug => 0, fatal => 0 );
-    }
-    else { print "couldn't find freshclam!\n"; }
+    $util->syscmd( "$freshclam", debug => 0, fatal => 0 );
+    return 1;
 }
 
 sub config {
-
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
 
     # apply the platform specific changes to the config file
-    $self->config_tweaks( debug=>$debug, fatal=>$fatal );
+    $self->config_tweaks();
 
     my $file_name = "toaster-watcher.conf";
-    my $file_path = $toaster->find_config(
-        file  => $file_name,
-        debug => $debug,
-        fatal => $fatal,
-    );
+    my $file_path = $toaster->find_config( file => $file_name );
     $conf = $self->refresh_config( $file_path ) or return;
 
     $self->config_hostname();
@@ -531,22 +431,18 @@ sub config {
             clean    => 1,
             notify   => -e $file_path ? 1 : 0,
             debug    => 0,
-            fatal    => $fatal,
     )
-    or return $log->error( "installing /tmp/toaster-watcher.conf to $file_path failed!",
-        fatal => $fatal,
-    );
+    or return $log->error( "installing /tmp/toaster-watcher.conf to $file_path failed!" );
 
     $r = $r == 1 ? "ok" : "ok (current)";
-    $log->audit( "config: updating $file_path, $r" ) if $debug;
+    $log->audit( "config: updating $file_path, $r" );
 
     # install $file_path in $prefix/etc/toaster-watcher.conf if it doesn't exist
     # already
     my $config_dir = $conf->{'system_config_dir'} || '/usr/local/etc';
 
     # if $config_dir is missing, create it
-    $util->mkdir_system( dir => $config_dir, debug=>$debug )
-        if ! -e $config_dir;
+    $util->mkdir_system( dir => $config_dir ) if ! -e $config_dir;
 
     my @configs = (
         { newfile  => $file_path, existing => "$config_dir/$file_name", mode => '0640', overwrite => 0 },
@@ -564,7 +460,6 @@ sub config {
             clean    => 0,
             notify   => 1,
             debug    => 0,
-            fatal    => $fatal,
         );
     };
 }
@@ -572,8 +467,7 @@ sub config {
 sub config_apply_tweaks {
     my $self = shift;
     my %p = validate( @_,
-        { 
-            file    => { type => SCALAR },
+        {   file    => { type => SCALAR },
             changes => { type => ARRAYREF },
             %std_opts,
         },
@@ -595,8 +489,7 @@ sub config_apply_tweaks {
     my @lines = $util->file_read( $p{file} ) or return;
 
     my $total_found = 0;
-    my @edits = @{ $p{changes} };
-    foreach my $e ( @edits ) {
+    foreach my $e ( @{ $p{changes} } ) {
         my $search = $e->{search} or next;
         my $replace = $e->{replace} or next;
         my $search2 = $e->{search2};
@@ -636,9 +529,8 @@ sub config_apply_tweaks {
                 };
             }
         };
-        if ( ! $found ) {
-            $log->error( "attempt to replace\n$search\n\twith\n$replace\n\tfailed", fatal => 0);
-        };
+        $log->error( "attempt to replace\n$search\n\twith\n$replace\n\tfailed", fatal => 0)
+            if ( ! $found && ! $e->{nowarn} );
         $total_found += $found;
     };
 
@@ -744,38 +636,24 @@ sub config_tweaks {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
-
-    my $hostname = hostname;
     my $status = "ok";
 
-    my $file = $toaster->find_config(
-        file  => 'toaster-watcher.conf',
-        debug => $debug,
-        fatal => $fatal,
-    );
+    my $file = $toaster->find_config( file => 'toaster-watcher.conf' );
 
     # verify that find_config worked and $file is readable
-    if ( ! -r $file ) {
-        $log->audit( "config_tweaks: read test on $file, FAILED" );
-        carp "find_config returned $file: $!\n";
-        croak if $fatal;
-        return;
-    };
+    return $log->error( "config_tweaks: read test on $file, FAILED", 
+        fatal => $p{fatal} ) if ! -r $file;
 
     my %changes;
     %changes = $self->config_tweaks_freebsd() if $OSNAME eq 'freebsd';
     %changes = $self->config_tweaks_darwin()  if $OSNAME eq 'darwin';
     %changes = $self->config_tweaks_linux()   if $OSNAME eq 'linux';
 
-    if ( $hostname && $hostname =~ /mt-test/ ) {
-        %changes = ( %changes, $self->config_tweaks_testing(%changes));
-    };
+    %changes = $self->config_tweaks_testing(%changes);
+    %changes = $self->config_tweaks_mysql(%changes);
 
     # foreach key of %changes, apply to $conf
     my @lines = $util->file_read( $file );
-
     foreach my $line (@lines) {
         next if $line =~ /^#/;  # comment lines
         next if $line !~ /=/;   # not a key = value
@@ -784,31 +662,23 @@ sub config_tweaks {
 
         if ( defined $changes{$key} && $changes{$key} ne $val ) {
             $status = "changed";
-
-            #print "\t setting $key to ". $changes{$key} . "\n" if $debug;
-
+            #print "\t setting $key to ". $changes{$key} . "\n";
             $line = sprintf( '%-34s = %s', $key, $changes{$key} );
-
             print "\t$line\n";
         }
     }
-
-    # all done unless changes are required
     return 1 unless ( $status && $status eq "changed" );
 
     # ask the user for permission to install
     return 1
-      unless $util->yes_or_no(
+      if ! $util->yes_or_no(
 'config_tweaks: The changes shown above are recommended for use on your system.
 May I apply the changes for you?',
         timeout => 30,
       );
 
     # write $conf to temp file
-    $util->file_write( "/tmp/toaster-watcher.conf",
-        lines => \@lines,
-        debug => 0,
-    );
+    $util->file_write( "/tmp/toaster-watcher.conf", lines => \@lines );
 
     # if the file ends with -dist, then save it back with out the -dist suffix
     # the find_config sub will automatically prefer the newer non-suffixed one
@@ -894,28 +764,46 @@ sub config_tweaks_linux {
     )
 }
 
-sub config_tweaks_testing {
+sub config_tweaks_mysql {
     my ($self, %changes) = @_;
+
+    return %changes if ! $util->yes_or_no("Enable MySQL support?");
 
     $log->audit( "config_tweaks: applying MT testing tweaks" );
 
-    $changes{'toaster_hostname'}      = 'jail10.cadillac.net';
-    $changes{'toaster_admin_email'}   = 'postmaster@jail10.cadillac.net';
-    $changes{'toaster_test_email'}    = 'test@jail10.cadillac.net';
-    $changes{'toaster_test_email_pass'}   = 'cHanGeMed';
+    $changes{'install_mysql'}   = '51      # 0, 1, 2, 3, 40, 41, 5, 51';
+    $changes{'install_mysqld'}  = '1       # 0, 1';
+    $changes{'vpopmail_mysql'}  = '1         # disables all mysql options';
+    $changes{'smtpd_use_mysql_relay_table'} = 1;
+    $changes{'install_squirrelmail_sql'}    = 1;
+    $changes{'install_spamassassin_sql'}    = 1;
+
+    return %changes;
+};
+
+sub config_tweaks_testing {
+    my ($self, %changes) = @_;
+
+    my $hostname = hostname;
+    return %changes if ( ! $hostname || $hostname ne 'jail.simerson.net' );
+
+    $log->audit( "config_tweaks: applying MT testing tweaks" );
+
+    $changes{'toaster_hostname'}      = 'jail.simerson.net';
+    $changes{'toaster_admin_email'}   = 'postmaster@jail.simerson.net';
+    $changes{'toaster_test_email'}    = 'test@jail.simerson.net';
+    $changes{'toaster_test_email_pass'}   = 'sdfsdf';
     $changes{'install_squirrelmail_sql'}  = '1';
-    $changes{'install_apache2_modperl'}   = '1';
-    $changes{'install_apache_suexec'}     = '1';
     $changes{'install_phpmyadmin'}        = '1';
-    $changes{'install_vqadmin'}           = '1';
+    $changes{'install_vqadmin'}           = 'port';
     $changes{'install_openldap_client'}   = '1';
     $changes{'install_ezmlm_cgi'}         = '1';
     $changes{'install_dspam'}             = '1';
     $changes{'install_pyzor'}             = '1'; 
     $changes{'install_bogofilter'}        = '1';
     $changes{'install_dcc'}               = '1';
-    $changes{'vpopmail_default_domain'}       = 'jail10.cadillac.net';
-    $changes{'pop3_ssl_daemon'}               = 'qpop3d';
+    $changes{'vpopmail_default_domain'}   = 'jail.simerson.net';
+    $changes{'pop3_ssl_daemon'}           = 'qpop3d';
 
     return %changes;
 }
@@ -932,17 +820,14 @@ sub config_vpopmail_mysql_pass {
             . "database connection. You MUST enter a password here!",
         );
 
-    $log->audit( "vpopmail MySQL password set to $conf->{'vpopmail_mysql_pass'}") if $self->{debug};
+    $log->audit( "vpopmail MySQL password set to $conf->{'vpopmail_mysql_pass'}");
 }
 
 sub courier_imap {
-
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
     return $p{test_ok} if defined $p{test_ok};
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
 
     my $ver = $conf->{'install_courier_imap'} or do {
         $log->audit( "courier: installing, skipping (disabled)" );
@@ -954,9 +839,9 @@ sub courier_imap {
 
     if ( $OSNAME eq "freebsd" && $ver eq "port" ) {
         $log->audit("using courier from FreeBSD ports" );
-        $self->courier_authlib( debug => $debug, fatal => $fatal );
+        $self->courier_authlib();
         $self->courier_imap_freebsd();
-        $self->courier_startup( debug=>$debug );
+        $self->courier_startup();
         return 1 if $freebsd->is_port_installed( "courier-imap", debug=>0);
     }
     elsif ( $OSNAME eq "darwin" ) {
@@ -987,10 +872,9 @@ sub courier_imap {
         targets        => \@targets,
         bintest        => "imapd",
         source_sub_dir => 'mail',
-        debug          => $debug
     );
 
-    $self->courier_startup(  debug=>$debug );
+    $self->courier_startup();
 }
 
 sub courier_imap_freebsd {
@@ -1025,9 +909,6 @@ sub courier_authlib {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
-
     my $prefix  = $conf->{'toaster_prefix'}    || "/usr/local";
     my $confdir = $conf->{'system_config_dir'} || "/usr/local/etc";
 
@@ -1036,7 +917,7 @@ sub courier_authlib {
         return 0;
     };
 
-    if ( ! $freebsd->is_port_installed( "courier-authlib", debug=>$debug ) ) {
+    if ( ! $freebsd->is_port_installed( "courier-authlib" ) ) {
 
         unlink "/var/db/ports/courier-authlib/options"
             if -f "/var/db/ports/courier-authlib/options";
@@ -1090,7 +971,6 @@ WITH_AUTH_VCHKPW=true",
     $freebsd->conf_check(
         check => "courier_authdaemond_enable",
         line  => "courier_authdaemond_enable=\"YES\"",
-        debug => $debug,
     );
 
     if ( ! -e "/var/run/authdaemond/pid" ) {
@@ -1153,18 +1033,12 @@ sub courier_startup {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
-
     my $prefix  = $conf->{'toaster_prefix'} || "/usr/local";
     my $ver     = $conf->{'install_courier_imap'};
     my $confdir = $conf->{'system_config_dir'} || "/usr/local/etc";
 
-    if ( !chdir("$confdir/courier-imap") ) {
-        print "could not chdir $confdir/courier-imap.\n" if $debug;
-        die ""                                           if $fatal;
-        return 0;
-    }
+    chdir("$confdir/courier-imap") or
+        return $log->error( "could not chdir $confdir/courier-imap.");
 
     copy( "pop3d.cnf.dist",       "pop3d.cnf" )    if ( !-e "pop3d.cnf" );
     copy( "pop3d.dist",           "pop3d" )        if ( !-e "pop3d" );
@@ -1247,38 +1121,32 @@ sub courier_startup_freebsd {
     $freebsd->conf_check(
         check => "courier_imap_imapd_enable",
         line  => "courier_imap_imapd_enable=\"$start\"",
-        debug => 0,
     );
 
     $freebsd->conf_check(
         check => "courier_imap_imapdssl_enable",
         line  => "courier_imap_imapdssl_enable=\"$start\"",
-        debug => 0,
     );
 
     $freebsd->conf_check(
         check => "courier_imap_imapd_ssl_enable",
         line  => "courier_imap_imapd_ssl_enable=\"$start\"",
-        debug => 0,
     );
 
     $freebsd->conf_check(
         check => "courier_imap_pop3dssl_enable",
         line  => "courier_imap_pop3dssl_enable=\"$start\"",
-        debug => 0,
     );
 
     $freebsd->conf_check(
         check => "courier_imap_pop3d_ssl_enable",
         line  => "courier_imap_pop3d_ssl_enable=\"$start\"",
-        debug => 0,
     );
 
     if ( $conf->{'pop3_daemon'} eq "courier" ) {
         $freebsd->conf_check(
             check => "courier_imap_pop3d_enable",
             line  => "courier_imap_pop3d_enable=\"$start\"",
-            debug => 0,
         );
     }
 };
@@ -1286,8 +1154,6 @@ sub courier_startup_freebsd {
 sub cpan {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
 
     if ( $OSNAME eq "freebsd" ) {
 
@@ -1312,37 +1178,31 @@ sub cpan {
         print "no ports for $OSNAME, installing from CPAN.\n";
     }
 
-    $util->install_module( "Params::Validate", debug => $debug );
-    $util->install_module( "Compress::Zlib",   debug => $debug );
-    $util->install_module( "Crypt::PasswdMD5", debug => $debug );
+    $util->install_module( "Params::Validate" );
+    $util->install_module( "Compress::Zlib"   );
+    $util->install_module( "Crypt::PasswdMD5" );
     $util->install_module( "Net::DNS" );
-    $util->install_module( "Quota", debug => $debug, fatal => 0 ) 
-        if $conf->{'install_quota_tools'};
-    $util->install_module( "Date::Format", debug => $debug, port  => "p5-TimeDate",);
-    $util->install_module( "Date::Parse", debug => $debug );
-    $util->install_module( "Mail::Send",  debug => $debug, port  => "p5-Mail-Tools",);
+    $util->install_module( "Quota", fatal => 0 ) if $conf->{'install_quota_tools'};
+    $util->install_module( "Date::Format", port => "p5-TimeDate");
+    $util->install_module( "Date::Parse" );
+    $util->install_module( "Mail::Send",  port => "p5-Mail-Tools");
 }
 
 sub cronolog {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing
 
-    my $ver = $conf->{'install_cronolog'} or do {
-        $log->audit( "cronolog: installing, skipping (disabled)" );
-        return;
-    };
+    my $ver = $conf->{'install_cronolog'} or 
+        return $log->audit( "cronolog: installing, skipping (disabled)", debug=>1 );
 
     if ( $OSNAME eq "freebsd" && $ver eq "port" ) {
-        $self->cronolog_freebsd() and return;
-        $log->error( "port install of cronolog failed!", fatal => 0);
+        return $self->cronolog_freebsd();
     }
 
     if ( $util->find_bin( "cronolog", fatal => 0 ) ) {
-        $log->audit( "cronolog: install cronolog, ok (exists)" ) if $debug;
+        $log->audit( "cronolog: install cronolog, ok (exists)",debug=>1 );
         return 2;
     }
 
@@ -1356,7 +1216,6 @@ sub cronolog {
         url     => '/download',
         targets => [ './configure', 'make', 'make install' ],
         bintest => 'cronolog',
-        debug   => $debug,
     );
 
     $util->find_bin( "cronolog" ) or return;
@@ -1366,11 +1225,6 @@ sub cronolog {
 }
 
 sub cronolog_freebsd {
-
-    if ( $freebsd->is_port_installed( "cronolog" ) ) {
-        $log->audit( "install cronolog, ok (exists)" );
-        return 2;
-    };
 
     return $freebsd->install_port( "cronolog",
         fatal => 0,
@@ -1387,14 +1241,10 @@ sub daemontools {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    return $p{test_ok} if defined $p{test_ok}; 
 
-    my $ver = $conf->{'install_daemontools'} or do {
-        $log->audit( "daemontools: installing, (disabled)" ) if $debug;
-        return;
-    };
+    my $ver = $conf->{'install_daemontools'} or 
+        return $log->error( "daemontools: installing, (disabled)",fatal=>0 );
 
     $self->daemontools_freebsd() if $OSNAME eq "freebsd";
 
@@ -1407,9 +1257,8 @@ sub daemontools {
     }
 
     # see if the svscan binary is already installed
-    if ( -x $util->find_bin( "svscan", fatal => 0, debug => 0 ) )
-    {
-        $log->audit( "daemontools: installing, ok (exists)" ) if $debug;
+    if ( -x $util->find_bin( "svscan", fatal => 0, debug => 0 ) ) {
+        $log->audit( "daemontools: installing, ok (exists)" );
         return 1;
     }
 
@@ -1490,7 +1339,8 @@ WITHOUT_SIGQ12=true
 WITH_TESTS=true',
         fatal => 0,
     ) 
-    or $log->error( "port install of daemontools failed!", fatal => 0);
+    or return $log->error( "port install of daemontools failed!", fatal => 0);
+    return 1;
 };
 
 sub daemontools_test {
@@ -1503,20 +1353,18 @@ sub daemontools_test {
         $log->test("  $test", -x $bin );
     };
 
-    return;
+    return 1;
 }
 
 sub dependencies {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
     my $qmaildir = $conf->{'qmail_dir'} || "/var/qmail";
 
-    $self->cpan( debug => $debug ); # install the prereq perl modules
+    $self->cpan(); # install the prereq perl modules
 
     if ( $OSNAME eq "freebsd" ) {
         $self->dependencies_freebsd();
@@ -1534,13 +1382,13 @@ sub dependencies {
         foreach (@dports) { $darwin->install_port( $_ ) }
     }
     else {
-        dependencies_other( $debug );
+        $self->dependencies_other();
     };
 
     if ( ! -x "$qmaildir/bin/qmail-queue" ) {
         $conf->{'qmail_chk_usr_patch'} = 0;
         require Mail::Toaster::Qmail;
-        $qmail ||= Mail::Toaster::Qmail->new();
+        $qmail ||= Mail::Toaster::Qmail->new('log'=>$log);
         $qmail->netqmail_virgin();
     }
 
@@ -1566,9 +1414,8 @@ sub dependencies_freebsd {
     push @to_install, { port => "ispell", category => 'textproc' } 
         if $conf->{'install_ispell'};
     push @to_install, { port => 'gdbm'  };
-    push @to_install, { port  => "openldap23-client",
-        check => "openldap-client",
-        } if $conf->{'install_openldap_client'};
+    push @to_install, { port  => "openldap23-client", check => "openldap-client", } 
+        if $conf->{'install_openldap_client'};
     push @to_install, { port  => "qmail", flags   => "BATCH=yes",
         options => "#\n# Installed by Mail::Toaster 
 # Options for qmail-1.03_7\n_OPTIONS_READ=qmail-1.03_7",
@@ -1581,7 +1428,7 @@ sub dependencies_freebsd {
     if ( $package eq "packages" ) {
         foreach ( @to_install ) {
             my $port = $_->{port} || $_->{name};
-            $freebsd->package_install( port => $port, fatal => 0 );
+            $freebsd->install_package( port => $port, fatal => 0 );
         };
     }
 
@@ -1598,20 +1445,18 @@ sub dependencies_freebsd {
 };
 
 sub dependencies_other {
-    my $debug = shift;
+    my $self = shift;
     print "no ports for $OSNAME, installing from sources.\n";
 
     if ( $OSNAME eq "linux" ) {
         my $vpopdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
-        $qmail ||= Mail::Toaster::Qmail->new();
+        $qmail ||= Mail::Toaster::Qmail->new('log'=>$log);
         $qmail->install_qmail_groups_users();
 
-        $util->set_debug(0);
         $util->syscmd( "groupadd -g 89 vchkpw" );
         $util->syscmd( "useradd -g vchkpw -d $vpopdir vpopmail" );
         $util->syscmd( "groupadd clamav" );
         $util->syscmd( "useradd -g clamav clamav" );
-        $util->set_debug($debug);
     }
 
     my @progs = qw(gmake expect cronolog autorespond );
@@ -1633,34 +1478,25 @@ sub djbdns {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     my $tinydns;
 
-    if ( !$conf->{'install_djbdns'} ) {
-        $log->audit( "djbdns: installing, skipping (disabled)" ) if $debug;
-        return 0;
-    }
+    return $log->error( "djbdns: installing, skipping (disabled)",fatal=>0 )
+        if !$conf->{'install_djbdns'};
 
-    $self->daemontools(  debug=>$debug );
-    $self->ucspi_tcp(  debug=>$debug );
+    $self->daemontools();
+    $self->ucspi_tcp();
 
     # test to see if it is installed.
-    if ( -x $util->find_bin( 'tinydns', fatal => 0, debug=>$debug ) ) {
-        $log->audit( "djbdns: installing djbdns, ok (already installed)" );
-        return 1;
-    }
+    return $log->audit( "djbdns: installing djbdns, ok (already installed)" )
+        if ( -x $util->find_bin( 'tinydns', fatal => 0 ) );
 
     if ( $OSNAME eq "freebsd" ) {
         $freebsd->install_port( "djbdns" );
 
-        # test to see if it installed.
-        if ( -x $util->find_bin( 'tinydns', fatal => 0, debug=>$debug ) ) {
-            $log->audit( "djbdns: installing djbdns, ok" );
-            return 1;
-        }
+        return $log->audit( "djbdns: installing djbdns, ok" )
+            if $util->find_bin( 'tinydns', fatal => 0 );
     }
 
     my @targets = ( 'make', 'make setup check' );
@@ -1676,7 +1512,6 @@ sub djbdns {
         url     => '/djbdns',
         targets => \@targets,
         bintest => 'tinydns',
-        debug   => $debug,
     );
 }
 
@@ -1744,11 +1579,8 @@ sub domainkeys {
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
-    my $debug = $self->set_debug( $p{debug} );
-
     if ( !$conf->{'qmail_domainkeys'} ) {
-        $log->audit( "domainkeys: installing, skipping (disabled)" )
-          if $debug;
+        $log->audit( "domainkeys: installing, skipping (disabled)" );
         return 0;
     }
 
@@ -1780,7 +1612,6 @@ sub domainkeys {
         site    => 'http://superb-east.dl.sourceforge.net',
         url     => '/sourceforge/domainkeys',
         targets => \@targets,
-        debug   => $debug,
     );
 }
 
@@ -1789,10 +1620,7 @@ sub dovecot {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    return $p{test_ok} if defined $p{test_ok}; # for testing
 
     my $ver = $conf->{'install_dovecot'} or do {
         $log->audit( "dovecot install not selected.");
@@ -1871,6 +1699,7 @@ sub dovecot_conf {
         changes => [
             {   search  => "protocols = imap pop3 imaps pop3s managesieve",
                 replace => "protocols = imap pop3 imaps pop3s",
+                nowarn  => 1,
             },
             {   search  => "protocol pop3 {",
                 search2 => "section",
@@ -1883,6 +1712,7 @@ sub dovecot_conf {
             {   search  => "protocol managesieve {",
                 search2 => "section",
                 replace => " ",
+                nowarn  => 1,   # manageseive is optional build
             },
             {   search  => "#shutdown_clients = yes",
                 replace => "#shutdown_clients = yes\nshutdown_clients = no",
@@ -1929,6 +1759,7 @@ first_valid_gid = 89",
             {   search  => "auth_username_format = %Ln",
                 replace => "#auth_username_format = %Ln
 auth_username_format = %Lu",
+                nowarn  => 1,
             },
             {   search  => "  mechanisms = plain login",
                 replace => "  mechanisms = plain login digest-md5 cram-md5",
@@ -2032,20 +1863,19 @@ sub enable_all_spam {
         '| /usr/local/bin/maildrop /usr/local/etc/mail/mailfilter';
 
     require Mail::Toaster::Qmail;
-    $qmail ||= Mail::Toaster::Qmail->new();
+    $qmail ||= Mail::Toaster::Qmail->new('log'=>$log);
 
     my @domains = $qmail->get_domains_from_assign(
             assign => "$qmail_dir/users/assign",
-            debug  => $debug
         );
 
     my $number_of_domains = @domains;
-    print "enable_all_spam: found $number_of_domains domains.\n" if $debug;
+    $log->audit( "enable_all_spam: found $number_of_domains domains.");
 
     for (my $i = 0; $i < $number_of_domains; $i++) {
 
         my $domain = $domains[$i]{'dom'};
-        print "Enabling spam processing for $domain mailboxes...\n" if $debug;
+        $log->audit( "Enabling spam processing for $domain mailboxes");
 
         my @paths = `~vpopmail/bin/vuserinfo -d -D $domain`;
 
@@ -2053,17 +1883,17 @@ sub enable_all_spam {
         foreach my $path (@paths) {
             chomp($path);
             if ( ! $path || ! -d $path) {
-                print "$path does not exist!\n";
+                $log->audit( "  $path does not exist!");
                 next PATH;
             };
 
             my $qpath = "$path/.qmail";
             if (-f $qpath) {
-                print ".qmail already exists in $path.\n";
+                $log->audit( "  .qmail already exists in $path.");
                 next PATH;
             };
 
-            print ".qmail created in $path.\n";
+            $log->audit( "  .qmail created in $path.");
             system "echo \"$spam_cmd \" >> $path/.qmail";
 
             my $uid = getpwnam("vpopmail");
@@ -2082,20 +1912,17 @@ sub expat {
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
-
     if ( !$conf->{'install_expat'} ) {
-        $log->audit( "expat: installing, skipping (disabled)" ) if $debug;
-        return 0;
+        $log->audit( "expat: installing, skipping (disabled)" );
+        return;
     }
 
     if ( $OSNAME eq "freebsd" ) {
         if ( -d "/usr/ports/textproc/expat" ) {
-            $freebsd->install_port( "expat" );
+            return $freebsd->install_port( "expat" );
         }
         else {
-            $freebsd->install_port( "expat", dir  => 'expat2');
+            return $freebsd->install_port( "expat", dir => 'expat2');
         }
     }
     elsif ( $OSNAME eq "darwin" ) {
@@ -2111,88 +1938,42 @@ sub expect {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    return $p{test_ok} if defined $p{test_ok}; # for testing
 
     if ( $OSNAME eq "freebsd" ) {
-        $freebsd->install_port( "expect",
+        return $freebsd->install_port( "expect",
             flags => "WITHOUT_X11=yes",
-            fatal => $fatal,
+            fatal => $p{fatal},
         );
     }
+    return;
 }
 
 sub ezmlm {
-
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     my $ver     = $conf->{'install_ezmlm'};
     my $confdir = $conf->{'system_config_dir'} || "/usr/local/etc";
 
     if ( !$ver ) {
-        $log->audit( "installing Ezmlm-Idx, (disabled)" ) if $debug;
+        $log->audit( "installing Ezmlm-Idx, (disabled)", debug=>1 );
         return;
     }
 
-    my $ezmlm = $util->find_bin( 'ezmlm-sub', dir => '/usr/local/bin/ezmlm',
-        debug => $debug,
-        fatal => 0
+    my $ezmlm = $util->find_bin( 'ezmlm-sub', 
+        dir   => '/usr/local/bin/ezmlm',
+        fatal => 0,
     );
 
-    # if it is already installed
     if ( $ezmlm && -x $ezmlm ) {
-        $log->audit( "installing Ezmlm-Idx, ok (installed)" );
-        return $self->ezmlm_cgi(  debug=>$debug );
+        $log->audit( "installing Ezmlm-Idx, ok (installed)",debug=>1 );
+        return $self->ezmlm_cgi();
     }
 
-    if (   $OSNAME eq "freebsd"
-        && $ver eq "port"
-        && !$freebsd->is_port_installed( "ezmlm", debug=>$debug, fatal=>0 ) )
-    {
-        $self->ezmlm_makefile_fixup( );
-
-        my $defs = "";
-        my $opts = "WITHOUT_MYSQL=true";
-        if ( $conf->{'install_ezmlm_mysql'} ) {
-            $defs .= "WITH_MYSQL=yes";
-            $opts = "WITH_MYSQL=true";
-        };
-
-        if ( $freebsd->install_port( "ezmlm-idx",
-                options => "# This file was generated by mail-toaster
-# No user-servicable parts inside!
-# Options for ezmlm-idx-0.444
-_OPTIONS_READ=ezmlm-idx-0.444
-$opts
-WITHOUT_PGSQL=true",
-                flags   => $defs,
-            )
-          )
-        {
-            chdir("$confdir/ezmlm");
-            copy( "ezmlmglrc.sample", "ezmlmglrc" )
-              or $util->error( "copy ezmlmglrc failed: $!");
-
-            copy( "ezmlmrc.sample", "ezmlmrc" )
-              or $util->error( "copy ezmlmrc failed: $!");
-
-            copy( "ezmlmsubrc.sample", "ezmlmsubrc" )
-              or $util->error( "copy ezmlmsubrc failed: $!");
-
-            return $self->ezmlm_cgi(  debug=>$debug );
-        }
-
-        print "\n\nFAILURE: ezmlm-idx install failed!\n\n";
-        return;
-    }
+    $self->ezmlm_freebsd_port() and return 1;
 
     print "ezmlm: attemping to install ezmlm from sources.\n";
 
@@ -2214,7 +1995,7 @@ WITHOUT_PGSQL=true",
             $util->source_warning( package => $ezmlm_dist, src => "$src/mail" ) )
         {
             carp "\nezmlm: OK then, skipping install.\n";
-            return 0;
+            return;
         }
         else {
             print "ezmlm: removing any previous build sources.\n";
@@ -2222,13 +2003,11 @@ WITHOUT_PGSQL=true",
         }
     }
 
-    unless ( -e "$ezmlm_dist.tar.gz" ) {
-        $util->get_url( "$site/archive/$ezmlm_dist.tar.gz" );
-    }
+    $util->get_url( "$site/archive/$ezmlm_dist.tar.gz" )
+        if ! -e "$ezmlm_dist.tar.gz";
 
-    unless ( -e "$idx.tar.gz" ) {
-        $util->get_url( "$site/archive/$ver/$idx.tar.gz" );
-    }
+    $util->get_url( "$site/archive/$ver/$idx.tar.gz" )
+        if ! -e "$idx.tar.gz";
 
     $util->extract_archive( "$ezmlm_dist.tar.gz" )
       or croak "Couldn't expand $ezmlm_dist.tar.gz: $!\n";
@@ -2236,12 +2015,12 @@ WITHOUT_PGSQL=true",
     $util->extract_archive( "$idx.tar.gz" )
       or croak "Couldn't expand $idx.tar.gz: $!\n";
 
-    $util->syscmd( "mv $idx/* $ezmlm_dist/", debug=>$debug );
-    $util->syscmd( "rm -rf $idx", debug=>$debug );
+    $util->syscmd( "mv $idx/* $ezmlm_dist/", );
+    $util->syscmd( "rm -rf $idx", );
 
     chdir($ezmlm_dist);
 
-    $util->syscmd( "patch < idx.patch", debug=>$debug );
+    $util->syscmd( "patch < idx.patch", );
 
     if ( $OSNAME eq "darwin" ) {
         my $local_include = "/usr/local/mysql/include";
@@ -2254,38 +2033,34 @@ WITHOUT_PGSQL=true",
 
         $util->file_write( "sub_mysql/conf-sqlcc",
             lines => ["-I$local_include"],
-            debug => $debug,
         );
 
         $util->file_write( "sub_mysql/conf-sqlld",
             lines => ["-L$local_lib -lmysqlclient -lm"],
-            debug => $debug,
         );
     }
     elsif ( $OSNAME eq "freebsd" ) {
         $util->file_write( "sub_mysql/conf-sqlcc",
             lines => ["-I/usr/local/include/mysql"],
-            debug => $debug,
         );
 
         $util->file_write( "sub_mysql/conf-sqlld",
             lines => ["-L/usr/local/lib/mysql -lmysqlclient -lnsl -lm"],
-            debug => $debug,
         );
     }
 
-    $util->file_write( "conf-bin", lines => ["/usr/local/bin"], debug=>$debug );
-    $util->file_write( "conf-man", lines => ["/usr/local/man"], debug=>$debug );
-    $util->file_write( "conf-etc", lines => ["/usr/local/etc"], debug=>$debug );
+    $util->file_write( "conf-bin", lines => ["/usr/local/bin"] );
+    $util->file_write( "conf-man", lines => ["/usr/local/man"] );
+    $util->file_write( "conf-etc", lines => ["/usr/local/etc"] );
 
-    $util->syscmd( "make", debug=>$debug );
-    $util->syscmd( "chmod 775 makelang", debug=>$debug );
+    $util->syscmd( "make" );
+    $util->syscmd( "chmod 775 makelang" );
 
 #$util->syscmd( "make mysql" );  # haven't figured this out yet (compile problems)
-    $util->syscmd( "make man", debug=>$debug );
-    $util->syscmd( "make setup", debug=>$debug );
+    $util->syscmd( "make man" );
+    $util->syscmd( "make setup");
 
-    $self->ezmlm_cgi(  debug=>$debug );
+    $self->ezmlm_cgi();
     return 1;
 }
 
@@ -2304,9 +2079,9 @@ sub ezmlm_cgi {
     my $fatal = $p{'fatal'};
        $debug = $p{'debug'};
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing
 
-    return unless ( $conf->{'install_ezmlm_cgi'} );
+    return if ! $conf->{'install_ezmlm_cgi'};
 
     if ( $OSNAME eq "freebsd" ) {
         $freebsd->install_port( "p5-Archive-Tar", 
@@ -2319,11 +2094,52 @@ WITHOUT_TEXT_DIFF=true",
         );
     }
 
-    $util->install_module( "Email::Valid", debug => 0,);
-    $util->install_module( "Mail::Ezmlm", debug => 0,);
+    $util->install_module( "Email::Valid" );
+    $util->install_module( "Mail::Ezmlm" );
 
     return 1;
 }
+
+sub ezmlm_freebsd_port {
+    my $self = shift;
+
+    return if $OSNAME ne "freebsd";
+    return if $conf->{'install_ezmlm'} ne "port";
+    return 1 if $freebsd->is_port_installed( "ezmlm", fatal=>0 );
+
+    $self->ezmlm_makefile_fixup( );
+
+    my $defs = '';
+    my $opts = "WITHOUT_MYSQL=true";
+    if ( $conf->{'install_ezmlm_mysql'} ) {
+        $defs .= "WITH_MYSQL=yes";
+        $opts = "WITH_MYSQL=true";
+    };
+
+    $freebsd->install_port( "ezmlm-idx",
+        options => "# This file was generated by mail-toaster
+# No user-servicable parts inside!
+# Options for ezmlm-idx-0.444
+_OPTIONS_READ=ezmlm-idx-0.444
+$opts
+WITHOUT_PGSQL=true",
+        flags   => $defs,
+    ) 
+    or return $log->error( "ezmlm-idx install failed" );
+
+    my $confdir = $conf->{'system_config_dir'} || "/usr/local/etc";
+    chdir("$confdir/ezmlm");
+    copy( "ezmlmglrc.sample", "ezmlmglrc" )
+        or $util->error( "copy ezmlmglrc failed: $!");
+
+    copy( "ezmlmrc.sample", "ezmlmrc" )
+        or $util->error( "copy ezmlmrc failed: $!");
+
+    copy( "ezmlmsubrc.sample", "ezmlmsubrc" )
+        or $util->error( "copy ezmlmsubrc failed: $!");
+
+    return $self->ezmlm_cgi();
+};
 
 sub ezmlm_makefile_fixup {
 
@@ -2443,7 +2259,7 @@ sub gnupg_install {
     return if ! $conf->{'install_gnupg'};
 
     if ( $conf->{package_install_method} eq 'packages' ) {
-        $freebsd->package_install( port => "gnupg", debug=>0, fatal => 0 );
+        $freebsd->install_package( port => "gnupg", debug=>0, fatal => 0 );
         return 1 if $freebsd->is_port_installed('gnupg');
     };
 
@@ -2653,51 +2469,31 @@ sub is_newer {
 
 sub isoqlog {
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     my $ver = $conf->{'install_isoqlog'}
-        or return $log->error( "isoqlog: skipping b/c install_isoqlog is disabled",fatal=>0 );
+        or return $log->audit( "install_isoqlog is disabled",debug=>1 );
 
     my $return = 0;
 
     if ( $ver eq "port" ) {
         if ( $OSNAME eq "freebsd" ) {
-            if ( $freebsd->is_port_installed( "isoqlog", debug=>$debug ) ) {
-                $log->audit( "isoqlog: installing, ok (exists)" );
-                $return = 2;
-            }
-            else {
-                $freebsd->install_port( "isoqlog" );
-                if ( $freebsd->is_port_installed( "isoqlog", debug=>$debug ) ) {
-                    $log->audit( "isoqlog: installing, ok" );
-                    $return = 1;
-                }
-            }
+            $freebsd->install_port( "isoqlog" ) and return 1;
+            return 1 if $freebsd->is_port_installed( "isoqlog", %p );
         }
         else {
-            $log->audit(
-                "isoqlog: install_isoqlog = port is not valid for $OSNAME!, FAILED" );
-            return 0;
+            return $log->error(
+                "isoqlog: install_isoqlog = port is not valid for $OSNAME" );
         }
     }
     else {
-        if ( -x $util->find_bin( "isoqlog", fatal => 0, debug=>$debug ) ) {
-            $log->audit( "isoqlog: installing., ok (exists)" );
+        if ( -x $util->find_bin( "isoqlog", fatal => 0 ) ) {
+            $log->audit( "isoqlog: install, ok (exists)" );
             $return = 2;
         }
     }
 
-    return $return if $util->find_bin( "isoqlog", fatal => 0, debug=>$debug );
+    return $return if $util->find_bin( "isoqlog", fatal => 0 );
 
     $log->audit( "isoqlog not found. Trying to install v$ver from sources for $OSNAME!");
 
@@ -2722,8 +2518,8 @@ sub isoqlog {
         url     => '/isoqlog',
         targets => [ $configure, 'make', 'make install', 'make clean' ],
         bintest => 'isoqlog',
-        debug   => $debug,
         source_sub_dir => 'mail',
+        %p
     );
 
     if ( $conf->{'toaster_prefix'} ne "/usr/local" ) {
@@ -2731,28 +2527,16 @@ sub isoqlog {
             $conf->{'toaster_prefix'} . "/share/isoqlog" );
     }
 
-    if ( $util->find_bin( "isoqlog", fatal => 0, debug=>$debug ) ) {
-        $self->isoqlog_conf( debug=>$debug );
-        return 1;
+    if ( $util->find_bin( "isoqlog", fatal => 0 ) ) {
+        return $self->isoqlog_conf();
     };
 
     return;
 }
 
 sub isoqlog_conf {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     # isoqlog doesn't honor --sysconfdir yet
     #my $etc = $conf->{'system_config_dir'} || "/usr/local/etc";
@@ -2789,11 +2573,11 @@ maxtotal    = 100
 maxbyte     = 100
 EO_ISOQLOG
 
-    $util->file_write( $file, lines => \@lines, debug=>$debug )
-      or croak "couldn't write $file: $!\n";
-    $log->audit( "isoqlog_conf: creating $file, ok" );
+    $util->file_write( $file, lines => \@lines )
+        or $log->error( "couldn't write $file: $!");
+    $log->audit( "isoqlog_conf: created $file, ok" );
 
-    $util->syscmd( "isoqlog", fatal => 0, debug => $debug,);
+    $util->syscmd( "isoqlog", fatal => 0 );
 
     unless ( -e "$htdocs/isoqlog" ) {
         mkdir oct('0755'), "$htdocs/isoqlog";
@@ -2804,11 +2588,9 @@ EO_ISOQLOG
     # Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
     # that is now included in the Apache 2.0 patch
 
-    unless ( -e "$htdocs/isoqlog/images" ) {
-        $util->syscmd( "cp -r /usr/local/share/isoqlog/htmltemp/images $htdocs/isoqlog/images",
-            debug=>$debug,
-        );
-    }
+    my $isoimg = "$htdocs/isoqlog/images";
+    $util->syscmd( "cp -r /usr/local/share/isoqlog/htmltemp/images $isoimg" )
+        if ! -e $isoimg;
 }
 
 sub lighttpd {
@@ -2823,6 +2605,7 @@ sub lighttpd {
     };
 
     $self->lighttpd_config();
+    $self->lighttpd_start();
 };
 
 sub lighttpd_freebsd {
@@ -2856,28 +2639,29 @@ WITHOUT_WEBDAV=true\n",
 
     my @logs = qw/ lighttpd.error.log lighttpd.access.log /;
     foreach ( @logs ) {
-        $util->file_write( "/var/log/$_",
-            lines => [''],
-        ) 
-        if ! -e "/var/log/$_";
-        my (undef,undef,$uid,$gid) = getpwnam('www');
-        chown( $uid, $gid, "/var/log/$_");
+        $util->file_write( "/var/log/$_", lines => [' '] ) 
+            if ! -e "/var/log/$_";
+        $util->chown("/var/log/$_", uid => 'www', gid => 'www');
     };
-
-    system "/usr/local/etc/rc.d/lighttpd restart";
 };
 
 sub lighttpd_config {
     my $self = shift;
 
-    my $conf = '/usr/local/etc/lighttpd.conf';
+    my $lconf = '/usr/local/etc/lighttpd.conf';
 
-    `grep toaster $conf` 
+    `grep toaster $lconf` 
         and return $log->audit("lighttpd configuration already done");
 
+    my $cgi_bin = $conf->{toaster_cgi_bin} || '/usr/local/www/cgi-bin.toaster/';
+    my $htdocs = $conf->{toaster_http_docs} || '/usr/local/www/toaster';
+
     $self->config_apply_tweaks(
-        file    => $conf,
+        file    => $lconf,
         changes => [
+            {   search  => q{#                               "mod_redirect",},
+                replace => q{                                "mod_redirect",},
+            },
             {   search  => q{#                               "mod_alias",},
                 replace => q{                                "mod_alias",},
             },
@@ -2897,7 +2681,7 @@ sub lighttpd_config {
                 replace => q{                                "mod_compress",},
             },
             {   search  => q{server.document-root        = "/usr/local/www/data/"},
-                replace => q{server.document-root        = "/usr/local/www/toaster/"},
+                replace => qq{server.document-root        = "$htdocs/"},
             },
             {   search  => q{#include /etc/lighttpd/lighttpd-inc.conf},
                 replace => q{include "/usr/local/etc/lighttpd-inc.conf"},
@@ -2905,13 +2689,13 @@ sub lighttpd_config {
         ],
     );
 
-    my $include = <<'EO_LIGHTTPD_INCLUDE'
+    my $include = '
 # avoid upload hang: http://redmine.lighttpd.net/boards/2/topics/show/141
 server.network-backend = "writev",
 
-alias.url = (  "/cgi-bin/"       => "/usr/local/www/cgi-bin/",
+alias.url = (  "/cgi-bin/"       => "' . $cgi_bin . '/",
                "/squirrelmail/"  => "/usr/local/www/squirrelmail/",
-               "/sqwebmail/"     => "/usr/local/www/toaster/sqwebmail/",
+               "/sqwebmail/"     => "' . $htdocs . '/sqwebmail/",
                "/roundcube/"     => "/usr/local/www/roundcube/",
                "/v-webmail/"     => "/usr/local/www/v-webmail/htdocs/",
                "/isoqlog/images/"=> "/usr/local/share/isoqlog/htmltemp/images/",
@@ -2930,6 +2714,13 @@ $HTTP["url"] =~ "^/awstats/" {
 
 $HTTP["url"] =~ "^/cgi-bin" {
      cgi.assign = ( "" => "" )
+}
+
+# redirect users to a secure connection
+$SERVER["socket"] == ":80" {
+   $HTTP["host"] =~ "(.*)" {
+      url.redirect = ( "^/(.*)" => "https://%1/$1" )
+   }
 }
 
 $SERVER["socket"] == ":443" {
@@ -2952,27 +2743,47 @@ fastcgi.server = (
                                 "PHP_FCGI_CHILDREN"     => "2",
                                 "PHP_FCGI_MAX_REQUESTS" => "100"
                            ),
-                         )
-                       )
+                        )
+                     )
                   )
 
 auth.backend               = "htdigest"
 auth.backend.htdigest.userfile = "/usr/local/etc/lighttpd.passwd"
 
-auth.require      = ( "/isoqlog" =>
-                       (
-                          "method"  => "digest",
-                          "realm"   => "isoqlog",
-                          "require" => "user=matt"
-                        ),
-                    )
-EO_LIGHTTPD_INCLUDE
-;
+auth.require   = (   "/isoqlog" =>
+                     (
+                         "method"  => "digest",
+                         "realm"   => "isoqlog",
+                         "require" => "user=matt"
+                      ),
+                     "/cgi-bin/vqadmin" =>
+                     (
+                         "method"  => "digest",
+                         "realm"   => "vqadmin",
+                         "require" => "user=matt"
+                      )
+                  )
+';
 
     $util->file_write('/usr/local/etc/lighttpd-inc.conf',
         lines => [ $include ],
     );
-    
+    return 1; 
+};
+
+sub lighttpd_start {
+    my $self = shift;
+
+    if ( $OSNAME eq 'freebsd' ) {
+        system "/usr/local/etc/rc.d/lighttpd restart";
+        return 1;
+    }
+    elsif ( $OSNAME eq 'linux' ) {
+        system "service lighttpd start";
+        return 1;
+    };
+    print "not sure how to start lighttpd on $OSNAME\n";
+    return;
 };
 
 sub logmonster {
@@ -3005,26 +2816,13 @@ sub logmonster {
 }
 
 sub maildrop {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
-    my %p = validate( @_, {
-            'fatal'   => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    my $ver = $conf->{'install_maildrop'};
-
-    unless ($ver) {
-        print "skipping maildrop install because it's not enabled!\n";
+    my $ver = $conf->{'install_maildrop'} or do {
+        print "skipping maildrop install, it's not enabled.\n";
         return 0;
-    }
+    };
 
     my $prefix = $conf->{'toaster_prefix'} || "/usr/local";
 
@@ -3035,149 +2833,43 @@ sub maildrop {
         elsif ( $OSNAME eq "darwin" ) {
             $darwin->install_port( "maildrop" );
         }
-        $ver = "2.0.2";
+        $ver = "2.5.0";
     }
 
-    if ( !-x $util->find_bin( "maildrop", fatal => 0, debug=>$debug ) ) {
-
-        $util->install_from_source(
-            package => 'maildrop-' . $ver,
-            site    => 'http://' . $conf->{'toaster_sf_mirror'},
-            url     => '/courier',
-            targets => [
-                './configure --prefix=' . $prefix . ' --exec-prefix=' . $prefix,
-                'make',
-                'make install-strip',
-                'make install-man'
-            ],
-            source_sub_dir => 'mail',
-            debug   => $debug,
-        );
-    }
-
-    # make sure vpopmail user is set up (owner of mailfilter file)
-    my $uid = getpwnam("vpopmail");
-    my $gid = getgrnam("vchkpw");
-
-    croak "maildrop: didn't get uid or gid for vpopmail:vchkpw!"
-      unless ( $uid && $gid );
+    $util->find_bin( "maildrop", fatal => 0 ) 
+        or $util->install_from_source(
+                package => 'maildrop-' . $ver,
+                site    => 'http://' . $conf->{'toaster_sf_mirror'},
+                url     => '/courier',
+                targets => [
+                    './configure --prefix=' . $prefix . ' --exec-prefix=' . $prefix,
+                    'make',
+                    'make install-strip',
+                    'make install-man'
+                ],
+                source_sub_dir => 'mail',
+            );
 
     my $etcmail = "$prefix/etc/mail";
     unless ( -d $etcmail ) {
         mkdir( $etcmail, oct('0755') )
-          or $util->mkdir_system( dir => $etcmail, mode=>'0755', debug=>$debug );
+          or $util->mkdir_system( dir => $etcmail, mode=>'0755' );
     }
 
     $self->maildrop_filter();
-
-    my $sub_file = "$prefix/sbin/subscribeIMAP.sh";
-
-    my $sub_bin = $util->find_bin( "$prefix/sbin/subscribeIMAP.sh", debug => 0, fatal => 0 );
-    unless ( $sub_bin && -e $sub_bin ) {
-
-        my $chown = $util->find_bin( 'chown' );
-        my $chmod = $util->find_bin( 'chmod' );
-
-        my @lines;
-        push @lines, '#!/bin/sh
-#
-# This subscribes the folder passed as $1 to courier imap
-# so that Maildir reading apps (Sqwebmail, Courier-IMAP) and
-# IMAP clients (squirrelmail, Mailman, etc) will recognize the
-# extra mail folder.
-
-# Matt Simerson - 12 June 2003
-
-LIST="$2/Maildir/courierimapsubscribed"
-
-if [ -f "$LIST" ]; then
-	# if the file exists, check it for the new folder
-	TEST=`cat "$LIST" | grep "INBOX.$1"`
-
-	# if it is not there, add it
-	if [ "$TEST" = "" ]; then
-		echo "INBOX.$1" >> $LIST
-	fi
-else
-	# the file does not exist so we define the full list
-	# and then create the file.
-	FULL="INBOX\nINBOX.Sent\nINBOX.Trash\nINBOX.Drafts\nINBOX.$1"
-
-	echo -e $FULL > $LIST
-	' . $chown . ' vpopmail:vchkpw $LIST
-	' . $chmod . ' 644 $LIST
-fi
-';
-
-        $util->file_write( $sub_file, lines => \@lines, debug=>$debug )
-          or croak "maildrop: FAILED: couldn't write $sub_file: $!\n";
-
-        $util->chmod(
-            file_or_dir => $sub_file,
-            mode        => '0555',
-            sudo        => $UID == 0 ? 0 : 1,
-            debug       => $debug,
-        );
-    }
-
-    my $log = $conf->{'qmail_log_base'} || "/var/log/mail";
-
-    unless ( -d $log ) {
-
-        $util->mkdir_system( dir => $log, debug => 0 );
-
-        # set its ownership to be that of the qmail log user
-        $util->chown( $log,
-            uid   => $conf->{'qmail_log_user'},
-            gid   => $conf->{'qmail_log_group'},
-            sudo  => $UID == 0 ? 0 : 1,
-        );
-    }
-
-    my $logf = "$log/maildrop.log";
-
-    unless ( -e $logf ) {
-
-        $util->file_write( $logf, lines => ["begin"], debug=>$debug );
-
-        # set the ownership of the maildrop log to the vpopmail user
-        $util->chown( $logf,
-            uid   => $uid,
-            gid   => $gid,
-            sudo  => 1,
-            debug => $debug,
-        );
-
-        #chown($uid, $gid, $logf) or croak "maildrop: chown $logf failed!";
-    }
-}
+    $self->maildrop_imap_subscribe();
+    $self->maildrop_filter_logs();
+};
 
 sub maildrop_filter {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    warn "maildrop_filter: debugging enabled.\n" if $debug;
+    my %p = validate( @_, { %std_opts },);
 
     my $prefix  = $conf->{'toaster_prefix'} || "/usr/local";
     my $logbase = $conf->{'qmail_log_base'};
 
-    # if any of these are set
-    #$debug ||= $conf->{'toaster_debug'};
-
-    unless ($logbase) {
-        $logbase = -d "/var/log/qmail" ? "/var/log/qmail"
-                 : "/var/log/mail";
+    if ( !$logbase ) {
+        $logbase = -d "/var/log/qmail" ? "/var/log/qmail" : "/var/log/mail";
     }
 
     my $filterfile = $conf->{'filtering_maildrop_filter_file'}
@@ -3185,91 +2877,55 @@ sub maildrop_filter {
 
     my ( $path, $file ) = $util->path_parse($filterfile);
 
-    unless ( -d $path ) { $util->mkdir_system( dir => $path, debug=>$debug ) }
+    $util->mkdir_system( dir => $path )  if ! -d $path;
 
-    unless ( -d $path ) {
-        carp "Sorry, $path doesn't exist and I couldn't create it.\n";
-        return 0;
-    }
+    return $log->error( "$path doesn't exist and I couldn't create it.") 
+        if ! -d $path;
 
-    my @lines = $self->maildrop_filter_file(
-        logbase => $logbase,
-        debug   => $debug,
-    );
+    my @lines = $self->maildrop_filter_file( logbase => $logbase );
 
     my $user  = $conf->{'vpopmail_user'}  || "vpopmail";
     my $group = $conf->{'vpopmail_group'} || "vchkpw";
 
     # if the mailfilter file doesn't exist, create it
-    if ( !-e $filterfile ) {
-        $util->file_write( $filterfile, 
-            lines => \@lines, 
-            mode  => '0600', 
-            debug => $debug,
+    if ( -e $filterfile ) {
+        $util->file_write( "$filterfile.new", lines => \@lines, mode  =>'0600' );
+        $util->install_if_changed(
+            newfile  => "$filterfile.new",
+            existing => $filterfile,
+            mode     => '0600',
+            clean    => 0,
+            notify   => 1,
+            archive  => 1,
         );
-
-        $util->chown( $filterfile,
-            uid   => $user,
-            gid   => $group,
-            debug => $debug,
-        );
-
-        $log->audit("installed new $filterfile, ok");
     }
+    else {
+        $util->file_write( $filterfile, lines => \@lines, mode  => '0600' );
+        $log->audit("installed new $filterfile, ok");
+    };
 
-    # write out filter to a new file
-    $util->file_write( "$filterfile.new", 
-        lines => \@lines, 
-        mode  =>'0600', 
-        debug => $debug,
-    );
-
-    $util->chown( "$filterfile.new",
-        uid  => $user,
-        gid  => $group,
-        debug => $debug,
-    );
-
-    $util->install_if_changed(
-        newfile  => "$filterfile.new",
-        existing => $filterfile,
-        uid      => $user,
-        gid      => $group,
-        mode     => '0600',
-        clean    => 0,
-        debug    => $debug,
-        notify   => 1,
-        archive  => 1,
-    );
+    $util->chown( $filterfile, uid => $user, gid => $group );
 
     $file = "/etc/newsyslog.conf";
-    if ( -e $file ) {
-        unless (`grep maildrop $file`) {
-            $util->file_write( $file,
-                lines =>
-                  ["/var/log/mail/maildrop.log $user:$group 644	3	1000 *	Z"],
-                append => 1,
-                debug  => $debug,
-            );
-        }
-    }
+    if ( -e $file  && ! `grep maildrop $file`) {
+        $util->file_write( $file,
+            lines =>
+            ["/var/log/mail/maildrop.log $user:$group 644	3	1000 *	Z"],
+            append => 1,
+        );
+    };
+    return 1;
 }
 
 sub maildrop_filter_file {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
     my %p = validate( @_, {
             'logbase' => { type => SCALAR, },
-            'fatal'   => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+            %std_opts,
         },
     );
 
     my $logbase = $p{'logbase'};
-    my $fatal   = $p{'fatal'};
-       $debug   = $p{'debug'};
 
     my $prefix  = $conf->{'toaster_prefix'} || "/usr/local";
     my $filterfile = $conf->{'filtering_maildrop_filter_file'}
@@ -3666,113 +3322,165 @@ EOMAILDROP10
     return @lines;
 }
 
-sub maillogs {
+sub maildrop_filter_logs {
+    my $self = shift;
 
+    my $log = $conf->{'qmail_log_base'} || "/var/log/mail";
+
+    $util->mkdir_system( dir => $log, debug => 0 ) if ! -d $log;
+
+    $util->chown( $log,
+        uid   => $conf->{'qmail_log_user'}  || 'qmaill',
+        gid   => $conf->{'qmail_log_group'} || 'qnofiles',
+        sudo  => $UID == 0 ? 0 : 1,
+    );
+
+    my $logf = "$log/maildrop.log";
+
+    $util->file_write( $logf, lines => ["begin"] ) if ! -e $logf;
+
+    $util->chown( $logf,
+        uid   => $conf->{'vpopmail_user'}  || "vpopmail",
+        gid   => $conf->{'vpopmail_group'} || "vchkpw",
+        sudo  => $UID == 0 ? 0 : 1,
+    );
+}
+
+sub maildrop_imap_subscribe {
+    my $self = shift;
+    my $prefix = $conf->{'toaster_prefix'} || "/usr/local";
+    my $sub_file = "$prefix/sbin/subscribeIMAP.sh";
+
+    my $sub_bin = $util->find_bin( "$prefix/sbin/subscribeIMAP.sh", debug => 0, fatal => 0 );
+    return 1 if ( $sub_bin && -e $sub_bin );
+
+    my $chown = $util->find_bin( 'chown' );
+    my $chmod = $util->find_bin( 'chmod' );
+
+    my @lines = '#!/bin/sh
+#
+# This subscribes the folder passed as $1 to courier imap
+# so that Maildir reading apps (Sqwebmail, Courier-IMAP) and
+# IMAP clients (squirrelmail, Mailman, etc) will recognize the
+# extra mail folder.
+
+# Matt Simerson - 12 June 2003
+
+LIST="$2/Maildir/courierimapsubscribed"
+
+if [ -f "$LIST" ]; then
+	# if the file exists, check it for the new folder
+	TEST=`cat "$LIST" | grep "INBOX.$1"`
+
+	# if it is not there, add it
+	if [ "$TEST" = "" ]; then
+		echo "INBOX.$1" >> $LIST
+	fi
+else
+	# the file does not exist so we define the full list
+	# and then create the file.
+	FULL="INBOX\nINBOX.Sent\nINBOX.Trash\nINBOX.Drafts\nINBOX.$1"
+
+	echo -e $FULL > $LIST
+	' . $chown . ' vpopmail:vchkpw $LIST
+	' . $chmod . ' 644 $LIST
+fi
+';
+
+    $util->file_write( $sub_file, lines => \@lines );
+
+    $util->chmod(
+        file_or_dir => $sub_file,
+        mode        => '0555',
+        sudo        => $UID == 0 ? 0 : 1,
+    );
+};
+
+sub maillogs {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
+    my %args = $log->get_std_args( %p );
 
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     my $user  = $conf->{'qmail_log_user'}  || "qmaill";
     my $group = $conf->{'qmail_log_group'} || "qnofiles";
+    my $logdir = $conf->{'qmail_log_base'} || "/var/log/mail";
 
     my $uid = getpwnam($user);
     my $gid = getgrnam($group);
 
-    unless ( $uid && $gid ) {
-        print "\nFAILED! The user $user or group $group does not exist.\n";
-        return 0;
-    }
+    return $log->error( "The user $user or group $group does not exist." )
+        unless ( defined $uid && defined $gid );
 
-    $toaster->supervise_dirs_create( debug => $debug );
+    $toaster->supervise_dirs_create( debug=>1 );
+    $self->maillogs_create_dirs();
+
+    my $maillogs = $util->find_bin( "/usr/local/bin/maillogs", debug => 0);
+
+    my @multilogs = ( "$logdir/send/sendlog", "$logdir/smtp/smtplog",
+                      "$logdir/pop3/pop3log" );
+
+    foreach my $processor ( @multilogs  ) {
+        my $r = $util->install_if_changed(
+            newfile  => $maillogs,
+            existing => $processor,
+            uid      => $uid,
+            gid      => $gid,
+            mode     => '0755',
+            clean    => 0,
+        ) or next;
+
+        $r = $r == 1 ? "ok" : "ok (same)";
+        $log->audit( "maillogs: update $processor, $r", debug=>1);
+    };
+
+    $self->cronolog();
+    $self->isoqlog();
+
+    require Mail::Toaster::Logs;
+    my $logs = Mail::Toaster::Logs->new('log'=>$log, conf=>$conf);
+    $logs->verify_settings();
+}
+
+sub maillogs_create_dirs {
+    my $self = shift;
+
+    my $user  = $conf->{'qmail_log_user'}  || "qmaill";
+    my $group = $conf->{'qmail_log_group'} || "qnofiles";
+    my $uid = getpwnam($user);
+    my $gid = getgrnam($group);
 
     # if it exists, make sure it's owned by qmail:qnofiles
     my $logdir = $conf->{'qmail_log_base'} || "/var/log/mail";
     if ( -w $logdir ) {
-        chown( $uid, $gid, $logdir ) or carp "Couldn't chown $logdir to $uid: $!\n";
-        $log->audit( "maillogs: setting ownership of $logdir, ok" );
+        chown( $uid, $gid, $logdir ) 
+            or $log->error( "Couldn't chown $logdir to $uid: $!");
+        $log->audit( "maillogs: set ownership of $logdir to $user",debug=>1 );
     }
 
-    unless ( -d $logdir ) {
+    if ( ! -d $logdir ) {
         mkdir( $logdir, oct('0755') )
-          or croak "maillogs: couldn't create $logdir: $!";
-        chown( $uid, $gid, $logdir ) or croak "maillogs: couldn't chown $logdir: $!";
-        $log->audit( "maillogs: creating $logdir, ok" );
+            or $log->error( "maillogs: couldn't create $logdir: $!" );
+        chown( $uid, $gid, $logdir ) 
+            or $log->error( "maillogs: couldn't chown $logdir: $!");
+        $log->audit( "maillogs: created $logdir", debug=>1 );
     }
 
     foreach my $prot (qw/ send smtp pop3 submit /) {
-
-        unless ( -d "$logdir/$prot" ) {
-
-            $log->audit( "maillogs: creating $logdir/$prot, ok" );
-            mkdir( "$logdir/$prot", oct('0755') )
-              or croak "maillogs: couldn't create: $!";
+        my $dir = "$logdir/$prot";
+        if ( -d $dir ) {
+            $log->audit( "maillogs: create $dir, (exists)", debug=>1 );
         }
         else {
-            $log->audit( "maillogs: create $logdir/$prot, ok (exists)" );
+            mkdir( $dir, oct('0755') )
+              or $log->error( "maillogs: couldn't create $dir: $!" );
+            $log->audit( "maillogs: created $dir", debug=>1);
         }
-        chown( $uid, $gid, "$logdir/$prot" )
-          or croak "maillogs: chown $logdir/$prot failed: $!";
+        chown( $uid, $gid, $dir )
+          or $log->error( "maillogs: chown $dir failed: $!");
     }
-
-    my $maillogs = $util->find_bin( "/usr/local/bin/maillogs", debug => 0);
-    die "maillogs FAILED: couldn't find maillogs!\n" if ! -x $maillogs;
-
-    my $r = $util->install_if_changed(
-        newfile  => $maillogs,
-        existing => "$logdir/send/sendlog",
-        uid      => $uid,
-        gid      => $gid,
-        mode     => '0755',
-        clean    => 0,
-        debug    => $debug,
-    );
-
-    return 0 unless $r;
-    $r == 1 ? $r = "ok" : $r = "ok (current)";
-    $log->audit( "maillogs: update $logdir/send/sendlog, $r" );
-
-    $r = $util->install_if_changed(
-        newfile  => $maillogs,
-        existing => "$logdir/smtp/smtplog",
-        uid      => $uid,
-        gid      => $gid,
-        mode     => '0755',
-        clean    => 0,
-        debug    => $debug,
-    );
-
-    $r == 1
-      ? $r = "ok"
-      : $r = "ok (current)";
-
-    $log->audit( "maillogs: update $logdir/smtp/smtplog, $r" );
-
-    $r = $util->install_if_changed(
-        newfile  => $maillogs,
-        existing => "$logdir/pop3/pop3log",
-        uid      => $uid,
-        gid      => $gid,
-        mode     => '0755',
-        clean    => 0,
-        debug    => $debug,
-    );
-
-    $r == 1
-      ? $r = "ok"
-      : $r = "ok (current)";
-
-    $log->audit( "maillogs: update $logdir/pop3/pop3log, $r" );
-
-    $self->cronolog(  debug=>$debug );
-    $self->isoqlog(  debug=>$debug );
-
-    require Mail::Toaster::Logs;
-    my $logs = Mail::Toaster::Logs->new(conf=>$conf);
-    $logs->verify_settings();
-}
+};
 
 sub mrm {
 
@@ -3807,25 +3515,68 @@ sub mrm {
 sub munin {
     my $self = shift;
 
-    $freebsd->install_port('munin-node');
+    return $log->error("no munin install support for $OSNAME") 
+        if $OSNAME ne 'freebsd';
 
 # the newer (default) version of rrdtool requires an obscene amount 
-# of x11 software be installed
-    $freebsd->install_port('rrdtool12'); 
+# of x11 software be installed. Install the older one instead.
+    $freebsd->install_port('rrdtool',
+        dir     => 'rrdtool12',
+        options => "#\n# Options for rrdtool-1.2.30_1
+_OPTIONS_READ=rrdtool-1.2.30_1
+WITHOUT_PYTHON_MODULE=true
+WITHOUT_RUBY_MODULE=true
+WITH_PERL_MODULE=true\n",
+    ); 
     $freebsd->install_port('p5-Date-Manip');
+    $self->munin_node();
     $freebsd->install_port('munin-master');
 
-#munin_node_enable="YES"
+    return 1;
+};
+
+sub munin_node {
+    my $self = shift;
+
+    $freebsd->install_port('munin-node');
     $freebsd->conf_check(
         check => "munin_node_enable",
         line  => 'munin_node_enable="YES"',
     );
 
-    return 1;
+    my $locals = '';
+    foreach ( @{ $util->get_my_ips( exclude_internals => 0 ) } ) {
+        my ($a,$b,$c,$d) = split( /\./, $_ );
+        $locals .= "allow ^$a\\.$b\\.$c\\.$d" . '$';
+    };
+
+    my $munin_etc = '/usr/local/etc/munin';
+    $self->config_apply_tweaks(
+        file => "$munin_etc/munin-node.conf",
+        changes => [
+            {   search => q{allow ^127\.0\.0\.1$},
+                replace => q{allow ^127\.0\.0\.1$} .
+qq{\n$locals\n},
+            }
+        ],
+    );
+
+    $util->file_write( "$munin_etc/plugin-conf.d/plugins.conf",
+        append => 1,
+        lines => [ "\n[qmailqstat]\nuser qmailq\nenv.qmailstat /var/qmail/bin/qmail-qstat"],
+    ) if ! `grep qmailqstat "$munin_etc/plugin-conf.d/plugins.conf"`;
+
+    my @setup_links = `/usr/local/sbin/munin-node-configure --suggest --shell`;
+       @setup_links = grep {/^ln/} @setup_links;
+       @setup_links = grep {!/sendmail_/} @setup_links;
+       @setup_links = grep {!/ntp_/} @setup_links;
+
+    foreach ( @setup_links ) { system $_; };
+
+    system "/usr/local/etc/rc.d/munin-node", "restart";
 };
 
 sub mysql {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -3839,7 +3590,7 @@ sub mysql {
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
 
     return $mysql->install( conf  => $conf, debug => $p{debug} );
 }
@@ -3849,34 +3600,23 @@ sub nictool {
     my $self  = shift;
     my $debug = $self->{'debug'};
 
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts, },);
 
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     $conf->{'install_expat'} = 1;    # this must be set for expat to install
 
-    $self->expat(  debug=>$debug );
-    $self->rsync(  debug=>$debug );
-    $self->djbdns( debug=>$debug );
-    $self->mysql(  debug=>$debug );
+    $self->expat();
+    $self->rsync();
+    $self->djbdns();
+    $self->mysql();
 
     # make sure these perl modules are installed
-    $util->install_module( "LWP::UserAgent",
-        port => 'p5-libwww',
-        debug      => $debug,
-    );
-    $util->install_module( "SOAP::Lite", debug      => $debug,);
-    $util->install_module( "RPC::XML", debug      => $debug,);
-    $util->install_module( "DBI", debug      => $debug,);
-    $util->install_module( "DBD::mysql", debug      => $debug,);
+    $util->install_module( "LWP::UserAgent", port => 'p5-libwww' );
+    $util->install_module( "SOAP::Lite");
+    $util->install_module( "RPC::XML" );
+    $util->install_module( "DBI" );
+    $util->install_module( "DBD::mysql" );
 
     if ( $OSNAME eq "freebsd" ) {
         if ( $conf->{'install_apache'} == 2 ) {
@@ -3884,8 +3624,8 @@ sub nictool {
         }
     }
 
-    $util->install_module( "Apache::DBI", debug  => $debug,);
-    $util->install_module( "Apache2::SOAP", debug  => $debug,);
+    $util->install_module( "Apache::DBI" );
+    $util->install_module( "Apache2::SOAP" );
 
     # install NicTool Server
     my $perlbin   = $util->find_bin( "perl", fatal => 0 );
@@ -3894,7 +3634,7 @@ sub nictool {
 
     my @targets = ( "$perlbin Makefile.PL", "make", "make install" );
 
-    push @targets, "make test" if $debug;
+    push @targets, "make test";
 
     push @targets, "mv ../$version $http_base"
       unless ( -d "$http_base/$version" );
@@ -3907,13 +3647,12 @@ sub nictool {
         site    => 'http://www.nictool.com',
         url     => '/download/',
         targets => \@targets,
-        debug  => $debug,
     );
 
     # install NicTool Client
     $version = "NicToolClient-2.03";
     @targets = ( "$perlbin Makefile.PL", "make", "make install" );
-    push @targets, "make test" if $debug;
+    push @targets, "make test";
 
     push @targets, "mv ../$version $http_base" if ( !-d "$http_base/$version" );
     push @targets, "ln -s $http_base/$version $http_base/NicToolClient"
@@ -3924,7 +3663,6 @@ sub nictool {
         site    => 'http://www.nictool.com',
         url     => '/download/',
         targets => \@targets,
-        debug  => $debug,
     );
 }
 
@@ -3956,24 +3694,12 @@ sub openssl_cert {
 };
 
 sub openssl_conf {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
+    my %p = validate( @_, { %std_opts, },);
     return $p{test_ok} if defined $p{test_ok};
 
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
     if ( !$conf->{'install_openssl'} ) {
-        $log->audit( "openssl: configuring, skipping (disabled)" ) if $debug;
+        $log->audit( "openssl: configuring, skipping (disabled)" );
         return;
     }
 
@@ -4163,19 +3889,8 @@ daily_status_mail_rejects_logs=3                        # How many logs to check
 }
 
 sub pop3_test_auth {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     my @features;
 
@@ -4198,12 +3913,12 @@ sub pop3_test_auth {
     );
 
     foreach ( sort keys %auths ) {
-        pop3_auth( $_, $auths{$_}, $debug );
+        pop3_auth( $_, $auths{$_} );
     }
 
     sub pop3_auth {
 
-        my ( $key, $v, $debug ) = @_;
+        my ( $key, $v ) = @_;
 
         my $type  = $v->{'type'};
         my $descr = $v->{'descr'};
@@ -4225,8 +3940,7 @@ sub pop3_test_auth {
         $log->test( "  $key authentication", ($pop->State() eq "TRANSACTION"));
 
         if ( my @features = $pop->Capa() ) {
-            print "  POP3 server supports: " . join( ",", @features ) . "\n"
-              if $debug;
+            #print "  POP3 server supports: " . join( ",", @features ) . "\n";
         }
         $pop->Close;
     }
@@ -4277,19 +3991,8 @@ WITHOUT_MAILHEAD=true\n",
 };
 
 sub phpmyadmin {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
@@ -4303,8 +4006,8 @@ sub phpmyadmin {
     if ( $OSNAME eq "freebsd" ) {
         $freebsd->install_port( "t1lib", flags => "WITHOUT_X11=yes" );
 
-        if (    !$freebsd->is_port_installed( "xorg-libraries", debug=>$debug )
-            and !$freebsd->is_port_installed( "XFree86-Libraries", debug=>$debug ) )
+        if (    !$freebsd->is_port_installed( "xorg-libraries" )
+            and !$freebsd->is_port_installed( "XFree86-Libraries" ) )
         {
             if (
                 $util->yes_or_no(
@@ -4312,7 +4015,7 @@ sub phpmyadmin {
                 )
               )
             {
-                $freebsd->package_install( port => "XFree86-Libraries", debug=>$debug  );
+                $freebsd->install_package( port => "XFree86-Libraries" );
             }
         }
         if ( $conf->{'install_php'} eq "4" ) {
@@ -4323,50 +4026,25 @@ sub phpmyadmin {
     }
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
     $mysql->phpmyadmin_install($conf);
 }
 
 sub ports {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
+    return $freebsd->update_ports() if $OSNAME eq "freebsd";
+    return $darwin->update_ports()  if $OSNAME eq "darwin";
 
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    if ( $OSNAME eq "freebsd" ) {
-        $freebsd->ports_update(conf=>$conf, debug=>$debug);
-    }
-    elsif ( $OSNAME eq "darwin" ) {
-        $darwin->ports_update();
-    }
-    else {
-        print "Sorry, no ports support for $OSNAME yet.\n";
-    }
+    print "Sorry, no ports support for $OSNAME yet.\n";
+    return;
 }
 
 sub qmailadmin {
 
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts, },);
 
     my $ver = $conf->{'install_qmailadmin'};
 
@@ -4419,8 +4097,8 @@ toaster-watcher.conf and select a version of qmailadmin to install.\n";
             return 0;
         }
 
-        $self->qmailadmin_port_install( $debug );
-        $self->qmailadmin_help( $debug) if $help;
+        $self->qmailadmin_port_install();
+        $self->qmailadmin_help() if $help;
         return 1;
     }
 
@@ -4481,18 +4159,17 @@ toaster-watcher.conf and select a version of qmailadmin to install.\n";
         url       => $url,
         targets   =>
           [ "./configure " . $conf_args, "$make", "$make install-strip" ],
-        debug          => $debug,
         source_sub_dir => 'mail',
     );
 
-    $self->qmailadmin_help( $debug ) if $help;
+    $self->qmailadmin_help() if $help;
 
     return 1;
 }
 
 sub qmailadmin_help {
     my $self = shift;
-    my $debug = shift;
+    my $debug = $self->{debug};
 
     my $ver     = $conf->{'qmailadmin_help_links'} or return;
     my $cgi     = $conf->{'qmailadmin_cgi-bin_dir'};
@@ -4508,7 +4185,7 @@ sub qmailadmin_help {
        $src .= "/mail";
  
     print "qmailadmin: Installing help files in $helpdir\n";
-    $util->cwd_source_dir( $src, debug=>$debug );
+    $util->cwd_source_dir( $src );
 
     my $helpfile = "qmailadmin-help-$ver";
     unless ( -e "$helpfile.tar.gz" ) {
@@ -4574,32 +4251,20 @@ sub qmailadmin_port_install {
 }
 
 sub razor {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     my $ver = $conf->{'install_razor'};
 
     unless ( $ver ) {
-        $log->audit( "razor: installing, skipping (disabled)" )
-          if $debug;
+        $log->audit( "razor: installing, skipping (disabled)" );
         return 0;
     }
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
-    $util->install_module( "Digest::Nilsimsa", debug      => $debug,);
-    $util->install_module( "Digest::SHA1", debug      => $debug,);
+    $util->install_module( "Digest::Nilsimsa" );
+    $util->install_module( "Digest::SHA1" );
 
     if ( $ver eq "port" ) {
         if ( $OSNAME eq "freebsd" ) {
@@ -4613,9 +4278,9 @@ sub razor {
         }
     }
 
-    if ( $util->find_bin( "razor-client", fatal => 0, debug=>$debug ) ) {
+    if ( $util->find_bin( "razor-client", fatal => 0 ) ) {
         print "It appears you have razor installed, skipping manual build.\n";
-        $self->razor_config($debug);
+        $self->razor_config();
         return 1;
     }
 
@@ -4626,15 +4291,13 @@ sub razor {
         site    => 'http://umn.dl.sourceforge.net/sourceforge',
         url     => '/razor',
         conf    => $conf,
-        debug   => $debug,
     );
 
-    $self->razor_config($debug);
+    $self->razor_config();
     return 1;
 }
 
 sub razor_config {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -4645,8 +4308,8 @@ sub razor_config {
         return 1;
     }
 
-    my $client = $util->find_bin( "razor-client", fatal => 0, debug=>$debug );
-    my $admin  = $util->find_bin( "razor-admin",  fatal => 0, debug=>$debug );
+    my $client = $util->find_bin( "razor-client", fatal => 0 );
+    my $admin  = $util->find_bin( "razor-admin",  fatal => 0 );
 
     # for old versions of razor
     if ( -x $client && !-x $admin ) {
@@ -4697,7 +4360,7 @@ sub refresh_config {
 
     warn "found: $file_path \n" if $self->{debug};
 
-    # refresh our $conf  (required for setup -s all) 
+    # refresh our $conf
     $conf = $toaster->parse_config(
         file  => $file_path,
         debug => $self->{debug},
@@ -4711,21 +4374,10 @@ sub refresh_config {
 };
 
 sub ripmime {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing
 
     my $ver = $conf->{'install_ripmime'}; 
     if ( !$ver ) {
@@ -4786,17 +4438,9 @@ sub ripmime {
 
 sub roundcube {
     my $self  = shift;
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $self->{'debug'} },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts },);
 
-    my $fatal = $p{'fatal'};
-    my $debug = $p{'debug'};
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     if ( ! $conf->{'install_roundcube'} ) {
         print "not installing roundcube, not selected!\n";
@@ -4818,7 +4462,7 @@ sub roundcube {
 
 sub roundcube_freebsd {
     my $self = shift;
-    my $debug = shift;
+    my $debug = $self->{debug};
     my $mysql = $conf->{install_mysql} ? 'WITH_MYSQL' : 'WITHOUT_MYSQL';
     my $sqlite = $conf->{install_mysql} ? 'WITHOUT_SQLITE' : 'WITH_SQLITE';
 
@@ -4900,7 +4544,7 @@ sub roundcube_config_mysql {
     );
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
     my $host = $conf->{vpopmail_mysql_repl_master};
     my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 )
         || { user => 'root', pass => '', host => $host };
@@ -4916,31 +4560,33 @@ sub roundcube_config_mysql {
 
     $log->audit( "roundcube database permissions configured" );
     $mysql->query( $dbh, "CREATE DATABASE roundcubemail" );
+    $mysql->query( $dbh, "USE DATABASE roundcubemail" );
+    $mysql->query( $dbh, "SOURCE $rcdir/SQL/mysql.initial.sql" );
     $sth->finish;
-    my $mybin = $util->find_bin('mysql',debug=>0);
-    system "cat $rcdir/SQL/mysql.initial.sql | $mysql roundcubemail";
     return 1;
 };
 
 sub rsync {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     if ( $OSNAME eq "freebsd" ) {
-        $freebsd->install_port( "rsync" );
+        $freebsd->install_port( "rsync",
+            options => "#\n
+# This file is generated by mail-toaster
+# No user-servicable parts inside!
+# Options for rsync-3.0.7
+_OPTIONS_READ=rsync-3.0.7
+WITHOUT_POPT_PORT=true
+WITH_SSH=true
+WITHOUT_FLAGS=true
+WITHOUT_ATIMES=true
+WITHOUT_ACL=true
+WITHOUT_ICONV=true
+WITHOUT_TIMELIMIT=true\n",
+        );
     }
     elsif ( $OSNAME eq "darwin" ) { 
         $darwin->install_port( "rsync" );
@@ -4953,13 +4599,6 @@ sub rsync {
     return $util->find_bin('rsync',debug=>0);
 }
 
-sub set_debug {
-    my ($self, $debug) = @_;
-    return $self->{debug} if ! defined $debug;
-    $self->{debug} = $debug;
-    return $debug;
-};
-
 sub set_config {
     my $self = shift;
     my $newconf = shift;
@@ -4969,24 +4608,9 @@ sub set_config {
     return $newconf;
 };
 
-sub set_fatal {
-    my ($self, $fatal) = @_;
-    return $self->{fatal} if ! defined $fatal;
-    $self->{fatal} = $fatal;
-    return $fatal;
-};
-
 sub simscan {
     my $self  = shift;
-    my %p = validate( @_, {
-            fatal => { type => BOOLEAN, optional => 1, },
-            debug => { type => BOOLEAN, optional => 1, },
-            test_ok => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    my %p = validate( @_, { %std_opts },);
 
     if ( ! $conf->{'install_simscan'} ) {
         $log->audit( "vqadmin: installing, skipping (disabled)" );
@@ -5017,10 +4641,10 @@ sub simscan {
     my $bin;
     my $confcmd = "./configure ";
     $confcmd .= "--enable-user=$user ";
-    $confcmd .= $self->simscan_ripmime( $conf, $ver, $debug );
-    $confcmd .= $self->simscan_clamav( $conf, $debug );
-    $confcmd .= $self->simscan_spamassassin( $conf, $debug );
-    $confcmd .= $self->simscan_regex( $conf, $debug );
+    $confcmd .= $self->simscan_ripmime( $conf, $ver );
+    $confcmd .= $self->simscan_clamav( $conf );
+    $confcmd .= $self->simscan_spamassassin( $conf );
+    $confcmd .= $self->simscan_regex( $conf );
     $confcmd .= "--enable-received=y "       if $conf->{'simscan_received'};
     $confcmd .= "--enable-spam-hits=$reje "  if ($reje);
     $confcmd .= "--enable-attach=y " if $conf->{'simscan_block_attachments'};
@@ -5045,21 +4669,20 @@ sub simscan {
         url            => '/simscan',
         targets        => [ $confcmd, 'make', 'make install-strip' ],
         bintest        => "$qdir/bin/simscan",
-        debug          => $debug,
         source_sub_dir => 'mail',
         patches        => $patches,
         patch_url      => "$conf->{'toaster_dl_site'}$conf->{'toaster_dl_url'}/patches",
     );
 
-    $self->simscan_conf(  debug=>$debug );
+    $self->simscan_conf();
 }
 
 sub simscan_clamav {
-    my ( $self, $conf, $debug ) = @_;
+    my ( $self, $conf ) = @_;
 
     return '' if ! $conf->{'simscan_clamav'};
 
-    my $bin = $util->find_bin( "clamdscan", fatal => 0, debug=>$debug );
+    my $bin = $util->find_bin( "clamdscan", fatal => 0 );
     croak "couldn't find $bin, install ClamAV!\n" if !-x $bin;
 
     my $cmd .= "--enable-clamdscan=$bin ";
@@ -5069,24 +4692,15 @@ sub simscan_clamav {
           : -d "/opt/local/share/clamav" ? "/opt/local/share/clamav "
           : croak "can't find the ClamAV db path!";
 
-    $bin = $util->find_bin( "sigtool", fatal => 0, debug => $debug );
+    $bin = $util->find_bin( "sigtool", fatal => 0 );
     croak "couldn't find $bin, install ClamAV!" if ! -x $bin;
     $cmd .= "--enable-sigtool-path=$bin ";
     return $cmd;
 };
 
 sub simscan_conf {
-
     my $self  = shift;
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1 },
-            'debug' => { type => BOOLEAN, optional => 1 },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    my %p = validate( @_, { %std_opts },);
 
     my ( $file, @lines );
 
@@ -5099,7 +4713,7 @@ sub simscan_conf {
         foreach ( split( /,/, $conf->{'simscan_block_types'} ) ) {
             push @attach, ".$_";
         }
-        $util->file_write( $file, lines => \@attach, debug=>$debug );
+        $util->file_write( $file, lines => \@attach );
     }
 
     $file = "/var/qmail/control/simcontrol";
@@ -5135,24 +4749,24 @@ sub simscan_conf {
         push @lines, ":" . join( ",",             @opts );
 
         if ( -e $file ) {
-            $util->file_write( "$file.new", lines => \@lines, debug=>$debug );
+            $util->file_write( "$file.new", lines => \@lines );
             print
 "\nNOTICE: simcontrol written to $file.new. You need to review and install it!\n";
         }
         else {
-            $util->file_write( $file, lines => \@lines, debug=>$debug );
+            $util->file_write( $file, lines => \@lines );
         }
     }
 
     my $user  = $conf->{'simscan_user'}       || 'simscan';
     my $group = $conf->{'smtpd_run_as_group'} || 'qmail';
 
-    $util->syscmd( "pw user mod simscan -G qmail,clamav", debug => $debug );
+    $util->syscmd( "pw user mod simscan -G qmail,clamav" );
     $util->chown( '/var/qmail/simscan', uid => $user, gid => $group );
     $util->chmod( dir => '/var/qmail/simscan', mode => '0770' );
 
     if ( -x "/var/qmail/bin/simscanmk" ) {
-        $util->syscmd( "/var/qmail/bin/simscanmk", debug=>$debug );
+        $util->syscmd( "/var/qmail/bin/simscanmk" );
         system "/var/qmail/bin/simscanmk";
     }
 }
@@ -5199,20 +4813,20 @@ WITHOUT_DSPAM=true",
 };
 
 sub simscan_regex {
-    my ($self, $conf, $debug ) = @_;
+    my ($self, $conf ) = @_;
     return '' if ! $conf->{'simscan_regex_scanner'};
 
     if ( $OSNAME eq "freebsd" ) {
         $freebsd->install_port( "pcre" );
     }
     else {
-        print "\n\nNOTICE: Be sure to install pcre!!\n\n";
+        print "\n\nWARNING: is pcre installed?\n\n";
     }
     return "--enable-regex=y ";
 };
 
 sub simscan_ripmime {
-    my ($self, $conf, $ver, $debug) = @_;
+    my ($self, $conf, $ver ) = @_;
 
     if ( ! $self->is_newer( min => "1.0.8", cur => $ver ) ) {
         print "ripmime doesn't work with simcan < 1.0.8\n";
@@ -5225,23 +4839,23 @@ sub simscan_ripmime {
     unless ( -x $bin ) {
         croak "couldn't find $bin, install ripmime!\n";
     }
-    $self->ripmime( debug => $debug );
+    $self->ripmime();
     return "--enable-ripmime=$bin ";
 };
 
 sub simscan_spamassassin {
-    my ($self, $conf, $debug) = @_;
+    my ($self, $conf ) = @_;
 
     return '' if ! $conf->{'simscan_spamassassin'};
 
-    my $spamc = $util->find_bin( "spamc", fatal => 0, debug=>$debug );
+    my $spamc = $util->find_bin( "spamc", fatal => 0 );
     my $cmd = "--enable-spam=y --enable-spamc-user=y --enable-spamc=$spamc ";
 
     my $spamc_args = $conf->{'simscan_spamc_args'};
     $cmd .= "--enable-spamc-args=$spamc_args " if $spamc_args;
 
     if ( $conf->{'simscan_received'} ) {
-        my $bin = $util->find_bin( "spamassassin", fatal => 0, debug=>$debug );
+        my $bin = $util->find_bin( "spamassassin", fatal => 0 );
         croak "couldn't find $bin, install SpamAssassin!\n" if !-x $bin;
         $cmd .= "--enable-spamassassin-path=$bin ";
     }
@@ -5249,19 +4863,8 @@ sub simscan_spamassassin {
 };
 
 sub simscan_test {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     my $qdir = $conf->{'qmail_dir'};
 
@@ -5286,19 +4889,8 @@ sub simscan_test {
 }
 
 sub smtp_test_auth {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts } );
 
     my $r = $util->install_module( "Net::SMTP_auth", debug=>0);
     $log->test( "checking Net::SMTP_auth", $r );
@@ -5368,20 +4960,14 @@ sub smtp_test_auth_fail {
 }
 
 sub socklog {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
     my %p = validate( @_, {
             'ip'    => { type => SCALAR, },
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
+            %std_opts,
         },
     );
 
     my $ip    = $p{'ip'};
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
 
     my $user  = $conf->{'qmail_log_user'}  || "qmaill";
     my $group = $conf->{'qmail_log_group'} || "qnofiles";
@@ -5419,7 +5005,7 @@ sub socklog {
 
 sub socklog_qmail_control {
 
-    my ( $serv, $ip, $user, $supervise, $log, $debug ) = @_;
+    my ( $serv, $ip, $user, $supervise, $log ) = @_;
 
     $ip        ||= "192.168.2.9";
     $user      ||= "qmaill";
@@ -5447,7 +5033,7 @@ exec setuidgid $user multilog t s4096 n20 \
   !"tryto -pv tcpclient -v \$LOGSERVERIP \$PORT sh -c 'cat >&7'" \
   \${LOGDIR}/$serv
 EO_SOCKLOG
-    $util->file_write( $run_f, lines => \@socklog_run_file, debug=>$debug );
+    $util->file_write( $run_f, lines => \@socklog_run_file );
 
 #	open(my $RUN, ">", $run_f) or croak "socklog_qmail_control: couldn't open for write: $!";
 #	close $RUN;
@@ -5457,17 +5043,7 @@ EO_SOCKLOG
 
 sub spamassassin {
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     if ( !$conf->{'install_spamassassin'} ) {
         $log->audit( "spamassassin: installing, skipping (disabled)" );
@@ -5488,12 +5064,12 @@ sub spamassassin {
         $darwin->install_port( "bogofilter" ) if $conf->{'install_bogofilter'};
     }
 
-    $util->install_module( "Time::HiRes", debug=>$debug, );
-    $util->install_module( "Mail::Audit", debug=>$debug, );
-    $util->install_module( "Mail::SpamAssassin", debug=>$debug );
-    $self->maildrop(  debug=>$debug );
+    $util->install_module( "Time::HiRes" );
+    $util->install_module( "Mail::Audit" );
+    $util->install_module( "Mail::SpamAssassin" );
+    $self->maildrop( );
 
-    $self->spamassassin_sql(  debug=>$debug ) if ( $conf->{'install_spamassassin_sql'} );
+    $self->spamassassin_sql() if ( $conf->{'install_spamassassin_sql'} );
 }
 
 sub spamassassin_freebsd {
@@ -5563,19 +5139,9 @@ sub spamassassin_sql {
     # http://svn.apache.org/repos/asf/spamassassin/branches/3.0/sql/README
 
     my $self  = shift;
-    my $debug = $self->{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     if ( ! $conf->{'install_spamassassin_sql'} ) {
         print "SpamAssasin MySQL integration not selected. skipping.\n";
@@ -5585,7 +5151,7 @@ sub spamassassin_sql {
     if ( $OSNAME eq "freebsd" ) {
 
         # is SpamAssassin installed?
-        if ( ! $freebsd->is_port_installed( "p5-Mail-SpamAssassin", debug=>$debug ) ) {
+        if ( ! $freebsd->is_port_installed( "p5-Mail-SpamAssassin" ) ) {
             print "SpamAssassin is not installed, skipping database setup.\n";
             return;
         }
@@ -5602,7 +5168,7 @@ sub spamassassin_sql {
         my $pass = $conf->{'install_spamassassin_dbpass'};
 
         require Mail::Toaster::Mysql;
-        my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
+        my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
 
         my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 );
         my ( $dbh, $dsn, $drh ) = $mysql->connect( $dot, 1 );
@@ -5627,10 +5193,10 @@ sub spamassassin_sql {
             }
         }
 
-        my $mysqlbin = $util->find_bin( "mysql", fatal => 0, debug=>$debug );
+        my $mysqlbin = $util->find_bin( "mysql", fatal => 0 );
         my $sqldir = "/usr/local/share/doc/p5-Mail-SpamAssassin/sql";
         foreach (qw/bayes_mysql.sql awl_mysql.sql userpref_mysql.sql/) {
-            $util->syscmd( "$mysqlbin spamassassin < $sqldir/$_", debug=>$debug )
+            $util->syscmd( "$mysqlbin spamassassin < $sqldir/$_" )
               if ( -f "$sqldir/$_" );
         }
 
@@ -5714,19 +5280,9 @@ sub spamassassin_update {
 
 sub squirrelmail {
     my $self  = shift;
-    my $debug = $self->{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing
 
     my $ver = $conf->{'install_squirrelmail'}
         or return $log->error( "skipping squirrelmail install. it's not enabled.",fatal=>0);
@@ -5809,7 +5365,7 @@ sub squirrelmail_mysql {
     my $host = "localhost";
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
 
     my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 );
     my ( $dbh, $dsn, $drh ) = $mysql->connect( $dot, 1 );
@@ -5916,6 +5472,7 @@ sub squirrelmail_config {
     }
 
     my $string = <<"EOCONFIG";
+<?php
 \$signout_page  = 'https://$mailhost/';
 \$provider_name     = 'Powered by Mail::Toaster';
 \$provider_uri     = 'http://www.tnpi.net/wiki/Mail_Toaster';
@@ -5932,17 +5489,8 @@ EOCONFIG
 }
 
 sub sqwebmail {
-
     my $self  = shift;
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1 },
-            'debug' => { type => BOOLEAN, optional => 1 },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    my %p = validate( @_, { %std_opts },);
 
     my $ver = $conf->{'install_sqwebmail'};
     if ( ! $ver ) {
@@ -6022,14 +5570,14 @@ sub sqwebmail {
     my $make  = $util->find_bin("gmake", fatal=>0, debug=>0);
     $make   ||= $util->find_bin("make", fatal=>0, debug=>0);
 
-    $util->syscmd( $cmd, debug=>$debug );
-    $util->syscmd( "$make configure-check", debug=>$debug );
-    $util->syscmd( "$make check", debug=>$debug );
-    $util->syscmd( "$make", debug=>$debug );
+    $util->syscmd( $cmd );
+    $util->syscmd( "$make configure-check" );
+    $util->syscmd( "$make check" );
+    $util->syscmd( "$make" );
 
     my $share = "$prefix/share/sqwebmail";
     if ( -d $share ) {
-        $util->syscmd( "make install-exec", debug=>$debug );
+        $util->syscmd( "make install-exec" );
         print
           "\n\nWARNING: I have only installed the $package binaries, thus\n";
         print "preserving any custom settings you might have in $share.\n";
@@ -6039,29 +5587,20 @@ sub sqwebmail {
         print "\tcd $src/mail/$package; make install\n";
     }
     else {
-        $util->syscmd( "$make install", debug=>$debug );
+        $util->syscmd( "$make install" );
         chmod oct('0755'), $share;
         chmod oct('0755'), "$datadir/sqwebmail";
         copy( "$share/ldapaddressbook.dist", "$share/ldapaddressbook" )
           or croak "copy failed: $!";
     }
 
-    $util->syscmd( "$make install-configure", debug=>$debug, fatal => 0 );
-
-    $self->sqwebmail_conf(  debug=>$debug );
+    $util->syscmd( "$make install-configure", fatal => 0 );
+    $self->sqwebmail_conf();
 }
 
 sub sqwebmail_conf {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate(@_, {
-            'debug' => {type=>SCALAR, optional=>1, default=>$debug },
-        },
-    );
-
-    $debug = $p{'debug'};
+    my %p = validate(@_, { %std_opts },);
 
     my $cachedir = "/var/run/sqwebmail";
     my $prefix   = $conf->{'toaster_prefix'} || "/usr/local";
@@ -6091,7 +5630,6 @@ sub sqwebmail_freebsd_port {
     $self->gnupg_install();
     $self->courier_authlib();
 
-    my $debug   = $self->set_debug();
     my $cgi     = $conf->{'toaster_cgi_bin'};
     my $datadir = $conf->{'toaster_http_docs'};
     my $cachedir = "/var/run/sqwebmail";
@@ -6130,7 +5668,6 @@ WITH_AUTH_VCHKPW=true",
     $freebsd->conf_check(
         check => "sqwebmaild_enable",
         line  => 'sqwebmaild_enable="YES"',
-        debug => $debug,
     );
 
     $self->sqwebmail_conf();
@@ -6139,43 +5676,54 @@ WITH_AUTH_VCHKPW=true",
     my $prefix = $conf->{'toaster_prefix'} || "/usr/local";
     my $start  = "$prefix/etc/rc.d/sqwebmail-sqwebmaild";
 
-        -x $start      ? $util->syscmd( "$start start", debug=>$debug )
-    : -x "$start.sh" ? $util->syscmd( "$start.sh start", debug=>$debug )
+        -x $start      ? $util->syscmd( "$start start" )
+    : -x "$start.sh" ? $util->syscmd( "$start.sh start" )
     : carp "could not find the startup file for sqwebmaild!\n";
 
-    $freebsd->is_port_installed( "sqwebmail", debug=>$debug );
+    $freebsd->is_port_installed( "sqwebmail" );
 }
+
+sub stunnel {
+    my $self = shift;
+
+    return $self->stunnel_freebsd() if $OSNAME eq 'freebsd';
+
+    my $stunnel = $util->find_bin('stunnel', fatal=>0);
+
+    $log->error("stunnel is not installed and you selected pop3_ssl_daemon eq 'qpop3d'. Either install stunnel or change your configuration settings." ) if ! -x $stunnel;
+    return;
+};
 
 sub stunnel_freebsd {
 
-    return if $freebsd->is_port_installed( "stunnel" );
-
-    $freebsd->install_port( "stunnel", 
+    return $freebsd->install_port( "stunnel", 
         options => "#
 # This file was generated by mail-toaster\n
-# Options for stunnel-4.15\n_OPTIONS_READ=stunnel-4.15\nWITH_PTHREAD=true\nWITHOUT_IPV6=true\n",
+# Options for stunnel-4.33
+_OPTIONS_READ=stunnel-4.33
+WITHOUT_FORK=true
+WITH_PTHREAD=true
+WITHOUT_UCONTEXT=true
+WITHOUT_DH=true
+WITHOUT_IPV6=true
+WITH_LIBWRAP=true\n",
     );
 };
 
 sub supervise {
     my $self  = shift;
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $self->{debug} },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts },);
 
     return $p{test_ok} if defined $p{test_ok};
 
     my $supervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
     my $prefix    = $conf->{'toaster_prefix'}  || "/usr/local";
 
-    require Mail::Toaster::Qmail;
-    $qmail ||= Mail::Toaster::Qmail->new();
-
-    $toaster->service_dir_create();
     $toaster->supervise_dirs_create();
+    $toaster->service_dir_create();
+
+    require Mail::Toaster::Qmail;
+    $qmail ||= Mail::Toaster::Qmail->new( 'log' => $log );
 
     $qmail->control_create();
     $qmail->install_qmail_control_files();
@@ -6202,21 +5750,13 @@ If there's any problems, you can stop all supervised services by running:\n
 
 sub startup_script {
     my $self  = shift;
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $self->{debug} },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-    my $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     my $dl_site = $conf->{'toaster_dl_site'} || "http://www.tnpi.net";
     my $dl_url = "$dl_site/internet/mail/toaster";
 
     # make sure the service dir is set up
-    return $log->error( "the service directories don't appear to be set up. I refuse to start them until this is fixed.") unless $toaster->service_dir_test( debug => $debug );
+    return $log->error( "the service directories don't appear to be set up. I refuse to start them until this is fixed.") unless $toaster->service_dir_test();
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -6312,42 +5852,34 @@ sub startup_script_freebsd {
 
 sub test {
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     print "testing...\n";
 
-    $self->test_qmail(  debug=>$debug );
+    $self->test_qmail();
     sleep 1;
-    $self->daemontools_test( $debug);
+    $self->daemontools_test();
     sleep 1;
-    $self->ucspi_test( $debug );
+    $self->ucspi_test();
     sleep 1;
+
+    $log->dump_audit(quiet=>1);  # clear audit history
 
     require Mail::Toaster::Qmail;
-    $qmail ||= Mail::Toaster::Qmail->new();
+    $qmail ||= Mail::Toaster::Qmail->new( 'log' => $log );
 
-    $self->test_supervised_procs( $debug );
+    $self->test_supervised_procs();
     sleep 1;
-    $self->test_logging( debug=>$debug );
+    $self->test_logging();
     sleep 1;
-    $self->vpopmail_test( debug=>$debug );
+    $self->vpopmail_test();
     sleep 1;
 
-    $toaster->check_processes( debug=>$debug );
+    $toaster->check_processes();
     sleep 1;
     $self->test_network();
     sleep 1;
-    $self->test_crons( debug=>$debug );
+    $self->test_crons();
     sleep 1;
 
     $qmail->check_rcpthosts();
@@ -6359,7 +5891,7 @@ sub test {
     sleep 1;
     
     if ( ! $util->yes_or_no( "skip the authentication tests?", timeout  => 10) ) {
-        $self->test_auth( debug=>$debug );
+        $self->test_auth();
     };
 
     # there's plenty more room here for more tests.
@@ -6378,53 +5910,14 @@ sub test {
 }
 
 sub test_auth {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
+    my %p = validate( @_, { %std_opts } );
 
-    my %p = validate( @_, {
-            fatal => { type => BOOLEAN, optional => 1, default => 1 },
-            debug => { type => BOOLEAN, optional => 1, default => $debug },
-            test_ok => { type => BOOLEAN, optional => 1, },
-        },
-    );
+    $self->test_auth_setup() or return;
 
-    my $fatal = $p{fatal};
-       $debug = $p{debug};
-
-    my $email = $conf->{'toaster_test_email'};
-    my $pass  = $conf->{'toaster_test_email_pass'};
-
-    my $domain = ( split( '@', $email ) )[1];
-    print "test_auth: testing domain is: $domain.\n";
-
-    my $qmail_dir = $conf->{'qmail_dir'};
-
-    unless ( -e "$qmail_dir/users/assign" 
-             && grep {/$domain/} `cat $qmail_dir/users/assign` 
-            ) {
-        print "domain $domain is not set up.\n";
-        return if ! $util->yes_or_no( "shall I add it for you?", timeout  => 30 );
-
-        my $vpdir = $conf->{'vpopmail_home_dir'};
-        system "$vpdir/bin/vadddomain $domain $pass";
-        system "$vpdir/bin/vadduser $email $pass";
-    }
-
-    return if ! open my $ASSIGN, '<', "$qmail_dir/users/assign";
-    return if ! grep {/:$domain:/} <$ASSIGN>;
-    close $ASSIGN;
-
-    if ( $OSNAME eq "freebsd" ) {
-        $freebsd->install_port( "p5-Mail-POP3Client" );
-        $freebsd->install_port( "p5-Mail-IMAPClient" );
-        $freebsd->install_port( "p5-Net-SMTP_auth"   );
-        $freebsd->install_port( "p5-IO-Socket-SSL"   );
-    }
-
-    $self->imap_test_auth( );    # test imap auth
-    $self->pop3_test_auth( );    # test pop3 auth
-    $self->smtp_test_auth( );    # test smtp auth
+    $self->imap_test_auth();
+    $self->pop3_test_auth();
+    $self->smtp_test_auth();
 
     print
 "\n\nNOTICE: It is normal for some of the tests to fail. This test suite is useful for any mail server, not just a Mail::Toaster. \n\n";
@@ -6433,25 +5926,47 @@ sub test_auth {
     # other ?
 }
 
+sub test_auth_setup {
+    my $self = shift;
+
+    my $qmail_dir = $conf->{'qmail_dir'};
+    my $assign    = "$qmail_dir/users/assign";
+    my $email     = $conf->{'toaster_test_email'};
+    my $pass      = $conf->{'toaster_test_email_pass'};
+
+    my $domain = ( split( '@', $email ) )[1];
+    print "test_auth: testing domain is: $domain.\n";
+
+    if ( ! -e $assign || ! grep {/:$domain:/} `cat $assign` ) {
+        print "domain $domain is not set up.\n";
+        return if ! $util->yes_or_no( "may I add it for you?", timeout => 30 );
+
+        my $vpdir = $conf->{'vpopmail_home_dir'};
+        system "$vpdir/bin/vadddomain $domain $pass";
+        system "$vpdir/bin/vadduser $email $pass";
+    }
+
+    open( my $ASSIGN, '<', $assign) or return;
+    return if ! grep {/:$domain:/} <$ASSIGN>;
+    close $ASSIGN;
+
+    if ( $OSNAME eq "freebsd" ) {
+        $freebsd->install_port( "p5-Mail-POP3Client" ) or return;
+        $freebsd->install_port( "p5-Mail-IMAPClient" ) or return;
+        $freebsd->install_port( "p5-Net-SMTP_auth"   ) or return;
+        $freebsd->install_port( "p5-IO-Socket-SSL"   ) or return;
+    }
+    return 1;
+};
+
 sub test_crons {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },); 
 
     my $tw = $util->find_bin( 'toaster-watcher.pl', debug => 0);
     my $vpopdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
 
-    my @crons = ( "$vpopdir/bin/clearopensmtp", $tw,);
+    my @crons = ( "$vpopdir/bin/clearopensmtp", $tw);
 
     my $sqcache = "/usr/local/share/sqwebmail/cleancache.pl";
     push @crons, $sqcache if ( $conf->{'install_sqwebmail'} && -x $sqcache);
@@ -6459,7 +5974,7 @@ sub test_crons {
     print "checking cron processes\n";
 
     foreach (@crons) {
-        $log->test("  $_", system( "$_" ) ? 0 : 1 );
+        $log->test("  $_", system( $_ ) ? 0 : 1 );
     }
 }
 
@@ -6602,19 +6117,8 @@ EODNS
 }
 
 sub test_logging {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     print "do the logging directories exist?\n";
     my $q_log = $conf->{'qmail_log_base'};
@@ -6650,8 +6154,9 @@ sub test_network {
     ;    # should be pretty safe
 
     print "checking for listening tcp ports\n";
+    my @listeners = `$netstat | grep -i listen`;
     foreach (qw( smtp http pop3 imap https submission pop3s imaps )) {
-        $log->test("  $_", `$netstat | grep $_ | grep -i listen` );
+        $log->test("  $_", scalar grep {/$_/} @listeners );
     }
 
     print "checking for udp listeners\n";
@@ -6665,17 +6170,7 @@ sub test_network {
 
 sub test_qmail {
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts } );
 
     my $qdir = $conf->{'qmail_dir'};
     print "does qmail's home directory exist?\n";
@@ -6709,7 +6204,7 @@ sub test_qmail {
     foreach ( $conf->{'qmail_group'}     || 'qmail', 
               $conf->{'qmail_log_group'} || 'qnofiles', 
         ) {
-        $log->test("  $_", getgrnam($_) );
+        $log->test("  $_", scalar getgrnam($_) );
     }
 
     print "do the qmail alias files have contents?\n";
@@ -6721,7 +6216,6 @@ sub test_qmail {
 
 sub test_supervised_procs {
     my $self = shift;
-    my $debug = shift;
 
     print "do supervise directories exist?\n";
     my $q_sup = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
@@ -6737,7 +6231,7 @@ sub test_supervised_procs {
     my $q_ser = $conf->{'qmail_service'};
 
     require Mail::Toaster::Qmail;
-    $qmail ||= Mail::Toaster::Qmail->new();
+    $qmail ||= Mail::Toaster::Qmail->new( 'log' => $log );
 
     my @active_service_dirs;
     foreach ( qw/ smtp send / ) {
@@ -6762,19 +6256,8 @@ sub test_supervised_procs {
 };
 
 sub ucspi_tcp {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     # pre-declarations. We configure these for each platform and use them
     # at the end to build ucspi_tcp from source.
@@ -6838,7 +6321,6 @@ sub ucspi_tcp {
         site      => 'http://cr.yp.to',
         url       => '/ucspi-tcp',
         targets   => \@targets,
-        debug     => $debug,
     );
 
     print "should be all done!\n";
@@ -6869,10 +6351,9 @@ sub ucspi_tcp_darwin {
 };
 
 sub ucspi_tcp_freebsd {
-    return if $freebsd->is_port_installed( "ucspi-tcp" );
 
     $freebsd->install_port( "ucspi-tcp",
-        flags => "BATCH=yes WITH_RSS_DIFF=1",
+        flags   => "BATCH=yes WITH_RSS_DIFF=1",
         options => "#\n# This file is auto-generated by 'make config'.
 # No user-servicable parts inside!
 # Options for ucspi-tcp-0.88_2
@@ -6885,20 +6366,17 @@ WITHOUT_RBL2SMTPD=true\n",
 };
 
 sub ucspi_test {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
 
     print "checking ucspi-tcp binaries...\n";
     foreach (qw( tcprules tcpserver rblsmtpd tcpclient recordio )) {
         $log->test("  $_", -x $util->find_bin( $_, fatal => 0, debug=>0 ) );
     }
 
-    my $tcpserver = $util->find_bin( "tcpserver", fatal => 0, debug=>$debug );
-
     if ( $conf->{'vpopmail_mysql'} ) {
+        my $tcpserver = $util->find_bin( "tcpserver", fatal => 0, debug=>0 );
         $log->test( "  tcpserver mysql support",
-            `strings $tcpserver | grep sql`
+            scalar `strings $tcpserver | grep sql`
         );
     }
 
@@ -6968,20 +6446,11 @@ sub user_exists {
 };
 
 sub vpopmail {
-
     my $self  = shift;
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1 },
-            'debug' => { type => BOOLEAN, optional => 1 },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
+    my %p = validate( @_, { %std_opts },);
 
     if ( !$conf->{'install_vpopmail'} ) {
-        $log->audit( "vpopmail: installing, skipping (disabled)" ) if $debug;
+        $log->audit( "vpopmail: installing, skipping (disabled)" );
         return;
     }
 
@@ -6991,19 +6460,11 @@ sub vpopmail {
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
-    if ( $OSNAME eq "freebsd" ) {
-        my $installed = $freebsd->is_port_installed( "vpopmail", debug=>$debug);
-        if ( $installed) {
-            $log->audit("install vpopmail ($version), ok ($installed)");
-            return 1 if $version eq "port";
-        };
+    if ( $OSNAME eq "freebsd" && $version eq 'port' ) {
+        return 1 if $freebsd->is_port_installed( "vpopmail", debug=>1 );
 
         $self->vpopmail_install_freebsd_port();
-        $installed = $freebsd->is_port_installed( "vpopmail", debug=>$debug);
-        return 1 if $installed && $version eq "port";
-
-        # automake 1.10 required for vpopmail v5.4.27, may be safe to remove later
-        #$freebsd->install_port( 'automake110', check => 'automake-1.10' );
+        return 1 if $freebsd->is_port_installed( "vpopmail", debug=>1 );
     };
 
     my $package = "vpopmail-$version";
@@ -7064,7 +6525,7 @@ sub vpopmail {
 
     my $src = $conf->{'toaster_src_dir'} || "/usr/local/src";
 
-    $util->cwd_source_dir( "$src/mail", debug=>$debug );
+    $util->cwd_source_dir( "$src/mail" );
 
     my $tarball = "$package.tar.gz";
 
@@ -7080,7 +6541,6 @@ sub vpopmail {
         'package' => $package,
         site      => "http://" . $conf->{'toaster_sf_mirror'},
         path      => "/vpopmail",
-        debug     => $debug
     );
 
     if ( -d $package ) {
@@ -7113,9 +6573,6 @@ sub vpopmail {
     }
 
     chdir($package);
-
-
-#    chdir($package);
     print "running configure with $conf_args\n\n";
 
     $util->syscmd( "./configure $conf_args", debug => 0 );
@@ -7124,9 +6581,7 @@ sub vpopmail {
 
     if ( -e "vlimits.h" ) {
         # this was needed due to a bug in vpopmail 5.4.?(1-2) installer
-        $util->syscmd( "cp vlimits.h $vpopdir/include/",
-            debug   => 0
-        );
+        $util->syscmd( "cp vlimits.h $vpopdir/include/", debug => 0);
     }
 
     $self->vpopmail_post_install();
@@ -7178,19 +6633,8 @@ sub vpopmail_default_domain {
 };
 
 sub vpopmail_etc {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     my @lines;
 
@@ -7240,23 +6684,12 @@ sub vpopmail_etc_passwd {
 };
 
 sub vpopmail_install_freebsd_port {
-
     my $self = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts },);
 
     # we install the port version regardless of whether it is selected.
     # This is because later apps (like courier) that we want to install
     # from ports require it to be registered in the ports db
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
 
     my $version = $conf->{'install_vpopmail'};
 
@@ -7294,12 +6727,9 @@ sub vpopmail_install_freebsd_port {
 }
 
 sub vpopmail_install_default_tcp_smtp {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
     my %p = validate( @_, {
-            'etc_dir' => { type => SCALAR },
+            'etc_dir' => SCALAR,
         },
     );
 
@@ -7449,17 +6879,7 @@ sub vpopmail_roaming_users {
 
 sub vpopmail_test {
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -7505,19 +6925,8 @@ sub vpopmail_test {
 }
 
 sub vpopmail_create_user {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts } );
 
     my $vpopdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
     my $vpuser  = $conf->{'vpopmail_user'}     || "vpopmail";
@@ -7534,11 +6943,8 @@ sub vpopmail_create_user {
     $uid = getpwnam($vpuser);
     $gid = getgrnam($vpgroup);
 
-    if ( !$uid || !$gid ) {
-        print "failed to add vpopmail user or group!\n";
-        croak if $fatal;
-        return 0;
-    }
+    return $log->error( "failed to add vpopmail user or group!")
+        if ( !$uid || !$gid );
 
     return 1;
 }
@@ -7570,19 +6976,8 @@ sub vpopmail_mysql_options {
 }
 
 sub vpopmail_mysql_privs {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            fatal   => { type => BOOLEAN, optional => 1 },
-            debug   => { type => BOOLEAN, optional => 1 },
-            test_ok => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     if ( !$conf->{'vpopmail_mysql'} ) {
         print "vpopmail_mysql_privs: mysql support not selected!\n";
@@ -7615,7 +7010,7 @@ sub vpopmail_mysql_privs {
     );
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
 
     my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 )
         || { user => $user, pass => $pass, host => $my_write, db => $db };
@@ -7677,28 +7072,26 @@ EOMYSQLGRANT
 }
 
 sub vqadmin {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     unless ( $conf->{'install_vqadmin'} ) {
-        $log->audit( "vqadmin: installing, skipping (disabled)" )
-          if $debug;
+        $log->audit( "vqadmin: installing, skipping (disabled)" );
         return 0;
     }
 
     my $cgi  = $conf->{'toaster_cgi_bin'}   || "/usr/local/www/cgi-bin";
     my $data = $conf->{'toaster_http_docs'} || "/usr/local/www/data";
+
+    if ( $cgi && $cgi =~ /\/usr\/local\/(.*)$/ ) { 
+        $cgi = $1; 
+        chop $cgi if $cgi =~ /\/$/; # remove trailing /
+    }
+
+    if ( $data =~ /\/usr\/local\/(.*)$/ ) {
+        chop $data if $data =~ /\/$/; # remove trailing /
+        $data = $1;
+    }
 
     my @defs = 'CGIBINDIR="' . $cgi . '"';
     push @defs, 'WEBDATADIR="' . $data . '"';
@@ -7706,8 +7099,8 @@ sub vqadmin {
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
     if ( $OSNAME eq "freebsd" ) {
-        return 1
-          if $freebsd->install_port( "vqadmin", flags => join( ",", @defs ),);
+        $freebsd->install_port( "vqadmin", flags => join( ",", @defs ) )
+            and return 1;
     }
 
     my $make  = $util->find_bin("gmake", fatal=>0, debug=>0);
@@ -7721,35 +7114,21 @@ sub vqadmin {
         url            => "/downloads",
         targets        => [ "./configure ", $make, "$make install-strip" ],
         source_sub_dir => 'mail',
-        debug => $debug,
     );
 }
 
 sub webmail {
     my $self  = shift;
-    my $debug = $self->{'debug'};
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     # if the cgi_files dir is not available, we can't do much.
-    if ( ! -d "cgi_files" ) {
-        carp "You need to run this target while in the Mail::Toaster directory!\n" 
-            . "Try this instead:
+    return $log->error( "You need to run this target while in the Mail::Toaster directory!\n" 
+        . "Try this instead:
 
    cd /usr/local/src/Mail-Toaster-x.xx
    bin/toaster_setup.pl -s webmail
 
-You are currently in " . Cwd::cwd;
-        croak "error is fatal" if $fatal;
-        return;
-    };
+You are currently in " . Cwd::cwd ) if ! -d "cgi_files";
 
     # set the hostname in mt-script.js
     my $hostname = $conf->{'toaster_hostname'};
@@ -7777,11 +7156,13 @@ You are currently in " . Cwd::cwd;
             timeout  => 60,
           );
 
-    $util->syscmd($cmd, debug=>$debug);
+    $util->syscmd($cmd );
 
-    require Mail::Toaster::Apache;
-    my $apache = Mail::Toaster::Apache->new;
-    $apache->restart();
+    if ( $conf->{install_apache} ) {
+        require Mail::Toaster::Apache;
+        my $apache = Mail::Toaster::Apache->new( 'log' => $log );
+        $apache->restart();
+    };
 
     return 1;
 };

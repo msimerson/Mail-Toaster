@@ -23,7 +23,7 @@ my $toaster = Mail::Toaster->new(debug=>$debug);
 my $util    = $toaster->get_util;
 my $conf    = $toaster->parse_config( file=>'toaster.conf', debug=>0);
    $conf->{'logs_debug'} = $debug;
-my $logs    = Mail::Toaster::Logs->new(conf=>$conf, toaster => $toaster );
+my $logs    = Mail::Toaster::Logs->new(conf=>$conf, 'log' => $toaster );
 
 $|++;
 

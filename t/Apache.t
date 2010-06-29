@@ -19,7 +19,7 @@ my $toaster = Mail::Toaster->new(debug=>0);
 my $conf = $toaster->get_config();
 my $util = $toaster->get_util();
 
-my $apache = Mail::Toaster::Apache->new( toaster => $toaster );
+my $apache = Mail::Toaster::Apache->new( 'log' => $toaster );
 ok ( defined $apache, 'get Mail::Toaster::Apache object' );
 ok ( $apache->isa('Mail::Toaster::Apache'), 'check object class' );
 
@@ -61,22 +61,6 @@ ok ( $apache->isa('Mail::Toaster::Apache'), 'check object class' );
     };
 
 # restart
-
-# vhost_create
-
-# vhost_enable
-
-# vhost_disable
-
-# vhost_delete
-
-# vhost_exists
-
-# vhost_show
-
-# vhosts_get_file
-
-# vhosts_get_match
 
 # RemoveOldApacheSources
 

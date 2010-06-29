@@ -49,6 +49,54 @@ Authors are encouraged to use $log->audit extensively. By default, audit calls d
 When an error condition is encountered, the audit and error logs are printed to the screen, allowing the author and/or user to see, in great detail, what the error encountered was, as well as the context leading up to it. 
 
 
-USING AND SHARING STANDARD ARGUMENTS
+STANDARD ARGUMENTS
+
+There are three 'standard' arguments that all classes (modules) and most methods (subroutines) support and/or use: debug, fatal, and test_ok. Their default values are (shown).
+
+  debug:   display runtime status messages.             (true)
+  fatal:   cease execution when errors are encountered. (true)
+  test_ok: if defined, try to run the method (making only ephemeral
+           changes) and return the defined result. (undefined)
+
+All three 'standard' arguments are included in the globally available hash, %std_opts. Each method needs only to include %std_opts in its parameter validation to get all three.
+
+  sub do_something {
+    my $self = shift;
+    my %p = validate(@_, { %std_opts } );
+  };
+
+When using the std args individually, it's best to dereference them from the hash:
+
+  my $debug = $p{debug};
+  print "doing something" if $debug;
+
+When calling other methods, it's often desirable to pass along all of the standard arguments. This can often be accomplished by just passing along %p. However, if there are other named arguments in %p which the callee doesn't recognize, parameter validation will fail (and for good reason, this catches all manner of unexpected results). A better solution is passing %p through get_std_args. The resulting hash can safely be passed along when calling other methods: 
+
+  sub do_something {
+    my $self = shift;
+    my %p = validate(@_, { %std_opts } );
+    my %args = $log->get_std_args( %p );
+    
+    # do a bunch of stuff
+    $self->do_something_else( %args );
+    return $something;
+  };
+
+
+STANDARD ARGUMENTS, SHARING AND INHERITANCE
+
+The %std_opts hash is globally defined in each class and contains the values that were set when the class object was instantiated. Examples:
+
+ my $util = Mail::Toaster::Utility->new;
+
+Since no values were specified, all subsequent calls to $util->do_something will have the default values for debug, fatal, and test_ok. Since the default for debug is true, to disable debugging for all methods in $util, explicity set debug when instantiating the object: 
+
+ my $util = Mail::Toaster::Utility->new(debug=>0);
+
+Of course, individual calls to $util methods can always explicitely override the values when they make the call:
+
+ $util->do_something( debug => 0 );  # shhhh
+
+
 
 

@@ -9,7 +9,7 @@ use Mail::Toaster;
 use Mail::Toaster::Ezmlm; 
 
 my $toaster = Mail::Toaster->new(debug=>0);
-my $ezmlm = Mail::Toaster::Ezmlm->new( toaster => $toaster );
+my $ezmlm = Mail::Toaster::Ezmlm->new( 'log' => $toaster );
 
 if ( $ENV{'GATEWAY_INTERFACE'} ) { $ezmlm->process_cgi(br=>"\n", debug=>1); } 
 else                             { $ezmlm->process_shell()  };

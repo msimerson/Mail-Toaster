@@ -19,36 +19,46 @@ use vars qw( $spam_ref $count_ref );
 
 use lib 'lib';
 use Mail::Toaster 5.25; 
-my ( $toaster, $log, $util, $conf);
+my ( $log, $util, $conf, %std_opts );
 
 sub new {
     my $class = shift;
     my %p = validate(@_, { 
             'conf'  => HASHREF, 
-            toaster => { type=> OBJECT, optional => 1 },
+            'log'   => OBJECT,
+            test_ok => { type => BOOLEAN, optional => 1 },
+            fatal   => { type => BOOLEAN, optional => 1, default => 1 },
+            debug   => { type => BOOLEAN, optional => 1, default => 1 },
         }, 
     );
 
     $conf = $p{conf};
-    $toaster = $log = $p{toaster} || Mail::Toaster->new(debug=>0);
-    $util = $toaster->get_util();
+    $log = $p{'log'};
+    $util = $log->get_util();
+    my $debug = $log->get_debug;
+    $debug = $conf->{'logs_debug'} if defined $conf->{'logs_debug'};
 
     my $self = { 
-        class => $class, 
         conf  => $conf, 
-        debug => $conf->{'logs_debug'} || 0,
+        debug => $debug,
         util  => $util,
     };
     bless( $self, $class );
+
+    %std_opts = (
+        'test_ok' => { type => BOOLEAN, optional => 1 },
+        'fatal'   => { type => BOOLEAN, optional => 1, default => $p{fatal} },
+        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+    );
+
     return $self;
 }
 
 sub report_yesterdays_activity {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
-    my %p = validate(@_, { test_ok => {type=>BOOLEAN, optional=>1}, } );
+    my %p = validate(@_, { %std_opts } );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
@@ -245,8 +255,10 @@ sub get_yesterdays_smtp_log {
 
 sub verify_settings {
     my $self = shift;
+    my %p = validate(@_, { %std_opts } );
+    return $p{'test_ok'} if defined $p{'test_ok'};
 
-    my $logbase  = $conf->{'logs_base'}     || $conf->{'qmail_log_base'} || '/var/log/mail';
+    my $logbase  = $conf->{'logs_base'} || $conf->{'qmail_log_base'} || '/var/log/mail';
     my $counters = $conf->{'logs_counters'} || "counters";
 
     my $user  = $conf->{'logs_user'}  || 'qmaill';
@@ -254,7 +266,7 @@ sub verify_settings {
 
     if ( !-e $logbase ) {
         mkpath( $logbase, 0, oct('0755') )
-            or return $log->error( "Couldn't create $logbase: $!",fatal=>0);
+            or return $log->error( "Couldn't create $logbase: $!", %p );
         $util->chown($logbase, uid=>$user, gid=>$group) or return;
     };
 
@@ -265,7 +277,8 @@ sub verify_settings {
     my $dir = "$logbase/$counters";
 
     if ( ! -e $dir ) {
-        mkpath( $dir, 0, oct('0755') ) or return $log->error( "Couldn't create $dir: $!",fatal=>0);
+        eval { mkpath( $dir, 0, oct('0755') ); };
+        return $log->error( "Couldn't create $dir: $!",fatal=>0) if $EVAL_ERROR;
         $util->chown($dir, uid=>$user, gid=>$group) or return;
     }
     $log->error( "$dir is not a directory!",fatal=>0) if ! -d $dir;
@@ -283,8 +296,8 @@ sub parse_cmdline_flags {
     my $debug = $self->{'debug'};
 
     my %p = validate(@_, {
-            'prot' => {type=>SCALAR|UNDEF, optional=>1, },
-            'debug'=> {type=>BOOLEAN, optional=>1, default=>$debug},
+        'prot' => { type=>SCALAR, optional=>1, },
+        %std_opts,
     } );
 
     my $prot  = $p{'prot'} or pod2usage;
@@ -481,11 +494,8 @@ sub imap_count {
             $lines++;
 
             if ( $line =~ /imap-login/ ) {   # dovecot
-                if ( $line =~ /secured/ ) {
-                    $imap_ssl_success++;
-                } else {
-                    $imap_success++; 
-                }
+                if ( $line =~ /secured/ ) { $imap_ssl_success++; } 
+                else {                      $imap_success++;     };
                 next;
             };
 
@@ -1046,9 +1056,8 @@ sub roll_pop3_logs {
 
 sub compress_yesterdays_logs {
     my $self  = shift;
-    my $debug = $self->{'debug'};
 
-    my %p = validate( @_, { 'file' => { type=>SCALAR,  }, },);
+    my %p = validate( @_, { 'file' => SCALAR } );
     my $file = $p{'file'};
 
     my ( $dd, $mm, $yy ) = $util->get_the_date(bump=>1 );
@@ -1059,7 +1068,7 @@ sub compress_yesterdays_logs {
     return $log->audit( "  $file is already compressed") if -e "$file.gz";
     return $log->audit( "  $file does not exist.") if ! -e $file;
     return $log->error( "insufficient permissions to compress $file",fatal=>0)
-        if ! $util->is_writable(file=>"$file.gz",fatal=>0 );
+        if ! $util->is_writable( "$file.gz",fatal=>0 );
 
     my $gzip = $util->find_bin('gzip',fatal=>0) or return;
     $util->syscmd( "$gzip $file", fatal=>0 ) 
@@ -1167,7 +1176,6 @@ sub process_pop3_logs {
 }
 
 sub process_rbl_logs {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -1395,8 +1403,8 @@ sub count_send_line {
         # status: local 0/10 remote 3/100
         $activity =~ /^status: local ([0-9]*)\/([0-9]*) remote ([0-9]*)\/([0-9]*)/;
         
-        $count_ref->{'status_localp'}  = $count_ref->{'status_localp'} +  ( $1 / $2 );
-        $count_ref->{'status_remotep'} = $count_ref->{'status_remotep'} + ( $3 / $4 );
+        $count_ref->{'status_localp'}  += ( $1 / $2 );
+        $count_ref->{'status_remotep'} += ( $3 / $4 );
         
         $count_ref->{'status'}++;
     }
@@ -1442,7 +1450,7 @@ sub counter_create {
     my $debug = $self->{'debug'};
     carp "\nWARN: the file $file is missing! I will try to create it." if $debug;
 
-    if ( ! $util->is_writable(file=>$file,debug=>0,fatal=>0) ) {
+    if ( ! $util->is_writable( $file,debug=>0,fatal=>0) ) {
         carp "FAILED.\n $file does not exist and the user $UID has "
             . "insufficent privileges to create it!" if $debug;
         return;
@@ -1511,8 +1519,8 @@ sub counter_write {
         print "FAILURE: counter_write $log is a directory!\n"; 
     }
 
-    return $toaster->error( "counter_write: $log is not writable",fatal=>0 )
-        unless $util->is_writable( file => $log, debug => 0, fatal=>$fatal );
+    return $log->error( "counter_write: $log is not writable",fatal=>0 )
+        unless $util->is_writable( $log, debug => 0, fatal=>$fatal );
 
     unless ( -e $log ) {
         print "NOTICE: counter_write is creating $log";
@@ -1686,7 +1694,7 @@ email a report of yesterdays email traffic.
 
 Does some checks to make sure things are set up correctly.
 
-    $logs->verify_settings(conf=>$conf);
+    $logs->verify_settings();
 
 tests: 
 

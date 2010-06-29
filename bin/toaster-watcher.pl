@@ -2,9 +2,7 @@
 use strict;
 use warnings;
 
-use vars qw/$VERSION $opt_d $opt_v /;
-
-$VERSION = '5.25';
+our $VERSION = '5.25';
 
 use English qw( -no_match_vars );
 use Getopt::Std;
@@ -13,56 +11,60 @@ use lib 'lib';
 use Mail::Toaster        5.25; 
 use Mail::Toaster::Qmail 5.25; 
 
+die "Sorry, you are not root!\n" if $UID != 0;
+
+use vars qw/ $opt_d $opt_v /;
 $|++;
 
 getopts('dv');
 $opt_v = $opt_v ? 1 : 0;
 
 my $toaster = Mail::Toaster->new( debug => $opt_v );
-my $qmail  = Mail::Toaster::Qmail->new( toaster => $toaster );
-my $util  = $toaster->{util};
-
-die "Sorry, you are not root!\n" if $UID != 0;
+my $util   = $toaster->get_util;
+my $conf   = $toaster->get_config();
+my $qmail  = Mail::Toaster::Qmail->new( 'log' => $toaster );
+my $debug  = $conf->{'toaster_debug'} || $opt_v || 0;
 
 my $pidfile = "/var/run/toaster-watcher.pid";
-if ( ! $util->check_pidfile( $pidfile, fatal=>0, debug=>0 ) ) {
-    warn "Another toaster-watcher is running,  I refuse to!\n";
+if ( ! $util->check_pidfile( $pidfile, fatal=>0, debug=>$debug ) ) {
+    $toaster->error( "another toaster-watcher is running,  I refuse to!",fatal=>0);
     exit 500;
 };
 
-my $conf = $toaster->get_config();
-my $debug = $conf->{'toaster_debug'} || $opt_d || 0;
+my %args = ( fatal=>0, debug => $debug );
 
-if ($opt_v) { $debug = 1; print "$0 v$VERSION\n"; }
+# suppress test output when not running in debug mode
+my $quiet = 1; $quiet-- if $debug;  
+
+print "$0 v$VERSION\n" if $debug;
 
 $toaster->log( "Starting up" );
-
-$qmail->config( first_time => 0, debug => $debug );
+$qmail->config( first_time => 0, %args );
 
 $toaster->log( "Building send/run" );
-$qmail->build_send_run( debug => $debug );
+$qmail->build_send_run( %args );
 
 $toaster->log( "Building pop3/run" );
-$qmail->build_pop3_run();
+$qmail->build_pop3_run( %args );
 
 $toaster->log( "Building smtp/run");
-$qmail->build_smtp_run();
+$qmail->build_smtp_run( %args );
 
 $toaster->log( "Building submit/run" );
-$qmail->build_submit_run();
+$qmail->build_submit_run( %args );
 
-$toaster->check( debug=>$debug );
-$toaster->service_symlinks( debug=>$debug );
-$toaster->clear_open_smtp();
-$toaster->sqwebmail_clean_cache();
-$toaster->run_isoqlog();
-$toaster->run_qmailscanner();
-$toaster->clean_mailboxes( debug => $debug );
-$toaster->learn_mailboxes( debug => $debug );
-$toaster->process_logfiles(); 
+$toaster->check( quiet => $quiet, %args );
+$toaster->service_symlinks( %args );
+$toaster->clear_open_smtp( %args );
+$toaster->sqwebmail_clean_cache( %args );
+$toaster->run_isoqlog( %args );
+$toaster->run_qmailscanner( %args );
+$toaster->clean_mailboxes( %args );
+$toaster->learn_mailboxes( %args );
+$toaster->process_logfiles( %args ); 
 
-$qmail->rebuild_ssl_temp_keys( debug => 0 );
-$qmail->rebuild_simscan_control();
+$qmail->rebuild_ssl_temp_keys( %args );
+$qmail->rebuild_simscan_control( %args );
 
 unlink $pidfile;
 $toaster->log( "Exiting" );

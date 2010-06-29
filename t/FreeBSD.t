@@ -18,7 +18,7 @@ require_ok( 'Mail::Toaster' );
 require_ok( 'Mail::Toaster::FreeBSD' );
 
 my $toaster = Mail::Toaster->new(debug=>0);
-my $freebsd = Mail::Toaster::FreeBSD->new(toaster=>$toaster);
+my $freebsd = Mail::Toaster::FreeBSD->new('log'=>$toaster);
 ok ( defined $freebsd, 'Mail::Toaster::FreeBSD is an object' );
 ok ( $freebsd->isa('Mail::Toaster::FreeBSD'), 'check object class' );
 
@@ -61,13 +61,13 @@ my $util = $toaster->get_util;
     ok ( $freebsd->install_portupgrade( test_ok=>1, fatal=>0 ), 'install_portupgrade');
 
 
-# package_install
-	ok ( $freebsd->package_install( 
+# install_package
+	ok ( $freebsd->install_package( 
             port=>"perl", 
             debug=>0,
             fatal=>0,
             test_ok=>1,
-       ), 'package_install');
+       ), 'install_package');
 
 
 # install_port
@@ -86,12 +86,12 @@ my $util = $toaster->get_util;
     ), 'port_options');
 
 
-# ports_update
-    ok ( $freebsd->ports_update(
+# update_ports
+    ok ( $freebsd->update_ports(
             debug=>0,
             fatal=>0,
             test_ok=>1,
-        ), 'ports_update');
+        ), 'update_ports');
 
 
 # portsnap

@@ -13,7 +13,7 @@ my $conf = $toaster->get_config();
 
 require_ok( 'Mail::Toaster::Qmail' );
 
-my $qmail = Mail::Toaster::Qmail->new( toaster => $toaster );
+my $qmail = Mail::Toaster::Qmail->new( 'log' => $toaster );
 ok ( defined $qmail, 'get Mail::Toaster::Qmail object' );
 ok ( $qmail->isa('Mail::Toaster::Qmail'), 'check object class' );
 
@@ -209,7 +209,7 @@ $toaster->dump_audit( quiet => 1 );
 		ok ( $qmail->restart( prot=>'send', test_ok=>1 ), 'restart send');
 	};
 
-	if ( $toaster->supervised_dir_test( prot=>"send", debug=>0 ) ) {
+	if ( $toaster->supervised_dir_test( prot=>"send", fatal=>0 ) ) {
 
 # send_start
         ok ( $qmail->send_start( test_ok=>1, debug=>0, fatal=>0 ) , 'send_start');
@@ -219,7 +219,7 @@ $toaster->dump_audit( quiet => 1 );
 	}
 
 # restart
-	if ( $toaster->supervised_dir_test( prot=>"smtp" ) ) {
+	if ( $toaster->supervised_dir_test( prot=>"smtp", fatal=>0 ) ) {
 		ok ( $qmail->restart( prot=>"smtp" ), 'restart smtp');
 	};
 
@@ -236,7 +236,8 @@ $toaster->dump_audit( quiet => 1 );
         $qmail->set_config( $conf );
 
 # _test_smtpd_config_values
-        if ( -d $conf->{'vpopmail_home_dir'} ) {
+        my $sup_dir = $toaster->supervised_dir_test( prot=>"send", debug=>0,fatal=>0 );
+        if ( -d $conf->{'vpopmail_home_dir'} && $sup_dir && -d $sup_dir ) {
 		    ok ( $qmail->_test_smtpd_config_values( test_ok=>1 ), 
 		    	'_test_smtpd_config_values');
         };

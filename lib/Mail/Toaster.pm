@@ -11,18 +11,16 @@ use Params::Validate qw/ :all /;
 use Sys::Hostname;
 use version;
 
-use vars qw/ $INJECT $util $conf $log $qmail /;
-
-my @std_opts = qw/ test_ok debug fatal /;
-my %std_opts = (
-    test_ok => { type => BOOLEAN, optional => 1 },
-    debug   => { type => BOOLEAN, optional => 1 },
-    fatal   => { type => BOOLEAN, optional => 1 },
-);
+use vars qw/ $INJECT $util $conf $log $qmail %std_opts /;
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, { %std_opts, }, );
+    my %p = validate( @_, { 
+            test_ok => { type => BOOLEAN, optional => 1 },
+            debug   => { type => BOOLEAN, optional => 1, default => 1 },
+            fatal   => { type => BOOLEAN, optional => 1, default => 1 },
+        }
+    );
 
     my $self = { 
         audit  => [],
@@ -31,14 +29,19 @@ sub new {
         last_error => 0,
         conf   => undef,
         util   => undef,
-        %p,
+        debug  => $p{debug},
+        fatal  => $p{fatal},
     };
     bless( $self, $class );
 
     $log  = $self;
-    $self->{debug} = 1 if ! defined $self->{debug};
-    $self->{fatal} = 1 if ! defined $self->{fatal};
-    $self->{util}  = $util = $self->get_util();
+    $self->{util} = $util = $self->get_util();
+
+    %std_opts = (
+        test_ok => { type => BOOLEAN, optional => 1 },
+        debug   => { type => BOOLEAN, optional => 1, default => $self->{debug} },
+        fatal   => { type => BOOLEAN, optional => 1, default => $self->{fatal} },
+    );
 
     my @caller = caller;
     warn sprintf( "Toaster.pm loaded by %s, %s, %s\n", @caller )
@@ -54,9 +57,9 @@ sub audit {
 
     if ($mess) {
         push @{ $self->{audit} }, $mess;
-        warn "$mess\n" if $self->{debug} || $p{debug};
-    }       
-            
+        print "$mess\n" if $self->{debug} || $p{debug};
+    } 
+
     return \$self->{audit};
 }   
 
@@ -71,8 +74,8 @@ sub error {
     );
 
     my $location = $p{location};
-    my $debug = $self->get_debug( $p{debug} );
-    my $fatal = $self->get_fatal( $p{fatal} );
+    my $debug = $p{debug};
+    my $fatal = $p{fatal};
 
     if ( $message ) {
         my @caller = caller;
@@ -114,7 +117,7 @@ sub dump_audit {
 
     print "\n\t\t\tAudit History Report \n\n";
     for( my $i = $self->{last_audit}; $i < scalar @$audit; $i++ ) {
-        print "\t$audit->[$i]\n";
+        print "   $audit->[$i]\n";
         $self->{last_audit}++;
     };
     return 1;
@@ -159,9 +162,15 @@ sub log {
 sub test {
     my $self = shift;
     my $mess = shift or return;
-    print $mess;
-
     my $result = shift;
+
+    my %p = validate(@_, { %std_opts,
+            quiet => { type => SCALAR|UNDEF, optional => 1 },
+        } );
+    return if ( defined $p{test_ok} && ! $p{debug} );
+    return if ( $p{quiet} && ! $p{debug} );
+
+    print $mess;
     defined $result or do { print "\n"; return; };
     for ( my $i = length($mess); $i <=  65; $i++ ) { print '.'; };
     print $result ? 'ok' : 'FAILED', "\n";
@@ -323,31 +332,33 @@ sub parse_line {
  
 sub check {
     my $self = shift;
-    my %p = validate( @_, { %std_opts, },);
-
-    my $debug = $self->get_debug( $p{debug} );
+    my %p = validate( @_, { %std_opts,
+        quiet => { type => SCALAR, optional => 1, default=>0 },
+    } );
+    my %args = $self->get_std_args( %p );
+    my %targs = ( %args, quiet => $p{quiet} );
 
     $conf ||= $self->get_config();
 
-    $self->check_permissions();
-    $self->check_processes();
-    $self->check_watcher_log_size();
+    $self->check_permissions( %args );
+    $self->check_processes( %targs );
+    $self->check_watcher_log_size( %args );
 
     # check that we can't SMTP AUTH with random user names and passwords
 
     # make sure the supervised processes are configured correctly.
-    $self->supervised_dir_test( prot=>"smtp",  debug=>$debug );
-    $self->supervised_dir_test( prot=>"send",  debug=>$debug );
-    $self->supervised_dir_test( prot=>"pop3",  debug=>$debug );
-    $self->supervised_dir_test( prot=>"submit",debug=>$debug );
+    $self->supervised_dir_test( prot=>"smtp",  %targs );
+    $self->supervised_dir_test( prot=>"send",  %targs );
+    $self->supervised_dir_test( prot=>"pop3",  %targs );
+    $self->supervised_dir_test( prot=>"submit",%targs );
     
     return 1;
 }
 
 sub check_permissions {
     my $self = shift;
+    my %p = validate( @_, { %std_opts, },);
 
-    my $debug = $self->set_debug();
     $conf ||= $self->get_config();
 
     # check permissions on toaster-watcher.conf
@@ -355,7 +366,7 @@ sub check_permissions {
     my $twconf = "$etc/toaster-watcher.conf";
     if ( -f $twconf ) {
         my $mode = $util->file_mode( file=>$twconf, debug=>0 );
-        $log->audit( "file mode of $twconf is $mode.") if $debug;
+        $log->audit( "file mode of $twconf is $mode.", %p);
         my $others = substr($mode, -1, 1);
         if ( $others > 0 ) {
             chmod 0600, $twconf;
@@ -367,7 +378,7 @@ sub check_permissions {
     $twconf = "$etc/toaster.conf";
     if ( -f $twconf ) {
         my $mode = $util->file_mode(file=>$twconf, debug=>0);
-        $log->audit( "file mode of $twconf is $mode") if $debug;
+        $log->audit( "file mode of $twconf is $mode", %p);
         my $others = substr($mode, -1, 1);
         if ( ! $others ) {
             chmod 0644, $twconf;
@@ -378,10 +389,12 @@ sub check_permissions {
 
 sub check_processes {
     my $self = shift;
-    my %p = validate( @_, { %std_opts, },);
+    my %p = validate( @_, { %std_opts,
+        quiet => { type => SCALAR, optional => 1 },
+    } );
+    my %args = $self->get_std_args( %p );
+    my %targs = ( %args, quiet => $p{quiet} );
 
-    my $debug = $self->set_debug( $p{debug} );
-    my $fatal = $self->set_fatal( $p{fatal} );
     $conf ||= $self->get_config();
     
     $log->audit( "checking running processes");
@@ -409,7 +422,7 @@ sub check_processes {
         && $conf->{'smtpd_log_postprocessor'} eq "maillogs" );
 
     foreach (@processes) {
-        $self->test( "\t$_", $util->is_process_running($_) );
+        $self->test( "  $_", $util->is_process_running($_), %targs );
     }
     
     return 1;
@@ -971,7 +984,7 @@ sub get_maildir_paths {
 
     # this method requires a SQL query for each domain
     require Mail::Toaster::Qmail;
-    my $qmail = Mail::Toaster::Qmail->new( toaster => $self );
+    my $qmail = Mail::Toaster::Qmail->new( 'log' => $self );
 
     my $qdir  = $conf->{'qmail_dir'} || "/var/qmail";
 
@@ -999,6 +1012,17 @@ sub get_maildir_paths {
     $log->audit( "found $count mailboxes.");
     return @paths;
 }
+
+sub get_std_args {
+    my $self = shift;
+    my %p = @_;
+    my %args;
+    foreach ( qw/ debug fatal test_ok / ) {
+        next if ! defined $p{$_};
+        $args{$_} = $p{$_};
+    };
+    return %args;
+};
 
 sub get_toaster_htdocs {
     my $self = shift;
@@ -1107,10 +1131,7 @@ sub get_util {
     return $util if ref $util;
     use lib 'lib';
     require Mail::Toaster::Utility;
-    $self->{util} = $util = Mail::Toaster::Utility->new( 
-        'log' => $self, 
-        debug => $self->{debug},
-    );
+    $self->{util} = $util = Mail::Toaster::Utility->new( 'log' => $self );
     return $util;
 };
 
@@ -1125,7 +1146,7 @@ sub process_logfiles {
     $self->supervised_log_rotate( prot => 'pop3'   ) if $pop3_logs eq 'qpop3d';
 
     require Mail::Toaster::Logs;
-    my $logs = Mail::Toaster::Logs->new( toaster=> $self, conf => $conf ) or return;
+    my $logs = Mail::Toaster::Logs->new( 'log' => $self, conf => $conf ) or return;
 
     $logs->compress_yesterdays_logs( file=>"sendlog" );
     $logs->compress_yesterdays_logs( file=>"smtplog" );
@@ -1264,12 +1285,7 @@ sub service_symlinks {
 
 sub service_dir_create {
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
     my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
 
@@ -1286,7 +1302,7 @@ sub service_dir_create {
 
     unless ( -l "/service" ) {
         if ( -d "/service" ) {
-            $util->syscmd( "rm -rf /service", fatal=>0, debug=>$debug );
+            $util->syscmd( "rm -rf /service", fatal=>0 );
         }
         symlink( "/var/service", "/service" );
     }
@@ -1314,20 +1330,6 @@ sub service_dir_test {
 
     return 1;
 }
-
-sub set_debug {
-    my ($self, $debug) = @_;
-    return $self->{debug} if ! defined $debug;
-    $self->{debug} = $debug;
-    return $debug;
-};  
-    
-sub set_fatal {
-    my ($self, $fatal) = @_;
-    return $self->{fatal} if ! defined $fatal;
-    $self->{fatal} = $fatal;
-    return $fatal;
-};
 
 sub sqwebmail_clean_cache {
     my $self = shift;
@@ -1357,8 +1359,7 @@ sub supervise_dir_get {
             : 0;
 
     if ( !$dir ) {
-        $log->error( "qmail_supervise_$prot is not set correctly in toaster-watcher.conf!", fatal =>
- 0);
+        $log->error( "qmail_supervise_$prot is not set correctly in toaster-watcher.conf!", fatal => 0);
         $dir = "$sdir/$prot";
     }
 
@@ -1371,44 +1372,40 @@ sub supervise_dir_get {
 
 sub supervise_dirs_create {
     my $self = shift;
-    my %p = validate( @_, {
-            debug   => { type=>BOOLEAN, optional=>1, default=>1 },
-            test_ok => { type=>BOOLEAN, optional=>1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
+    my %args = $self->get_std_args( %p );
 
     my $supervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
 
     return $p{test_ok} if defined $p{test_ok};
     
     if ( -d $supervise ) {
-        $log->audit( "supervise_dirs_create: $supervise, ok (exists)" );
+        $log->audit( "supervise_dirs_create: $supervise, ok (exists)", %args );
     }
     else {
         mkdir( $supervise, oct('0775') ) or die "failed to create $supervise: $!\n";
-        $log->audit( "supervise_dirs_create: $supervise, ok" ) if $p{debug};
+        $log->audit( "supervise_dirs_create: $supervise, ok", %args );
     }
 
     chdir $supervise;
 
     foreach my $prot (qw/ smtp send pop3 submit /) {
-        my $dir = $prot;
-        $dir = $self->supervise_dir_get( prot => $prot );
 
+        my $dir = $self->supervise_dir_get( prot => $prot );
         if ( -d $dir ) {
-            $log->audit( "supervise_dirs_create: $dir, ok (exists)" );
+            $log->audit( "supervise_dirs_create: $dir, ok (exists)", %args );
             next;
         }
 
         mkdir( $dir, oct('0775') ) or die "failed to create $dir: $!\n";
-        $log->audit( "supervise_dirs_create: creating $dir, ok" );
+        $log->audit( "supervise_dirs_create: creating $dir, ok", %args );
         
         mkdir( "$dir/log", oct('0775') ) or die "failed to create $dir/log: $!\n";
-        $log->audit( "supervise_dirs_create: creating $dir/log, ok" );
+        $log->audit( "supervise_dirs_create: creating $dir/log, ok", %args );
             
-        $util->syscmd( "chmod +t $dir", debug=>$p{debug} );
+        $util->syscmd( "chmod +t $dir", debug=>0 );
 
-        symlink( $dir, $prot ) unless ( -e $prot );
+        symlink( $dir, $prot ) if ! -e $prot;
     }
 }
 
@@ -1417,12 +1414,14 @@ sub supervised_dir_test {
     my %p = validate( @_, {
             'prot'    => { type=>SCALAR,  },
             'dir'     => { type=>SCALAR,  optional=>1, },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>$self->{debug} },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
+            'quiet'   => { type=>SCALAR,  optional=>1, },
+            %std_opts,
         },
     );
 
-    my ($prot, $dir, $debug) = ( $p{'prot'}, $p{'dir'}, $p{'debug'} );
+    my ($prot, $dir ) = ( $p{'prot'}, $p{'dir'} );
+    my %args = $self->get_std_args( %p );
+    my %targs = ( %args, quiet => $p{quiet} );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -1430,20 +1429,18 @@ sub supervised_dir_test {
         $dir = $self->supervise_dir_get( prot => $prot ) or return;
     }
 
-    return $log->error("directory $dir does not exist", fatal => 0)
+    return $log->error("directory $dir does not exist", %args )
         unless ( -d $dir || -l $dir );
-    $log->test( "$dir exists", -d $dir ) if $debug;
+    $log->test( "exists, $dir", -d $dir, %targs );
 
-    return $log->error("$dir/run does not exist!", fatal => 0)
-        unless -f "$dir/run";
-    $log->test( "exists $dir/run", -f "$dir/run") if $debug;
+    return $log->error("$dir/run does not exist!", %args ) if ! -f "$dir/run";
+    $log->test( "exists, $dir/run", -f "$dir/run", %targs);
 
-    return $log->error("$dir/run is not executable", fatal => 0)
-        unless -x "$dir/run";
-    $log->test( "perms $dir/run", -x "$dir/run" ) if $debug;
+    return $log->error("$dir/run is not executable", %args ) if ! -x "$dir/run";
+    $log->test( "perms,  $dir/run", -x "$dir/run", %targs );
 
-    return $log->error("$dir/down is present", fatal => 0) if -f "$dir/down";
-    $log->test( "!exist $dir/down", !-f "$dir/down" ) if $debug;
+    return $log->error("$dir/down is present", %args ) if -f "$dir/down";
+    $log->test( "!exist, $dir/down", !-f "$dir/down", %targs );
 
     my $log_method = $conf->{ $prot . '_log_method' }
       || $conf->{ $prot . 'd_log_method' }
@@ -1452,24 +1449,20 @@ sub supervised_dir_test {
     return 1 if $log_method =~ /syslog|disabled/i;
 
     # make sure the log directory exists
-    return $log->error( "$dir/log does not exist", fatal => 0 )
-        if ! -d "$dir/log";
-    $log->test( "$dir/log exists", -d "$dir/log" ) if $debug;
+    return $log->error( "$dir/log does not exist", %args ) if ! -d "$dir/log";
+    $log->test( "exists, $dir/log", -d "$dir/log", %targs );
 
     # make sure the supervise/log/run file exists
-    return $log->error( "$dir/log/run does not exist", fatal => 0 )
-        if ! -f "$dir/log/run";
-    $log->test( "$dir/log/run exists", -f "$dir/log/run" ) if $debug; 
+    return $log->error( "$dir/log/run does not exist", %args ) if ! -f "$dir/log/run";
+    $log->test( "exists, $dir/log/run", -f "$dir/log/run", %targs );
 
     # check the log/run file permissions
-    return $log->error( "$dir/log/run, perms", fatal => 0)
-        if ! -x "$dir/log/run";
-    $log->test( "$dir/log/run, perms", -x "$dir/log/run" ) if $debug;
+    return $log->error( "perms, $dir/log/run", %args) if ! -x "$dir/log/run";
+    $log->test( "perms,  $dir/log/run", -x "$dir/log/run", %targs );
 
     # make sure the supervise/down file does not exist
-    return $log->error( "$dir/log/down exists", fatal => 0 ) 
-        if -f "$dir/log/down";
-    $log->test( "!exist $dir/log/down", "$dir/log/down" ) if $debug;
+    return $log->error( "$dir/log/down exists", %args) if -f "$dir/log/down";
+    $log->test( "!exist, $dir/log/down", "$dir/log/down", %targs );
     return 1;
 }
 
@@ -1532,11 +1525,7 @@ sub supervised_hostname {
 
 sub supervised_multilog {
     my $self = shift;
-    my %p = validate( @_, {
-            'prot'    => { type=>SCALAR,  },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
+    my %p = validate( @_, { 'prot' => SCALAR, %std_opts, },);
 
     my ( $prot, $fatal ) = ( $p{'prot'}, $p{'fatal'} );
 
@@ -1575,23 +1564,22 @@ sub supervised_multilog {
 
 sub supervised_log_method {
     my $self = shift;
-    my %p = validate( @_, { 'prot' => { type=>SCALAR,  }, },);
+    my %p = validate( @_, { prot => SCALAR } );
 
     my $prot = $p{'prot'} . "_hostname";
 
     if ( $conf->{$prot} eq "syslog" ) {
         $log->audit( "  using syslog logging." );
         return "\\\n\tsplogger qmail ";
-    }
-    else {
-        $log->audit( "  using multilog logging." );
-        return "\\\n\t2>&1 ";
-    }
+    };
+
+    $log->audit( "  using multilog logging." );
+    return "\\\n\t2>&1 ";
 }
 
 sub supervised_log_rotate {
     my $self  = shift;
-    my %p = validate( @_, { 'prot' => { type=>SCALAR } } );
+    my %p = validate( @_, { 'prot' => SCALAR } );
     my $prot = $p{prot};
 
     return $log->error( "root privs are needed to rotate logs.",fatal=>0)
@@ -1616,7 +1604,7 @@ sub supervise_restart {
     my $self = shift;
     my $dir  = shift or die "missing dir\n";
 
-    return $self->error( "unable to use $dir as a supervised dir" ) if !-d $dir;
+    return $self->error( "supervise_restart: is not a dir: $dir" ) if !-d $dir;
 
     my $svc  = $util->find_bin( 'svc',  debug=>0, fatal=>0 );
     my $svok = $util->find_bin( 'svok', debug=>0, fatal=>0 );
@@ -1630,6 +1618,7 @@ sub supervise_restart {
     };
 
     # send the service a TERM signal
+    $log->audit( "sending TERM signal to $dir" );
     system "$svc -t $dir";
     return 1;
 }
@@ -1663,7 +1652,7 @@ sub supervised_tcpserver {
             require POSIX;
             $maxcon = POSIX::floor( $maxmem / ( $mem / 1024000 ) );
             require Mail::Toaster::Qmail;
-            my $qmail = Mail::Toaster::Qmail->new( toaster => $self );
+            my $qmail = Mail::Toaster::Qmail->new( 'log'  => $self );
             $qmail->_memory_explanation( $prot, $maxcon );
         }
     }

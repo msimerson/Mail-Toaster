@@ -106,7 +106,7 @@ ok( $conf = $toaster->parse_config(
 $toaster->dump_audit( quiet => 1 );
 
 # check
-ok( $toaster->check( debug => 0 ), 'check' );
+ok( $toaster->check( debug => 0, test_ok=> 1 ), 'check' );
 
 if ( $UID == 0 ) {
 
@@ -216,7 +216,7 @@ ok(
 );
 
 # check_processes
-ok( $toaster->check_processes(), 'check_processes' );
+ok( $toaster->check_processes( test_ok=> 1), 'check_processes' );
 
 # email_send
 

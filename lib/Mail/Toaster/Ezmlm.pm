@@ -10,34 +10,50 @@ use Pod::Usage;
 use English qw( -no_match_vars );
 
 use lib 'lib';
-use Mail::Toaster          5.25; 
-my ($toaster, $util);
+use Mail::Toaster          5.26; 
 
+my ($toaster, $log, $util, %std_opts );
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, {
-        toaster => { type=> SCALAR, optional => 1 },
-    });
+    my %p     = validate( @_,
+        {   'log' => { type => OBJECT  },
+            fatal => { type => BOOLEAN, optional => 1, default => 1 },
+            debug => { type => BOOLEAN, optional => 1 },
+        }
+    );
 
-    $toaster = $p{toaster} || Mail::Toaster->new(debug=>0);
-    $util = $toaster->get_util();
+    $log = $p{'log'};
+    $util = $log->get_util;
 
-    my $self = { toaster => $toaster };
+    my $debug = $log->get_debug;  # inherit from our parent
+    my $fatal = $log->get_fatal;
+    $debug = $p{debug} if defined $p{debug};  # explicity overridden
+    $fatal = $p{fatal} if defined $p{fatal};
 
-    bless( $self, $class );
+    my $self = {
+        'log' => $log,
+        debug => $debug,
+        fatal => $fatal,
+    };
+    bless $self, $class;
+
+    # globally scoped hash, populated with defaults as requested by the caller
+    %std_opts = (
+        'test_ok' => { type => BOOLEAN, optional => 1 },
+        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
+        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+    );
+
     return $self;
 }
 
 sub authenticate {
-
     my $self = shift;
-    
 	my %p = validate ( @_, {
 	        'domain'   => { type=>SCALAR,  optional=>0, },
 	        'password' => { type=>SCALAR,  optional=>0, },
-            'fatal'    => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'    => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
 	);
 
@@ -77,14 +93,11 @@ The easiest and most common methods is:<br>
 }
 
 sub dir_check {
-
     my $self = shift;
-    
     my %p = validate( @_, {
             'dir'     => { type=>SCALAR, },
             'br'      => { type=>SCALAR,  optional=>1, default=>'<br>' },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
     );
 
@@ -121,14 +134,11 @@ EOFOOTER
 }
 
 sub lists_get {
-
     my $self = shift;
-    
     my %p = validate( @_, {
             'domain'  => { type=>SCALAR, },
             'br'      => { type=>SCALAR,  optional=>1, default=>'<br>' },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
     );
 
@@ -176,39 +186,33 @@ sub lists_get {
 }
 
 sub logo {
-
     my $self = shift;
-    
     my %p = validate( @_, {
             'conf'         => { type=>HASHREF, optional=>1, },
 	        'web_logo_url' => { type=>SCALAR,  optional=>1, },
 	        'web_logo_alt' => { type=>SCALAR,  optional=>1, },
-            'fatal'        => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'        => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
     );
 
-	my ($conf, $logo, $alt, $fatal, $debug)
-        = ( $p{'conf'}, $p{'web_logo_url'}, $p{'web_logo_alt'}, $p{'fatal'}, $p{'debug'} );
+	my ($conf, $logo, $alt )
+        = ( $p{'conf'}, $p{'web_logo_url'}, $p{'web_logo_alt'} );
 
     $logo ||= $conf->{'web_logo_url'}
         || "http://www.tnpi.net/images/head.jpg";
         
-    $alt ||= $conf->{'web_logo_alt_text'}
-        || "tnpi.net logo";
+    $alt ||= $conf->{'web_logo_alt_text'} || "tnpi.net logo";
 
     return "<img src=\"$logo\" alt=\"$alt\">";
 }
 
 sub process_cgi {
-
     my $self = shift;
     
     my %p = validate( @_, {
             'list_dir' => { type=>SCALAR,  optional=>1, },
             'br'       => { type=>SCALAR,  optional=>1, default=>'<br>' },
-            'fatal'    => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'    => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
     );
 
@@ -323,8 +327,7 @@ sub process_cgi {
 }
 
 sub process_shell {
-
-    my ($self) = @_;
+    my $self = shift;
     use vars qw($opt_a $opt_d $opt_f $opt_v $list $debug);
 
     $util->install_module( "Mail::Ezmlm", debug => 0,);
@@ -334,7 +337,7 @@ sub process_shell {
     getopts('a:d:f:v');
 
     my $br = "\n";
-    $opt_v ? $debug = 1 : $debug = 0;
+    $debug = $opt_v ? 1 : 0;
 
     # set up based on command line options
     my $list_dir;
@@ -387,16 +390,13 @@ sub process_shell {
 }
 
 sub subs_add {
-
     my $self = shift;
-    
     my %p = validate( @_, {
 	        'list'      => { type=>SCALAR,   },
             'list_dir'  => { type=>SCALAR,   },
 	        'requested' => { type=>ARRAYREF, },
             'br'        => { type=>SCALAR,   },
-            'fatal'     => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'     => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
     );
 
@@ -408,8 +408,7 @@ sub subs_add {
         return 0;
     }
     
-    my ( $duplicates, $success, $failed, @list_dups, @list_success,
-        @list_fail );
+    my ( $duplicates, $success, $failed, @list_dups, @list_success, @list_fail );
 
     print "$br";
 
@@ -458,15 +457,12 @@ sub subs_add {
 }
 
 sub subs_list {
-
     my $self = shift;
-
     my %p = validate( @_, {
 	        'list'      => { type=>HASHREF,   },
             'list_dir'  => { type=>SCALAR,   },
             'br'        => { type=>SCALAR,  optional=>1, default=>'\n' },
-            'fatal'     => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'     => { type=>BOOLEAN, optional=>1, default=>1 },
+            %std_opts,
         },
     );
 
@@ -500,7 +496,7 @@ __END__
 # =head1 ACKNOWLEDGEMENTS
 #
 # Funded by Sam Mayes (sam.mayes@sudhian.com) and donated to the toaster community
-# I'll add this back in if Sam ever pays up.
+# I'll add this back in if Sam ever pays.
 
 =head1 NAME
 

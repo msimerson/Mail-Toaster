@@ -22,7 +22,7 @@ use vars qw/ $log %std_opts /;
 sub new {
     my $class = shift;
     my %p     = validate( @_,
-        {   'log' => { type => OBJECT, optional => 1 },
+        {   'log' => { type => OBJECT   },
             fatal => { type => BOOLEAN, optional => 1, default => 1 },
             debug => { type => BOOLEAN, optional => 1 },
         }
@@ -611,11 +611,11 @@ sub file_write {
     return $log->error( "oops, $file is not writable", %args ) 
         if ( ! $self->is_writable( $file, %args) );
 
-    my $m = "writing";
+    my $m = "wrote";
     my $write_mode = '>';    # (over)write
 
     if ( $append ) {
-        $m = "appending";
+        $m = "appended";
         $write_mode = '>>';
         if ( -f $file ) {
             copy $file, "$file.tmp" or return $log->error(
@@ -628,7 +628,7 @@ sub file_write {
 
     my $c = 0;
     foreach ( @$lines ) { chomp; print $HANDLE "$_\n"; $c++ };
-    close $HANDLE or return $log->error( "couldn't close $file", %args );
+    close $HANDLE or return $log->error( "couldn't close $file: $!", %args );
 
     $log->audit( "file_write: $m $c lines to $file", %args );
 
@@ -636,7 +636,8 @@ sub file_write {
         or return $log->error("  unable to update $file", %args);
 
     # set file permissions mode if requested
-    $self->chmod( file => $file, mode => $p{mode}, %args ) if $p{mode};
+    $self->chmod( file => $file, mode => $p{mode}, %args ) 
+        or return if $p{mode};
 
     return 1;
 }
@@ -731,9 +732,10 @@ sub find_bin {
     );
 
     my $prefix = "/usr/local";
+    my %args = $log->get_std_args(%p);
 
     if ( $bin =~ /^\// && -x $bin ) {  # we got a full path
-        $log->audit( "find_bin: found $bin" );
+        $log->audit( "find_bin: found $bin", %args);
         return $bin;
     };
 
@@ -753,11 +755,11 @@ sub find_bin {
     };
 
     if ($found) {
-        $log->audit( "find_bin: found $found" );
+        $log->audit( "find_bin: found $found", %args);
         return $found;
     }
 
-    return $log->error( "find_bin: could not find $bin", fatal=> $p{fatal} );
+    return $log->error( "find_bin: could not find $bin", %args);
 }
 
 sub fstab_list {
@@ -902,34 +904,15 @@ sub get_my_ips {
     my $only  = $p{only};
 
     my $ifconfig = $self->find_bin( "ifconfig", debug => 0 );
-    my $grep     = $self->find_bin( "grep",     debug => 0 );
-    my $cut      = $self->find_bin( "cut",      debug => 0 );
 
     my $once = 0;
 
 TRY:
-    my $cmd = "$ifconfig | $grep inet ";
-
-    $cmd .= "| $grep -v inet6 " if $p{exclude_ipv6};
-    $cmd .= "| $cut -d' ' -f2 ";
-    $cmd .= "| $grep -v '^127.0.0' " if $p{exclude_localhost};
-
-    if ( $p{exclude_internals} ) {
-        $cmd .= "| $grep -v '^192.168.' | $grep -v '^10.' "
-            . "| $grep -v '^172.16.'  | $grep -v '^169.254.' ";
-    }
-
-    if ( $only eq "first" ) {
-        my $head = $self->find_bin( "head", debug => 0 );
-        $cmd .= "| $head -n1 ";
-    }
-    elsif ( $only eq "last" ) {
-        my $tail = $self->find_bin( "tail", debug => 0 );
-        $cmd .= "| $tail -n1 ";
-    }
-
-    my @ips = `$cmd`;
-    chomp @ips;
+    my @ips = grep {/inet/} `$ifconfig`; chomp @ips;
+       @ips = grep {!/inet6/} @ips if $p{exclude_ipv6};
+       @ips = grep {!/inet 127\.0\.0/} @ips if $p{exclude_localhost};
+       @ips = grep {!/inet (192\.168\.|10\.|172\.16\.|169\.254\.)/} @ips 
+            if $p{exclude_internals};
 
     # this keeps us from failing if the box has only internal IPs 
     if ( @ips < 1 || $ips[0] eq "" ) {
@@ -939,6 +922,10 @@ TRY:
         goto TRY if ( $once < 2 );
     }
 
+    foreach ( @ips ) { ($_) = $_ =~ m/inet ([\d\.]+)\s/; };
+
+    return [ $ips[0]  ] if $only eq 'first';
+    return [ $ips[-1] ] if $only eq 'last';
     return \@ips;
 }
 
@@ -1000,14 +987,8 @@ sub get_the_date {
 
 sub get_mounted_drives {
     my $self = shift;
-    my %p = validate(
-        @_,
-        {   'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
-        }
-    );
-
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %p = validate( @_, { %std_opts } );
+    my %args = $log->get_std_args( %p );
 
     my $mount = $self->find_bin( 'mount', %args );
 
@@ -1516,7 +1497,8 @@ sub install_module {
     my ($self, $module, %info) = @_;
 
     eval "use $module";
-    return $log->audit( "$module is already installed." ) if ! $EVAL_ERROR;
+    return $log->audit( "$module is already installed.",debug=>1 ) 
+        if ! $EVAL_ERROR;
 
     if ( lc($OSNAME) eq 'darwin' ) {
         $self->install_module_darwin( $module ) and return 1;
@@ -1580,8 +1562,8 @@ sub install_module_freebsd {
         $portname =~ s/::/-/g;
     };
 
-    return $log->audit( "$module is installed.")
-        if `/usr/sbin/pkg_info | /usr/bin/grep $portname`;
+    my $r = `/usr/sbin/pkg_info | /usr/bin/grep $portname`;
+    return $log->audit( "$module is installed as $r") if $r;
 
     my $portdir = </usr/ports/*/$portname>;
 
@@ -1704,16 +1686,16 @@ sub is_process_running {
         };
     };
 
-    my $ps   = $self->find_bin( 'ps',  );
-    my $grep = $self->find_bin( 'grep' );
+    my $ps   = $self->find_bin( 'ps', debug=>0 );
 
     if    ( lc($OSNAME) =~ /solaris/i ) { $ps .= ' -ef';  }
     elsif ( lc($OSNAME) =~ /irix/i    ) { $ps .= ' -ef';  }
     elsif ( lc($OSNAME) =~ /linux/i   ) { $ps .= ' -efw'; }
-    else                                { $ps .= ' axw';  };
+    else                                { $ps .= ' axww'; };
 
-    my $is_running = `$ps | $grep $process | $grep -v grep` ? 1 : 0;
-    return $is_running;
+    my @procs = `$ps`;
+    chomp @procs;
+    return scalar grep {/$process/i} @procs;
 }
 
 sub is_readable {
@@ -1750,9 +1732,6 @@ sub is_writable {
             . "$nl$nl", %args) if (-e $path && !-w $path);
         return 1;
     }
-
-    # if we get this far, the file exists
-    return $log->error( "is_writable: $file is not a file", %args ) if ! -f $file;
 
     return $log->error( "  $file not writable by " . getpwuid($>) . "$nl$nl", %args ) if ! -w $file;
 
@@ -2110,7 +2089,7 @@ sub syscmd {
         },
     );
 
-    my %args  = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args  = $log->get_std_args( %p );
 
     $log->audit("syscmd: $cmd");
 
@@ -2288,8 +2267,9 @@ Mail::Toaster::Utility - utility subroutines for sysadmin tasks
 
 =head1 SYNOPSIS
 
-  use Mail::Toaster::Utility;
-  my $util = Mail::Toaster::Utility->new;
+  use Mail::Toaster;
+  my $toaster = Mail::Toaster->new;
+  my $util = $toaster->get_util;
 
   $util->file_write($file, lines=> @lines);
 
