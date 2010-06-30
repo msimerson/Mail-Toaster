@@ -1502,33 +1502,15 @@ sub install_module {
 
     if ( lc($OSNAME) eq 'darwin' ) {
         $self->install_module_darwin( $module ) and return 1;
-    };
-
-    if ( lc($OSNAME) eq 'freebsd' ) {
+    }
+    elsif ( lc($OSNAME) eq 'freebsd' ) {
         $self->install_module_freebsd( $module, \%info) and return 1;
+    }
+    elsif ( lc($OSNAME) eq 'linux' ) {
+        $self->install_module_linux( $module, \%info) and return 1;
     };
 
-    if ( lc($OSNAME) eq 'linux' ) {
-
-        my $rpm = $info{rpm};
-        if ( $rpm ) {
-            my $portname = "perl-$rpm";
-            $portname =~ s/::/-/g;
-            my $yum = '/usr/bin/yum';
-            system "$yum -y install $portname" if -x $yum;
-        }
-    };
-
-    print " from CPAN...";
-    require CPAN;
-
-    # some Linux distros break CPAN by auto/preconfiguring it with no URL mirrors.
-    # this works around that annoying little habit
-    no warnings;
-    $CPAN::Config = $self->get_cpan_config();
-    use warnings;
-
-    CPAN::Shell->install($module);
+    $self->install_module_cpan( $module );
 
     eval "use $module";
     if ( ! $EVAL_ERROR ) {
@@ -1536,6 +1518,26 @@ sub install_module {
         return 1;
     };
     return;
+}
+
+sub install_module_cpan {
+    my $self = shift;
+    my ($module, $version) = @_;
+
+    print " from CPAN...";
+    require CPAN;
+    
+    # some Linux distros break CPAN by auto/preconfiguring it with no URL mirrors.
+    # this works around that annoying little habit
+    no warnings;
+    $CPAN::Config = get_cpan_config();
+    use warnings;
+
+    if ( $module eq 'Provision::Unix' && $version ) {
+        $module =~ s/\:\:/\-/g;
+        $module = "M/MS/MSIMERSON/$module-$version.tar.gz";
+    }
+    CPAN::Shell->install($module);
 }
 
 sub install_module_darwin {
@@ -1641,6 +1643,18 @@ sub install_module_from_src {
 
     return $found;
 }
+
+sub install_module_linux {
+    my $self = shift;
+    my ($module, $info ) = @_;
+    my $rpm = $info->{rpm};
+    if ( $rpm ) {
+        my $portname = "perl-$rpm";
+        $portname =~ s/::/-/g;
+        my $yum = '/usr/bin/yum';
+        system "$yum -y install $portname" if -x $yum;
+    }
+};
 
 sub is_interactive {
 

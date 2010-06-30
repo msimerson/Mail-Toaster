@@ -620,22 +620,22 @@ Here's an example of how I use it:
     
 =item install_port
 
-    $fbsd->install_port( "openldap2" );
+    $fbsd->install_port( "openldap" );
 
-That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap2. 
+That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap. 
 
 If you want to install OpenLDAP 2, then you can install from any of:
 
-		/usr/ports/net/openldap2
-		/usr/ports/net/openldap20
-		/usr/ports/net/openldap21
-		/usr/ports/net/openldap22
+		/usr/ports/net/openldap23-server
+		/usr/ports/net/openldap23-client
+		/usr/ports/net/openldap24-server
+		/usr/ports/net/openldap24-client
 
 So, a full complement of settings could look like:
   
-    $freebsd->install_port( "openldap2", 
-		dir   => "openldap22",
-		check => "openldap-2.2",
+    $freebsd->install_port( "openldap-client",
+		dir   => "openldap24-server",
+		check => "openldap-client-2.4",
 		flags => "NOPORTDOCS=true", 
 		fatal => 0,
 	);

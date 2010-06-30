@@ -28,6 +28,8 @@
    renamed M:T:F:ports_update to update_ports
    fixed vqadmin install directories (due to change in FreeBSD port)
    util->get_my_ips is done in perl now, instead of using CLI cut & grep
+   added config questions for squirrelmail, roundcube, spamassassin, and
+     phpMyAdmin database passwords (requested by Carmi)
 
 
 =head2 5.25 - Jun 10, 2010

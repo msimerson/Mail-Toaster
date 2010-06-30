@@ -395,74 +395,20 @@ sub config {
     my $file_path = $toaster->find_config( file => $file_name );
     $conf = $self->refresh_config( $file_path ) or return;
 
+### start questions
     $self->config_hostname();
     $self->config_postmaster();
     $self->config_test_email();
     $self->config_test_email_pass();
     $self->config_vpopmail_mysql_pass();
     $self->config_openssl();
+    $self->config_webmail_passwords();
+### end questions
+### don't forget to add changed fields to the list in save_changes
 
-    # format the config entries to match config file format
-    my @fields = qw/ toaster_hostname toaster_admin_email toaster_test_email
-        toaster_test_email_pass vpopmail_mysql_pass ssl_country ssl_state 
-        ssl_locality ssl_organization /;
-    push @fields, 'vpopmail_mysql_pass' if $conf->{'vpopmail_mysql'};
-
-    my @lines = $util->file_read( $file_path, debug => 0 );
-    foreach my $key ( @fields ) {
-        foreach my $line (@lines) {
-            if ( $line =~ /^$key\s*=/ ) {
-                $line = sprintf( '%-34s = %s', $key, $conf->{$key} );
-            }
-        };
-    };
-
-    # write all the new settings to disk.
-    $util->file_write( "/tmp/toaster-watcher.conf",
-        lines => \@lines,
-        debug => 0,
-    );
-
-    # save the changes back to the current file
-    my $r = $util->install_if_changed(
-            newfile  => "/tmp/toaster-watcher.conf",
-            existing => $file_path,
-            mode     => '0640',
-            clean    => 1,
-            notify   => -e $file_path ? 1 : 0,
-            debug    => 0,
-    )
-    or return $log->error( "installing /tmp/toaster-watcher.conf to $file_path failed!" );
-
-    $r = $r == 1 ? "ok" : "ok (current)";
-    $log->audit( "config: updating $file_path, $r" );
-
-    # install $file_path in $prefix/etc/toaster-watcher.conf if it doesn't exist
-    # already
-    my $config_dir = $conf->{'system_config_dir'} || '/usr/local/etc';
-
-    # if $config_dir is missing, create it
-    $util->mkdir_system( dir => $config_dir ) if ! -e $config_dir;
-
-    my @configs = (
-        { newfile  => $file_path, existing => "$config_dir/$file_name", mode => '0640', overwrite => 0 },
-        { newfile  => $file_path, existing => "$config_dir/$file_name-dist", mode => '0640', overwrite => 1 },
-        { newfile  => 'toaster.conf-dist', existing => "$config_dir/toaster.conf", mode => '0644', overwrite => 0 },
-        { newfile  => 'toaster.conf-dist', existing => "$config_dir/toaster.conf-dist", mode => '0644', overwrite => 1 },
-    );
-
-    foreach ( @configs ) {
-        next if -e $_->{existing} && ! $_->{overwrite};
-        $util->install_if_changed(
-            newfile  => $_->{newfile},
-            existing => $_->{existing},
-            mode     => $_->{mode},
-            clean    => 0,
-            notify   => 1,
-            debug    => 0,
-        );
-    };
-}
+    $self->config_save_changes( $file_path );
+    $self->config_install($file_name, $file_path );
+};
 
 sub config_apply_tweaks {
     my $self = shift;
@@ -554,6 +500,37 @@ sub config_hostname {
       if $self->{debug};
 };
 
+sub config_install {
+    my $self = shift;
+    my ($file_name, $file_path) = @_;
+
+    # install $file_path in $prefix/etc/toaster-watcher.conf if it doesn't exist
+    # already
+    my $config_dir = $conf->{'system_config_dir'} || '/usr/local/etc';
+
+    # if $config_dir is missing, create it
+    $util->mkdir_system( dir => $config_dir ) if ! -e $config_dir;
+
+    my @configs = (
+        { newfile  => $file_path, existing => "$config_dir/$file_name", mode => '0640', overwrite => 0 },
+        { newfile  => $file_path, existing => "$config_dir/$file_name-dist", mode => '0640', overwrite => 1 },
+        { newfile  => 'toaster.conf-dist', existing => "$config_dir/toaster.conf", mode => '0644', overwrite => 0 },
+        { newfile  => 'toaster.conf-dist', existing => "$config_dir/toaster.conf-dist", mode => '0644', overwrite => 1 },
+    );
+
+    foreach ( @configs ) {
+        next if -e $_->{existing} && ! $_->{overwrite};
+        $util->install_if_changed(
+            newfile  => $_->{newfile},
+            existing => $_->{existing},
+            mode     => $_->{mode},
+            clean    => 0,
+            notify   => 1,
+            debug    => 0,
+        );
+    };
+}
+
 sub config_openssl {
     my $self = shift;
     # OpenSSL certificate settings
@@ -603,6 +580,44 @@ sub config_postmaster {
     $log->audit(
         "toaster admin emails sent to $conf->{'toaster_admin_email'}, ok" )
       if $self->{debug};
+};
+
+sub config_save_changes {
+    my $self = shift;
+    my ($file_path) = @_;
+
+    my @fields = qw/ toaster_hostname toaster_admin_email toaster_test_email
+        toaster_test_email_pass vpopmail_mysql_pass ssl_country ssl_state 
+        ssl_locality ssl_organization install_squirrelmail_sql_pass
+        install_roundcube_db_pass install_spamassassin_dbpass
+        phpMyAdmin_controlpassword
+        /;
+    push @fields, 'vpopmail_mysql_pass' if $conf->{'vpopmail_mysql'};
+
+    my @lines = $util->file_read( $file_path, debug => 0 );
+    foreach my $key ( @fields ) {
+        foreach my $line (@lines) {
+            if ( $line =~ /^$key\s*=/ ) {
+# format the config entries to match config file format
+                $line = sprintf( '%-34s = %s', $key, $conf->{$key} );
+            }
+        };
+    };
+
+    $util->file_write( "/tmp/toaster-watcher.conf", lines => \@lines );
+
+    my $r = $util->install_if_changed(
+            newfile  => "/tmp/toaster-watcher.conf",
+            existing => $file_path,
+            mode     => '0640',
+            clean    => 1,
+            notify   => -e $file_path ? 1 : 0,
+    )
+    or return $log->error( "installing /tmp/toaster-watcher.conf to $file_path failed!" );
+
+    my $status = $r == 1 ? "ok" : "ok (current)";
+    $log->audit( "config: updating $file_path, $status" );
+    return $r;
 };
 
 sub config_test_email {
@@ -767,6 +782,7 @@ sub config_tweaks_linux {
 sub config_tweaks_mysql {
     my ($self, %changes) = @_;
 
+    return %changes if $conf->{install_mysql};
     return %changes if ! $util->yes_or_no("Enable MySQL support?");
 
     $log->audit( "config_tweaks: applying MT testing tweaks" );
@@ -795,6 +811,7 @@ sub config_tweaks_testing {
     $changes{'toaster_test_email_pass'}   = 'sdfsdf';
     $changes{'install_squirrelmail_sql'}  = '1';
     $changes{'install_phpmyadmin'}        = '1';
+    $changes{'install_sqwebmail'}         = 'port';
     $changes{'install_vqadmin'}           = 'port';
     $changes{'install_openldap_client'}   = '1';
     $changes{'install_ezmlm_cgi'}         = '1';
@@ -822,6 +839,38 @@ sub config_vpopmail_mysql_pass {
 
     $log->audit( "vpopmail MySQL password set to $conf->{'vpopmail_mysql_pass'}");
 }
+
+sub config_webmail_passwords {
+    my $self = shift;
+
+    if ( $conf->{install_squirrelmail} && 
+         $conf->{install_squirrelmail_sql} && 
+         $conf->{install_squirrelmail_sql_pass} eq 'chAnge7his' ) {
+         $conf->{install_squirrelmail_sql_pass} = 
+            $util->ask("squirrelmail database password");
+    };
+     
+    if ( $conf->{install_roundcube} && 
+         $conf->{install_roundcube_db_pass} eq 'To4st3dR0ndc@be' ) {
+         $conf->{install_roundcube_db_pass} = 
+            $util->ask("roundcube database password");
+    };
+
+    if ( $conf->{install_spamassassin} && 
+         $conf->{install_spamassassin_sql} &&
+         $conf->{install_spamassassin_dbpass} eq 'assSPAMing' ) {
+         $conf->{install_spamassassin_dbpass} = 
+            $util->ask("spamassassin database password");
+    };
+
+    if ( $conf->{install_phpmyadmin} &&
+         $conf->{phpMyAdmin_controlpassword} eq 'pmapass') {
+         $conf->{phpMyAdmin_controlpassword} =
+            $util->ask("phpMyAdmin control password");
+    };
+
+    return 1;
+};
 
 sub courier_imap {
     my $self  = shift;
@@ -1195,7 +1244,7 @@ sub cronolog {
     return $p{test_ok} if defined $p{test_ok}; # for testing
 
     my $ver = $conf->{'install_cronolog'} or 
-        return $log->audit( "cronolog: installing, skipping (disabled)", debug=>1 );
+        return $log->error( "cronolog: skipping install (disabled)", debug=>1,fatal=>0 );
 
     if ( $OSNAME eq "freebsd" && $ver eq "port" ) {
         return $self->cronolog_freebsd();
@@ -1414,7 +1463,7 @@ sub dependencies_freebsd {
     push @to_install, { port => "ispell", category => 'textproc' } 
         if $conf->{'install_ispell'};
     push @to_install, { port => 'gdbm'  };
-    push @to_install, { port  => "openldap23-client", check => "openldap-client", } 
+    push @to_install, { port  => 'openldap23-client', check => "openldap-client" }
         if $conf->{'install_openldap_client'};
     push @to_install, { port  => "qmail", flags   => "BATCH=yes",
         options => "#\n# Installed by Mail::Toaster 
@@ -2174,25 +2223,14 @@ sub ezmlm_makefile_fixup {
 }
 
 sub filtering {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     if ( $OSNAME eq "freebsd" ) {
 
-        $self->maildrop(debug=>$debug) if ( $conf->{'install_maildrop'} );
+        $self->maildrop();
 
         $freebsd->install_port( "p5-Archive-Tar", 
 			options=> "# This file was generated by mail-toaster
@@ -2205,20 +2243,32 @@ WITHOUT_TEXT_DIFF=true",
         $freebsd->install_port( "p5-Mail-Audit" );
         $freebsd->install_port( "unzip" );
 
-        $self->razor(  debug=>$debug );
+        $self->razor();
 
         $freebsd->install_port( "pyzor" ) if $conf->{'install_pyzor'};
         $freebsd->install_port( "bogofilter" ) if $conf->{'install_bogofilter'};
-        $freebsd->install_port( "dcc-dccd", flags => "WITHOUT_SENDMAIL=yes", ) if $conf->{'install_dcc'};
+        $freebsd->install_port( "dcc-dccd", 
+            flags => "WITHOUT_SENDMAIL=yes", 
+            options => "# This file generated by mail-toaster
+# Options for dcc-dccd-1.3.116
+_OPTIONS_READ=dcc-dccd-1.3.116
+WITH_DCCIFD=true
+WITHOUT_DCCM=true
+WITH_DCCD=true
+WITH_DCCGREY=true
+WITH_IPV6=true
+WITHOUT_ALT_HOME=true
+WITHOUT_PORTS_SENDMAIL=true\n",
+            ) if $conf->{'install_dcc'};
 
         $freebsd->install_port( "procmail" ) if $conf->{'install_procmail'};
         $freebsd->install_port( "p5-Email-Valid" );
     }
 
-    $self->spamassassin ( debug=>$debug );
-    $self->razor        ( debug=>$debug );
-    $self->clamav       ( debug=>$debug );
-    $self->simscan      ( debug=>$debug );
+    $self->spamassassin;
+    $self->razor;
+    $self->clamav;
+    $self->simscan;
 }
 
 sub filtering_test {
@@ -2234,6 +2284,7 @@ sub filtering_test {
 }
 
 sub gmake_freebsd {
+    my $self = shift;
 
 # iconv to suppress a prompt, and because gettext requires it
     $freebsd->install_port( 'libiconv',
@@ -2324,29 +2375,17 @@ sub group_exists {
 };  
 
 sub imap_test_auth {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => $debug },
-            'test_ok' => { type => BOOLEAN, optional => 1, },
-        },
-    );
-
-    my $fatal = $p{'fatal'};
-       $debug = $p{'debug'};
+    my %p = validate( @_, { %std_opts },);
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
-    $self->imap_test_auth_nossl( $debug );
-    $self->imap_test_auth_ssl( $debug );
+    $self->imap_test_auth_nossl();
+    $self->imap_test_auth_ssl();
 };
 
 sub imap_test_auth_nossl {
     my $self = shift;
-    my $debug = shift;
 
     my $r = $util->install_module("Mail::IMAPClient", debug => 0);
     $log->test("checking Mail::IMAPClient", $r );
@@ -2371,8 +2410,7 @@ sub imap_test_auth_nossl {
 
     my @features = $imap->capability
         or warn "Couldn't determine capability: $@\n";
-    print "Your IMAP server supports: " . join( ',', @features ) . "\n\n"
-        if $debug;
+    $log->audit( "Your IMAP server supports: " . join( ',', @features ) );
     $imap->logout;
 
     print "an authentication that should fail\n";
@@ -2392,7 +2430,7 @@ sub imap_test_auth_nossl {
 };
 
 sub imap_test_auth_ssl {
-    my ($self, $debug) = @_;
+    my $self = shift;
 
     my $user = $conf->{'toaster_test_email'}      || 'test2@example.com';
     my $pass = $conf->{'toaster_test_email_pass'} || 'cHanGeMe';
@@ -2438,20 +2476,10 @@ sub imap_test_auth_ssl {
 }
 
 sub is_newer {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate( @_, {
-            'min'   => { type => SCALAR },
-            'cur'   => { type => SCALAR },
-            'debug' => { type => SCALAR, optional => 1, default => $debug },
-        },
-    );
+    my %p = validate( @_, { 'min' => SCALAR, 'cur' => SCALAR, %std_opts } );
 
     my ( $min, $cur ) = ( $p{'min'}, $p{'cur'} );
-
-    $debug = $p{'debug'};
 
     my @mins = split( q{\.}, $min );
     my @curs = split( q{\.}, $cur );
@@ -2605,6 +2633,7 @@ sub lighttpd {
     };
 
     $self->lighttpd_config();
+    $self->php();
     $self->lighttpd_start();
 };
 
@@ -2820,7 +2849,7 @@ sub maildrop {
     my %p = validate( @_, { %std_opts },);
 
     my $ver = $conf->{'install_maildrop'} or do {
-        print "skipping maildrop install, it's not enabled.\n";
+        $log->audit( "skipping maildrop install, not enabled.");
         return 0;
     };
 
@@ -2919,11 +2948,7 @@ sub maildrop_filter {
 
 sub maildrop_filter_file {
     my $self  = shift;
-    my %p = validate( @_, {
-            'logbase' => { type => SCALAR, },
-            %std_opts,
-        },
-    );
+    my %p = validate( @_, { 'logbase' => SCALAR, %std_opts, },);
 
     my $logbase = $p{'logbase'};
 
@@ -3951,6 +3976,11 @@ sub pop3_test_auth {
 sub php {
     my $self = shift;
 
+    if ( ! $conf->{install_php} ) {
+        $log->audit("install php skipped, not selected", debug=>1);
+        return;
+    };
+
     if ( $OSNAME eq 'freebsd' ) {
         return $self->php_freebsd();
     };
@@ -3968,6 +3998,7 @@ sub php_freebsd {
     $freebsd->install_port( "php5",
         category=> 'lang',
         options => "#\n# This file was generated by mail-toaster
+# No user-servicable parts inside!
 # Options for php5-5.3.2_1
 _OPTIONS_READ=php5-5.3.2_1
 WITH_CLI=true
@@ -3977,7 +4008,8 @@ WITHOUT_DEBUG=true
 WITH_SUHOSIN=true
 WITHOUT_MULTIBYTE=true
 WITH_IPV6=true
-WITHOUT_MAILHEAD=true\n",
+WITHOUT_MAILHEAD=true
+WITHOUT_LINKTHR=true\n",
     ) or return;
 
     my $config = "/usr/local/etc/php.ini";
@@ -4502,6 +4534,9 @@ sub roundcube_config {
             {   search  => q{$rcmail_config['default_host'] = '';},
                 replace => q{$rcmail_config['default_host'] = 'localhost';},
             },
+            {   search  => q{$rcmail_config['session_lifetime'] = 10;},
+                replace => q{$rcmail_config['session_lifetime'] = 30;},
+            },
         ],
     );
 
@@ -4561,7 +4596,7 @@ sub roundcube_config_mysql {
     $log->audit( "roundcube database permissions configured" );
     $mysql->query( $dbh, "CREATE DATABASE roundcubemail" );
     $mysql->query( $dbh, "USE DATABASE roundcubemail" );
-    $mysql->query( $dbh, "SOURCE $rcdir/SQL/mysql.initial.sql" );
+    $mysql->query( $dbh, "LOAD DATA LOCAL INFILE '$rcdir/SQL/mysql.initial.sql'" );
     $sth->finish;
     return 1;
 };
@@ -4961,11 +4996,7 @@ sub smtp_test_auth_fail {
 
 sub socklog {
     my $self  = shift;
-    my %p = validate( @_, {
-            'ip'    => { type => SCALAR, },
-            %std_opts,
-        },
-    );
+    my %p = validate( @_, { 'ip' => SCALAR, %std_opts, },);
 
     my $ip    = $p{'ip'};
 
