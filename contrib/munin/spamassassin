@@ -15,6 +15,11 @@ if [ "$1" = "autoconf" ]; then
         exit 0
 fi
 
+maillogs=/usr/local/bin/maillogs
+if [ ! -f $maillogs ]; then
+    maillogs=/usr/local/sbin/maillogs
+fi
+
 if [ "$1" = "config" ]; then
 
         echo 'graph_title SpamAssassin Mail Filtering'
@@ -22,7 +27,7 @@ if [ "$1" = "config" ]; then
         echo 'graph_vlabel Messages /hour'
         echo 'graph_category Mail'
         echo 'graph_info This graph show the Spamassasin results.'
-        /usr/local/sbin/maillogs spamassassin | awk "
+        $maillogs spamassassin | awk "
         BEGIN {
             X = 0
         }
@@ -50,7 +55,7 @@ fi
 
 print_values(){
     X=0
-     /usr/local/sbin/maillogs spamassassin | awk "
+     $maillogs spamassassin | awk "
         BEGIN {
             X = 0
         }

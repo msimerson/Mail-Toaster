@@ -155,20 +155,20 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
     
 =item install_port</pre>
 <pre>
-    $fbsd-&gt;install_port( &quot;openldap2&quot; );</pre>
-<p>That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap2.</p>
+    $fbsd-&gt;install_port( &quot;openldap&quot; );</pre>
+<p>That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap.</p>
 <p>If you want to install OpenLDAP 2, then you can install from any of:</p>
 <pre>
-                /usr/ports/net/openldap2
-                /usr/ports/net/openldap20
-                /usr/ports/net/openldap21
-                /usr/ports/net/openldap22</pre>
+                /usr/ports/net/openldap23-server
+                /usr/ports/net/openldap23-client
+                /usr/ports/net/openldap24-server
+                /usr/ports/net/openldap24-client</pre>
 <p>So, a full complement of settings could look like:</p>
 <pre>
 
-    $freebsd-&gt;install_port( &quot;openldap2&quot;, 
-                dir   =&gt; &quot;openldap22&quot;,
-                check =&gt; &quot;openldap-2.2&quot;,
+    $freebsd-&gt;install_port( &quot;openldap-client&quot;,
+                dir   =&gt; &quot;openldap24-server&quot;,
+                check =&gt; &quot;openldap-client-2.4&quot;,
                 flags =&gt; &quot;NOPORTDOCS=true&quot;, 
                 fatal =&gt; 0,
         );</pre>
@@ -190,10 +190,10 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
 
 <dd>
 <pre>
-        $fbsd-&gt;install_package( port=&gt;&quot;ispell&quot; );</pre>
+        $fbsd-&gt;install_package( &quot;ispell&quot; );</pre>
 <p>Suggested usage:</p>
 <pre>
-        unless ( $fbsd-&gt;install_package( port=&gt;&quot;ispell&quot; ) ) {
+        unless ( $fbsd-&gt;install_package( &quot;ispell&quot; ) ) {
                 $fbsd-&gt;install_port( &quot;ispell&quot; );
         };</pre>
 <p>Installs the selected package from FreeBSD packages. If the first install fails, it will try again using an alternate FTP site (ftp2.freebsd.org). If that fails, it returns 0 (failure) so you know it failed and can try something else, like installing via ports.</p>

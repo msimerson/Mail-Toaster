@@ -62,8 +62,7 @@ my $util = $toaster->get_util;
 
 
 # install_package
-	ok ( $freebsd->install_package( 
-            port=>"perl", 
+	ok ( $freebsd->install_package( "perl", 
             debug=>0,
             fatal=>0,
             test_ok=>1,

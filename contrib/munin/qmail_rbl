@@ -15,6 +15,11 @@ if [ "$1" = "autoconf" ]; then
         exit 0
 fi
 
+maillogs=/usr/local/bin/maillogs
+if [ ! -f $maillogs ]; then
+    maillogs=/usr/local/sbin/maillogs
+fi
+
 if [ "$1" = "config" ]; then
 
         echo 'graph_title RBL Spam Blocks'
@@ -22,7 +27,7 @@ if [ "$1" = "config" ]; then
         echo 'graph_vlabel blocks/hour'
         echo 'graph_category Mail'
         echo 'graph_info This graph show the RBL blocks per rbl.'
-        /usr/local/sbin/maillogs rbl | awk "
+        $maillogs rbl | awk "
         BEGIN {
             X = 0
         }
@@ -42,7 +47,7 @@ fi
 
 print_values(){
     X=0
-     /usr/local/sbin/maillogs rbl | awk "
+     $maillogs rbl | awk "
         BEGIN {
             X = 0
         }

@@ -50,9 +50,6 @@ cgi_files/support/pop3.html
 cgi_files/support/ssl.html
 cgi_files/support/webmail.html
 Changes
-contrib/httpd.conf-2.0.diff
-contrib/httpd.conf-2.0.patch
-contrib/httpd.conf-2.2.patch
 contrib/Mail-Ezmlm-0.4.patch
 contrib/Mail-Ezmlm-0.5.patch
 contrib/munin/qmail_rbl

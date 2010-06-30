@@ -12,7 +12,7 @@
    updated t_setup -s mailtoaster target (from $util-> to $toaster->)
    cleaned up more debug and log messages
    changed API for cwd_source_dir, chown, extract_archive, get_url, is_readable,
-     is_writable, check_pidfile
+     is_writable, check_pidfile, install_package
    changed some builtin chown calls to using $util->chown
    renamed util->file_get to util->get_url
    renamed util->file_archive to archive_file
@@ -30,6 +30,8 @@
    util->get_my_ips is done in perl now, instead of using CLI cut & grep
    added config questions for squirrelmail, roundcube, spamassassin, and
      phpMyAdmin database passwords (requested by Carmi)
+   updated Ezmlm.pm and ezmlm.cgi 
+   t_setup.pl -s webmail will try to find the cgi_files folder before error
 
 
 =head2 5.25 - Jun 10, 2010

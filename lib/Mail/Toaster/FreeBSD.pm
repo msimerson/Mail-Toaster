@@ -3,7 +3,7 @@ package Mail::Toaster::FreeBSD;
 use strict;
 use warnings;
 
-our $VERSION = '5.25';
+our $VERSION = '5.26';
 
 use Cwd;
 use Carp;
@@ -13,7 +13,7 @@ use Params::Validate qw( :all );
 use vars qw($err);
 
 use lib 'lib';
-use Mail::Toaster 5.25;
+use Mail::Toaster 5.26;
 my ($toaster, $log, $util, %std_opts );
 
 sub new {
@@ -76,7 +76,7 @@ sub get_port_category {
 
     my ($path) = </usr/ports/*/$port/distinfo>;
     if ( ! $path ) {
-        $path = </usr/ports/*/$port/Makefile>;
+        ($path) = </usr/ports/*/$port/Makefile>;
     };
 #warn "path: $path\n";
     return if ! $path;
@@ -248,12 +248,11 @@ sub install_portupgrade {
     # of portupgrade from ports
 
     if ( $self->get_version =~ m/\A6/ ) {
-        $self->install_package( port => "portupgrade", %args );
+        $self->install_package( "portupgrade", %args );
     }
 
     if ( $package eq "packages" ) {
-        $self->install_package(
-            port  => "ruby18_static",
+        $self->install_package( "ruby18_static",
             alt   => "ruby-1.8",
             %args,
         );
@@ -267,16 +266,16 @@ sub install_portupgrade {
 
 sub install_package {
     my $self = shift;
+    my $package = shift or die "missing package in request\n";
     my %p    = validate(
         @_,
-        {   'port'  => { type => SCALAR, },
-            'alt'   => { type => SCALAR, optional => 1, },
+        {   'alt'   => { type => SCALAR, optional => 1, },
             'url'   => { type => SCALAR, optional => 1, },
             %std_opts,
         },
     );
 
-    my ( $package, $alt, $pkg_url ) = ( $p{'port'}, $p{'alt'}, $p{'url'} );
+    my ( $alt, $pkg_url ) = ( $p{'alt'}, $p{'url'} );
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $util->error("sorry, but I really need a package name!") if !$package;
@@ -657,11 +656,11 @@ So, a full complement of settings could look like:
 
 =item install_package
 
-	$fbsd->install_package( port=>"ispell" );
+	$fbsd->install_package( "ispell" );
 
 Suggested usage: 
 
-	unless ( $fbsd->install_package( port=>"ispell" ) ) {
+	unless ( $fbsd->install_package( "ispell" ) ) {
 		$fbsd->install_port( "ispell" );
 	};
 

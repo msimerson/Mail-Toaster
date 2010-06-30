@@ -3,7 +3,7 @@ use warnings;
 
 package Mail::Toaster::Ezmlm;
 
-our $VERSION = '5.25';
+our $VERSION = '5.26';
 
 use Params::Validate qw( :all );;
 use Pod::Usage;
@@ -12,7 +12,7 @@ use English qw( -no_match_vars );
 use lib 'lib';
 use Mail::Toaster          5.26; 
 
-my ($toaster, $log, $util, %std_opts );
+my ( $log, $util, %std_opts );
 
 sub new {
     my $class = shift;
@@ -80,12 +80,8 @@ a user ($UID) that lacks permission to run this script. You can:<br>
   <blockquote>
     a: run this script suid vpopmail<br>
     b: run the web server as user vpopmail<br>
+    c: use suEXEC
   </blockquote>
-
-The easiest and most common methods is:<br>
-<br>
-  chown vpopmail /path/to/ezmlm.cgi<br>
-  chmod 4755 /path/to/ezmlm.cgi<br>
 <br>
 \n\n";
 
@@ -195,13 +191,9 @@ sub logo {
         },
     );
 
-	my ($conf, $logo, $alt )
-        = ( $p{'conf'}, $p{'web_logo_url'}, $p{'web_logo_alt'} );
-
-    $logo ||= $conf->{'web_logo_url'}
-        || "http://www.tnpi.net/images/head.jpg";
-        
-    $alt ||= $conf->{'web_logo_alt_text'} || "tnpi.net logo";
+	my $conf = $p{'conf'};
+    my $logo = $conf->{'web_logo_url'} or return '';
+    my $alt  = $conf->{'web_logo_alt'} || '';
 
     return "<img src=\"$logo\" alt=\"$alt\">";
 }
@@ -225,13 +217,9 @@ sub process_cgi {
     use CGI::Carp qw( fatalsToBrowser );
     print header('text/html');
 
-    #use Mail::Toaster::CGI;
+    $util->install_module( "HTML::Template", debug => $debug,);
 
-    $util->install_module( "HTML::Template", debug      => $debug,);
-
-    my $conf = $toaster->parse_config( file=>"toaster.conf", debug => 0 );
-
-    #die "FAILURE: Could not find toaster.conf!\n" unless $conf;
+    my $conf = $log->parse_config( file=>"toaster.conf", debug => 0 );
 
     $debug = 0;
 

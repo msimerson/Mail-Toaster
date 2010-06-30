@@ -2,8 +2,6 @@
 use strict;
 use warnings;
 
-our $VERSION = "5.25";
-
 use English qw( -no_match_vars );
 use Getopt::Long;
 use Pod::Usage;

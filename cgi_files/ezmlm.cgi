@@ -11,7 +11,7 @@ use Mail::Toaster::Ezmlm;
 my $toaster = Mail::Toaster->new(debug=>0);
 my $ezmlm = Mail::Toaster::Ezmlm->new( 'log' => $toaster );
 
-if ( $ENV{'GATEWAY_INTERFACE'} ) { $ezmlm->process_cgi(br=>"\n", debug=>1); } 
+if ( $ENV{'GATEWAY_INTERFACE'} ) { $ezmlm->process_cgi(br=>"\n", debug=>0); } 
 else                             { $ezmlm->process_shell()  };
 
 exit 0;

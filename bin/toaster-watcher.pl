@@ -2,8 +2,6 @@
 use strict;
 use warnings;
 
-our $VERSION = '5.25';
-
 use English qw( -no_match_vars );
 use Getopt::Std;
 
@@ -36,7 +34,7 @@ my %args = ( fatal=>0, debug => $debug );
 # suppress test output when not running in debug mode
 my $quiet = 1; $quiet-- if $debug;  
 
-print "$0 v$VERSION\n" if $debug;
+print "$0 v$Mail::Toaster::VERSION\n" if $debug;
 
 $toaster->log( "Starting up" );
 $qmail->config( first_time => 0, %args );

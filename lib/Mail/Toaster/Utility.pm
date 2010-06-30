@@ -1496,8 +1496,10 @@ sub install_package {
 sub install_module {
     my ($self, $module, %info) = @_;
 
+    my $debug = defined $info{debug} ? $info{debug} : 1;
+
     eval "use $module";
-    return $log->audit( "$module is already installed.",debug=>1 ) 
+    return $log->audit( "$module is already installed.",debug=>$debug ) 
         if ! $EVAL_ERROR;
 
     if ( lc($OSNAME) eq 'darwin' ) {

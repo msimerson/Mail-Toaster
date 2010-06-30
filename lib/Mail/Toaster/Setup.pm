@@ -432,6 +432,7 @@ sub config_apply_tweaks {
 # ); 
 #
     # read in file
+    my $debug = $p{debug};
     my @lines = $util->file_read( $p{file} ) or return;
 
     my $total_found = 0;
@@ -475,12 +476,12 @@ sub config_apply_tweaks {
                 };
             }
         };
-        $log->error( "attempt to replace\n$search\n\twith\n$replace\n\tfailed", fatal => 0)
-            if ( ! $found && ! $e->{nowarn} );
+        $log->error( "attempt to replace\n$search\n\twith\n$replace\n\tfailed", 
+            fatal => 0) if ( ! $found && ! $e->{nowarn} );
         $total_found += $found;
     };
 
-    $log->audit( "config_tweaks replaced $total_found lines" );
+    $log->audit( "config_tweaks replaced $total_found lines",debug=>$debug );
 
     $util->file_write( $p{file}, lines => \@lines );
 };
@@ -821,6 +822,7 @@ sub config_tweaks_testing {
     $changes{'install_dcc'}               = '1';
     $changes{'vpopmail_default_domain'}   = 'jail.simerson.net';
     $changes{'pop3_ssl_daemon'}           = 'qpop3d';
+    $changes{'install_spamassassin_flags'}= '-v -u spamd -q -A 10.0.1.67 -H /var/spool/spamd -x';
 
     return %changes;
 }
@@ -1463,9 +1465,12 @@ sub dependencies_freebsd {
     push @to_install, { port => "ispell", category => 'textproc' } 
         if $conf->{'install_ispell'};
     push @to_install, { port => 'gdbm'  };
-    push @to_install, { port  => 'openldap23-client', check => "openldap-client" }
-        if $conf->{'install_openldap_client'};
-    push @to_install, { port  => "qmail", flags   => "BATCH=yes",
+    push @to_install, { port  => 'openldap23-client', 
+        check    => "openldap-client",
+        category => 'net',
+        } if $conf->{'install_openldap_client'};
+    push @to_install, { port  => "qmail", 
+        flags   => "BATCH=yes",
         options => "#\n# Installed by Mail::Toaster 
 # Options for qmail-1.03_7\n_OPTIONS_READ=qmail-1.03_7",
     };
@@ -1477,7 +1482,7 @@ sub dependencies_freebsd {
     if ( $package eq "packages" ) {
         foreach ( @to_install ) {
             my $port = $_->{port} || $_->{name};
-            $freebsd->install_package( port => $port, fatal => 0 );
+            $freebsd->install_package( $port, fatal => 0 );
         };
     }
 
@@ -1488,7 +1493,7 @@ sub dependencies_freebsd {
             options => defined $port->{'options'}? $port->{'options'}: q{},
             check   => defined $port->{'check'}  ? $port->{'check'}  : q{},
             fatal   => defined $port->{'fatal'}  ? $port->{'fatal'} : 1,
-            category=> $port->{category},
+            category=> defined $port->{category} ? $port->{category} : '',
         );
     }
 };
@@ -2310,7 +2315,7 @@ sub gnupg_install {
     return if ! $conf->{'install_gnupg'};
 
     if ( $conf->{package_install_method} eq 'packages' ) {
-        $freebsd->install_package( port => "gnupg", debug=>0, fatal => 0 );
+        $freebsd->install_package( "gnupg", debug=>0, fatal => 0 );
         return 1 if $freebsd->is_port_installed('gnupg');
     };
 
@@ -2740,9 +2745,11 @@ alias.url = (  "/cgi-bin/"       => "' . $cgi_bin . '/",
 $HTTP["url"] =~ "^/awstats/" {
     cgi.assign = ( "" => "/usr/bin/perl" )
 }
-
 $HTTP["url"] =~ "^/cgi-bin" {
      cgi.assign = ( "" => "" )
+}
+$HTTP["url"] =~ "^/ezmlm.cgi" {
+         cgi.assign = ( "" => "/usr/bin/perl" )
 }
 
 # redirect users to a secure connection
@@ -3598,6 +3605,16 @@ qq{\n$locals\n},
 
     foreach ( @setup_links ) { system $_; };
 
+    my $t_ver = $Mail::Toaster::VERSION;
+    my $dist = "/usr/local/src/Mail-Toaster-$t_ver";
+    if ( -d $dist ) {
+        my @plugins = qw/ qmail_rbl spamassassin /;
+        foreach ( @plugins ) { 
+            copy("$dist/contrib/munin/$_", "$munin_etc/plugins" );
+            chmod oct('0755'), "$munin_etc/plugins/$_";
+        };
+    };
+
     system "/usr/local/etc/rc.d/munin-node", "restart";
 };
 
@@ -4047,7 +4064,7 @@ sub phpmyadmin {
                 )
               )
             {
-                $freebsd->install_package( port => "XFree86-Libraries" );
+                $freebsd->install_package( "XFree86-Libraries" );
             }
         }
         if ( $conf->{'install_php'} eq "4" ) {
@@ -4475,7 +4492,7 @@ sub roundcube {
     return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     if ( ! $conf->{'install_roundcube'} ) {
-        print "not installing roundcube, not selected!\n";
+        $log->audit( "not installing roundcube, not selected!", debug=>1);
         return 0;
     };
 
@@ -4564,8 +4581,8 @@ sub roundcube_config_mysql {
     my $config = "$rcdir/config/db.inc.php";
     my $pass = $conf->{install_roundcube_db_pass};
 
-    if ( ! `grep mysql $config | grep pass` ) {
-        $log->audit( "roundcube database permission already configured" );
+    if ( ! `grep mysql $config | grep ':pass'` ) {
+        $log->audit( "roundcube database permission already configured",debug=>1 );
         return 1;
     };
 
@@ -4576,6 +4593,7 @@ sub roundcube_config_mysql {
                 replace => "\$rcmail_config['db_dsnw'] = 'mysql://roundcube:$pass\@localhost/roundcubemail';",
             },
         ],
+        debug => 1,
     );
 
     require Mail::Toaster::Mysql;
@@ -4586,17 +4604,31 @@ sub roundcube_config_mysql {
     my ( $dbh, $dsn, $drh ) = $mysql->connect( $dot );
     return if !$dbh;
 
-    my $query = "GRANT ALL PRIVILEGES ON roundcubemail.* to 'roundcube'\@'$host' IDENTIFIED BY '$pass'";
-    my $sth = $mysql->query( $dbh, $query );
+
+    my $sth = $mysql->query( $dbh, "USE roundcubemail" );
     if ( $sth->errstr ) {
-        $sth->finish;
-        return $log->error( "roundcube database configuration failed. Configure manually" );
+        $mysql->query( $dbh, "CREATE DATABASE roundcubemail" );
+        if ( $sth->errstr ) {
+            $sth->finish;
+            $log->error( "roundcube database creation failed. Configure manually" );
+            return;
+        };
+
+        $sth = $mysql->query( $dbh, "GRANT ALL PRIVILEGES ON roundcubemail.* to 'roundcube'\@'$host' IDENTIFIED BY '$pass'" );
+        if ( $sth->errstr ) {
+            $sth->finish;
+            $log->error( "roundcube database configuration failed. Configure manually" );
+            return;
+        };
+        $log->audit( "configured roundcube database privileges (ok)",debug=>1 );
+
+        my $mysql = $util->find_bin('mysql');
+        my $initial = "$rcdir/SQL/mysql.initial.sql";
+        system "mysql roundcubemail < $initial" and 
+            return $log->error("failed to import mysql databases, try manually running this command\n\t: mysql roundcubemail < $initial\n",debug=>1);
+        $log->audit( "roundcube database initialized",debug=>1 );
     };
 
-    $log->audit( "roundcube database permissions configured" );
-    $mysql->query( $dbh, "CREATE DATABASE roundcubemail" );
-    $mysql->query( $dbh, "USE DATABASE roundcubemail" );
-    $mysql->query( $dbh, "LOAD DATA LOCAL INFILE '$rcdir/SQL/mysql.initial.sql'" );
     $sth->finish;
     return 1;
 };
@@ -5234,6 +5266,8 @@ sub spamassassin_sql {
         my $file = "/usr/local/etc/mail/spamassassin/sql.cf";
         unless ( -f $file ) {
             my @lines = <<EO_SQL_CF;
+loadplugin Mail::SpamAssassin::Plugin::AWL
+
 user_scores_dsn                 DBI:mysql:spamassassin:localhost
 user_scores_sql_username        $conf->{'install_spamassassin_dbuser'}
 user_scores_sql_password        $conf->{'install_spamassassin_dbpass'}
@@ -7153,29 +7187,37 @@ sub webmail {
     my %p = validate( @_, { %std_opts },);
 
     # if the cgi_files dir is not available, we can't do much.
+    my $tver = $Mail::Toaster::VERSION;
+    my $dir = './cgi_files';
+    if ( ! -d $dir ) {
+        if ( -d "/usr/local/src/Mail-Toaster-$tver/cgi_files" ) {
+            $dir = "/usr/local/src/Mail-Toaster-$tver/cgi_files";
+        }
+    };
+
     return $log->error( "You need to run this target while in the Mail::Toaster directory!\n" 
         . "Try this instead:
 
-   cd /usr/local/src/Mail-Toaster-x.xx
+   cd /usr/local/src/Mail-Toaster-$tver
    bin/toaster_setup.pl -s webmail
 
-You are currently in " . Cwd::cwd ) if ! -d "cgi_files";
+You are currently in " . Cwd::cwd ) if ! -d $dir;
 
     # set the hostname in mt-script.js
     my $hostname = $conf->{'toaster_hostname'};
 
-    my @lines = $util->file_read("cgi_files/mt-script.js");
+    my @lines = $util->file_read("$dir/mt-script.js");
     foreach my $line ( @lines ) {
         if ( $line =~ /\Avar mailhost / ) {
             $line = qq{var mailhost = 'https://$hostname'};
         };
     }
-    $util->file_write( "cgi_files/mt-script.js", lines => \@lines );
+    $util->file_write( "$dir/mt-script.js", lines => \@lines );
 
     my $htdocs = $conf->{'toaster_http_docs'} || '/usr/local/www/toaster';
     my $rsync = $self->rsync() or return;
 
-    my $cmd = "$rsync -av ./cgi_files/ $htdocs/";
+    my $cmd = "$rsync -av $dir/ $htdocs/";
     print "about to run cmd: $cmd\n";
 
     print "\a";

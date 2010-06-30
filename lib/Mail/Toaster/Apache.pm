@@ -164,11 +164,11 @@ sub install_1_freebsd {
     my $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
 
     if ( $conf->{'package_install_method'} eq "packages" ) {
-        $freebsd->install_package( port => "mm" );
-        $freebsd->install_package( port => "gettext" );
-        $freebsd->install_package( port => "libtool" );
-        $freebsd->install_package( port => "apache" );
-        $freebsd->install_package( port => "p5-libwww" );
+        $freebsd->install_package( "mm" );
+        $freebsd->install_package( "gettext" );
+        $freebsd->install_package( "libtool" );
+        $freebsd->install_package( "apache" );
+        $freebsd->install_package( "p5-libwww" );
     }
     else {
         $freebsd->install_port( "mm",      );
@@ -186,7 +186,7 @@ sub install_1_freebsd {
     }
 
     unless ( $freebsd->is_port_installed( "apache" ) ) {
-        $freebsd->install_package( port => "apache" );
+        $freebsd->install_package( "apache" );
     }
 
     $freebsd->conf_check( check=>"apache_enable", line=>'apache_enable="YES"' );
@@ -272,8 +272,8 @@ sub install_2_freebsd {
         }
         else {
             print "install_2: attempting package install.\n";
-            $freebsd->install_package( port => $ports_dir, alt => "apache-2" );
-            $freebsd->install_package( port => "p5-libwww" );
+            $freebsd->install_package( $ports_dir, alt => "apache-2" );
+            $freebsd->install_package( "p5-libwww" );
         }
     }
 
@@ -676,8 +676,8 @@ WITHOUT_KERBEROS=true\n",
 
     # php stuff
     if ( $conf->{'package_install_method'} eq "packages" ) {
-        $freebsd->install_package( port => "bison" );
-        $freebsd->install_package( port => "gd"  );
+        $freebsd->install_package( "bison" );
+        $freebsd->install_package( "gd"  );
     }
     $freebsd->install_port( "bison" );
     $freebsd->install_port( "gd"    );
