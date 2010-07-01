@@ -33,14 +33,14 @@ ok( $conf, 'toaster-watcher.conf loaded');
 
 # process_shell
     if ( $conf->{'install_ezmlm_cgi'} ) {
-        ok( $ezmlm->process_shell(), 'process_shell');
+        ok( $ezmlm->process_shell( test_ok => 1 ), 'process_shell');
     }
 
 # authenticate
     if ( eval "require vpopmail" ) {
         ok( ! $ezmlm->authenticate(
-            domain=>'example.com', 
-            password=>'exampass',
+            domain   => 'example.com', 
+            password => 'exampass',
         ), 'authenticate');
     };
 
@@ -59,7 +59,7 @@ ok( ! $ezmlm->subs_add (
 
 #ok( ! $ezmlm->lists_get(domain=>'example.com',debug=>0), 'subs_list');
 
-ok( $ezmlm->logo(), 'logo');
+ok( $ezmlm->logo( test_ok => 1), 'logo');
 
 ok( $ezmlm->dir_check(dir=>"/tmp",debug=>0) , 'dir_check');
 

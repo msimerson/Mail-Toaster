@@ -3,7 +3,6 @@ bin/install_deps.pl
 bin/maillogs
 bin/migrate.pl
 bin/qqtool.pl
-bin/swaks
 bin/toaster-watcher.pl
 bin/toaster_setup.pl
 cgi_files/ezmlm.cgi
@@ -56,6 +55,7 @@ contrib/munin/qmail_rbl
 contrib/munin/spamassassin
 contrib/qmail-tap.diff
 contrib/services.sh
+contrib/swaks
 DEVELOP
 doc/Changes.html
 doc/Changes.pod

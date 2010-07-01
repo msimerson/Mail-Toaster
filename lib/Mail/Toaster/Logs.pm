@@ -833,7 +833,10 @@ sub spama_count {
     my %temp = ( spam => 1, ham => 1 );
 
     foreach (@$logfiles) {
-        open my $LOGF, "<", $_;
+        open my $LOGF, "<", $_ or do {
+            carp "unable to open $_: $!";
+            next;
+        };
 
         while ( my $line = <$LOGF> ) {
             next unless $line =~ /spamd/;
@@ -1468,20 +1471,12 @@ sub counter_create {
 };
 
 sub counter_read {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
-    my %p = validate(@_, { 
-            'file' => SCALAR, 
-            'debug' => {type=>BOOLEAN, optional=>1, default=>$debug},
-        } 
-    );
+    my %p = validate(@_, { 'file' => SCALAR, %std_opts } );
+    my %args = $log->get_std_args( %p );
 
     my $file  = $p{'file'} or croak "you must pass a filename!\n";
-       $debug = $p{'debug'};
-
-    print "counter_read: fetching counters from $file..." if $debug;
+    my $debug = $p{'debug'};
 
     if ( ! -e $file ) {
         $self->counter_create( $file ) or return;
@@ -1494,36 +1489,32 @@ sub counter_read {
         $hash{ $description } = $count;
     }
 
-    print "done.\n" if $debug;
+    $log->audit( "counter_read: read counters from $file", %args );
 
     return \%hash;
 }
 
 sub counter_write {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-    
     my %p = validate( @_, {
             'values' => HASHREF,
             'log'    => SCALAR,
-            'fatal'  => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'  => { type=>BOOLEAN, optional=>1, default=>$debug },
+            %std_opts,
         },
     );
+    my %args = $log->get_std_args( %p );
 
-    $debug = $p{'debug'};
-    my ( $log, $values_ref, $fatal ) = ( $p{'log'}, $p{'values'}, $p{'fatal'} );
+    my ( $logfile, $values_ref ) = ( $p{'log'}, $p{'values'} );
 
-    if ( -d $log ) { 
-        print "FAILURE: counter_write $log is a directory!\n"; 
+    if ( -d $logfile ) { 
+        print "FAILURE: counter_write $logfile is a directory!\n"; 
     }
 
-    return $log->error( "counter_write: $log is not writable",fatal=>0 )
-        unless $util->is_writable( $log, debug => 0, fatal=>$fatal );
+    return $log->error( "counter_write: $logfile is not writable",fatal=>0 )
+        unless $util->is_writable( $logfile, %args  );
 
-    unless ( -e $log ) {
-        print "NOTICE: counter_write is creating $log";
+    unless ( -e $logfile ) {
+        print "NOTICE: counter_write is creating $logfile";
     }
 
     # it might be necessary to wrap the counters
@@ -1534,7 +1525,7 @@ sub counter_write {
 
     my @lines;
     while ( my ($key, $value) = each %$values_ref ) {
-        print "key: $key  \t val: $value \n" if $debug;
+        $log->audit( "key: $key  \t val: $value", %args);
         if ( $key && defined $value ) {
             # 32 bit - 4294967295
             # 64 bit - 18446744073709551615
@@ -1543,16 +1534,7 @@ sub counter_write {
         }
     }
 
-    if ($debug) {
-        #require Data::Dumper;
-        #print Data::Dumper::Dumper ($values_ref); 
-    };
-
-    return $util->file_write( $log, 
-        lines => \@lines, 
-        debug => $debug,
-        fatal => $fatal,
-    );
+    return $util->file_write( $logfile, lines => \@lines, %args );
 }
 
 sub get_cronolog_handle {

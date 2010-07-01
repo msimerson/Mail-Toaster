@@ -36,12 +36,13 @@ my $util = $toaster->get_util;
 
 
 # get_port_category
+if ( -f '/usr/ports/Makefile' ) {
     my @ports = qw/ openssl p5-Net-DNS qmail gdbm /;
     foreach ( @ports ) {
         my $r = $freebsd->get_port_category($_);
         ok( $r && -d "/usr/ports/$r/$_", "get_port_category, $_, $r" );
     };
-    
+} 
 
 # get_version
     ok ( $freebsd->get_version(), 'get_version');

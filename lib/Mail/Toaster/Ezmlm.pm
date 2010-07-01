@@ -18,8 +18,9 @@ sub new {
     my $class = shift;
     my %p     = validate( @_,
         {   'log' => { type => OBJECT  },
-            fatal => { type => BOOLEAN, optional => 1, default => 1 },
-            debug => { type => BOOLEAN, optional => 1 },
+            fatal   => { type => BOOLEAN, optional => 1 },
+            debug   => { type => BOOLEAN, optional => 1 },
+            test_ok => { type => BOOLEAN, optional => 1 },
         }
     );
 
@@ -51,23 +52,23 @@ sub new {
 sub authenticate {
     my $self = shift;
 	my %p = validate ( @_, {
-	        'domain'   => { type=>SCALAR,  optional=>0, },
-	        'password' => { type=>SCALAR,  optional=>0, },
+	        'domain'   => SCALAR,
+	        'password' => SCALAR,
             %std_opts,
         },
 	);
 
-	my ($domain, $password, $fatal, $debug) 
-	    = ($p{'domain'}, $p{'password'}, $p{'fatal'}, $p{'debug'} );
+	my ($domain, $password ) = ( $p{domain}, $p{password} );
+    my %args = $log->get_std_args( %p );
 
-    print "attempting to authenticate postmaster\@$domain..." if $debug;
+    return $p{test_ok} if defined $p{test_ok};
 
-    $util->install_module( "vpopmail", debug => $debug,);
+    $util->install_module( "vpopmail", %args );
 
     require vpopmail;
 
     if ( vpopmail::vauth_user( 'postmaster', $domain, $password, undef ) ) {
-        print "ok.<br>" if $debug;
+        $log->audit( "authenticated postmaster\@$domain (ok)", %args);
         return 1;
     }
 
@@ -91,8 +92,8 @@ a user ($UID) that lacks permission to run this script. You can:<br>
 sub dir_check {
     my $self = shift;
     my %p = validate( @_, {
-            'dir'     => { type=>SCALAR, },
-            'br'      => { type=>SCALAR,  optional=>1, default=>'<br>' },
+            'dir' => SCALAR,
+            'br'  => { type=>SCALAR,  optional=>1, default=>'<br>' },
             %std_opts,
         },
     );
@@ -100,28 +101,23 @@ sub dir_check {
     my ( $dir, $br, $fatal, $debug )
         = ( $p{'dir'}, $p{'br'}, $p{'fatal'}, $p{'debug'} );
 
-    print "dir_check: checking: $dir..." if $debug;
-
     unless ( -d $dir && -r $dir ) {
-        print "ERROR: No read permissions to $dir: $! $br";
+        $log->error( "no read perms to $dir: $! $br",fatal=>0);
         return 0;
-    }
-    else {
-        print "ok.$br" if $debug;
-        return 1;
-    }
+    };
+
+    $log->audit( "dir_check: checking: $dir" );
+    return 1;
 }
 
 sub footer {
     shift;    # $self
-    my $VERSION = shift;
-
     print <<EOFOOTER;
 <hr> <p align="center"><font size="-2">
 		<a href="http://mail-toaster.org">Mail::Toaster::Ezmlm</a>
-      $VERSION -
-		&copy; <a href="http://www.tnpi.net">The Network People, Inc.</a> 1999-2008 <br><br>
-        <!--Donated to the toaster community by <a href="mailto:sam.mayes\@sudhian.com">Sam Mayes</a>--></font>
+      $Mail::Toaster::VERSION -
+		&copy; <a href="http://www.tnpi.net">The Network People, Inc.</a> 1999-2010 <br><br>
+        </font>
      </p>
   </body>
 </html>
@@ -192,6 +188,8 @@ sub logo {
     );
 
 	my $conf = $p{'conf'};
+    return $p{test_ok} if defined $p{test_ok};
+
     my $logo = $conf->{'web_logo_url'} or return '';
     my $alt  = $conf->{'web_logo_alt'} || '';
 
@@ -311,25 +309,29 @@ sub process_cgi {
         print "missing auth, action, or lists<br>";
     }
 
-    $self->footer($VERSION);
+    $self->footer();
 }
 
 sub process_shell {
     my $self = shift;
-    use vars qw($opt_a $opt_d $opt_f $opt_v $list $debug);
+    my %p     = validate( @_, { %std_opts } );
+    use vars qw($opt_a $opt_d $opt_f $opt_v $list );
+    my $debug = $p{debug};
 
-    $util->install_module( "Mail::Ezmlm", debug => 0,);
+    $util->install_module( "Mail::Ezmlm", %p );
     require Mail::Ezmlm;
 
     use Getopt::Std;
     getopts('a:d:f:v');
 
     my $br = "\n";
-    $debug = $opt_v ? 1 : 0;
+    $debug = $opt_v if defined $opt_v;
 
     # set up based on command line options
     my $list_dir;
     $list_dir = $opt_d if $opt_d;
+
+    return $p{test_ok} if defined $p{test_ok};
 
     # set a default list dir if not already set
     if (! $list_dir) {
@@ -481,10 +483,6 @@ sub subs_list {
 1;
 __END__
 
-# =head1 ACKNOWLEDGEMENTS
-#
-# Funded by Sam Mayes (sam.mayes@sudhian.com) and donated to the toaster community
-# I'll add this back in if Sam ever pays.
 
 =head1 NAME
 

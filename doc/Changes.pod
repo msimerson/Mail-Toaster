@@ -1,7 +1,13 @@
 
 =head1 Mail Toaster Changes
 
-=head2 5.26 - Jun 
+  
+=head2 5.27 - Jul 
+   style updates to Ezmlm.pm and fix test failures in t/Ezmlm.t
+   maillogs fails more gracefully when the log files are unreadable
+
+
+=head2 5.26 - Jun 31, 2010
    added php build and post-install config (php.ini) support for freebsd
    replaced inline squirrelmail config with local overrides
    added build and post-install config support for lighttpd

@@ -2,7 +2,7 @@
 use Config qw/ myconfig /;
 use Data::Dumper;
 use English qw/ -no_match_vars /;
-use Test::More tests => 22;
+use Test::More tests => 21;
 
 use lib 'lib';
 
