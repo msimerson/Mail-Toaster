@@ -1534,8 +1534,6 @@ sub djbdns {
 
     return $p{test_ok} if defined $p{test_ok}; # for testing 
 
-    my $tinydns;
-
     return $log->error( "djbdns: installing, skipping (disabled)",fatal=>0 )
         if !$conf->{'install_djbdns'};
 
@@ -1547,7 +1545,18 @@ sub djbdns {
         if ( -x $util->find_bin( 'tinydns', fatal => 0 ) );
 
     if ( $OSNAME eq "freebsd" ) {
-        $freebsd->install_port( "djbdns" );
+        $freebsd->install_port( "djbdns",
+            options => "#\n
+# Options for djbdns-1.05_13
+_OPTIONS_READ=djbdns-1.05_13
+WITHOUT_DUMPCACHE=true
+WITHOUT_IPV6=true
+WITHOUT_IGNOREIP=true
+WITHOUT_JUMBO=true
+WITH_MAN=true
+WITHOUT_PERSISTENT_MMAP=true
+WITHOUT_SRV=true\n",
+        );
 
         return $log->audit( "djbdns: installing djbdns, ok" )
             if $util->find_bin( 'tinydns', fatal => 0 );
@@ -3595,7 +3604,7 @@ qq{\n$locals\n},
 
     $util->file_write( "$munin_etc/plugin-conf.d/plugins.conf",
         append => 1,
-        lines => [ "\n[qmailqstat]\nuser qmailq\nenv.qmailstat /var/qmail/bin/qmail-qstat"],
+        lines => [ "\n[qmailqstat]\nuser qmails\nenv.qmailstat /var/qmail/bin/qmail-qstat"],
     ) if ! `grep qmailqstat "$munin_etc/plugin-conf.d/plugins.conf"`;
 
     my @setup_links = `/usr/local/sbin/munin-node-configure --suggest --shell`;
@@ -3638,10 +3647,7 @@ sub mysql {
 }
 
 sub nictool {
-
     my $self  = shift;
-    my $debug = $self->{'debug'};
-
     my %p = validate( @_, { %std_opts, },);
 
     return $p{test_ok} if defined $p{test_ok}; # for testing 
@@ -3671,7 +3677,7 @@ sub nictool {
 
     # install NicTool Server
     my $perlbin   = $util->find_bin( "perl", fatal => 0 );
-    my $version   = "NicToolServer-2.03";
+    my $version   = "NicToolServer-2.06";
     my $http_base = $conf->{'toaster_http_base'};
 
     my @targets = ( "$perlbin Makefile.PL", "make", "make install" );
@@ -3692,7 +3698,7 @@ sub nictool {
     );
 
     # install NicTool Client
-    $version = "NicToolClient-2.03";
+    $version = "NicToolClient-2.06";
     @targets = ( "$perlbin Makefile.PL", "make", "make install" );
     push @targets, "make test";
 

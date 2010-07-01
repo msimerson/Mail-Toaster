@@ -313,7 +313,7 @@ sub config {
     my $qdir    = $conf->{'qmail_dir'}       || "/var/qmail";
     my $tmp     = $conf->{'toaster_tmp_dir'} || "/tmp";
     my $host    = $conf->{'toaster_hostname'};
-    if ( $host !~ /qmail|system/ ) { $host = `hostname`; chomp $host; };
+    if ( $host =~ /qmail|system/ ) { $host = `hostname`; chomp $host; };
 
     return $p{test_ok} if defined $p{test_ok};
 

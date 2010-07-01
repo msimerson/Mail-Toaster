@@ -2,7 +2,7 @@
 #
 # Plugin to show the RBL blocks per hour
 #
-# Contributed by rob Lensen <rob@bsdfreaks.nl>
+# Contributed by Rob Lensen <rob@bsdfreaks.nl>
 #
 # Magic markers - optional - used by installation scripts and
 # munin-config:

@@ -235,15 +235,7 @@ A complete set of instructions for building a mail toaster are on the toaster in
 
            help - print this usage screen
          config - initial configuration of toaster*.conf files
-           perl - installs or upgrades perl
             pre - installs a list of programs and libraries other toaster components need
-
-                     FreeBSD Specific
-          ports - updates your ports tree, installs the pkg_* tools
-        sources - update your FreeBSD sources (/usr/src)
-        jailadd - creates a new jail
-      jailstart - starts up an existing jail
-     jaildelete - deletes an existing jail
 
                     Standard Daemons & Utilities
           mysql - installs MySQL
@@ -280,7 +272,6 @@ A complete set of instructions for building a mail toaster are on the toaster in
           razor - installs the razor2 agents
        maildrop - installs maildrop and mailfilter
          clamav - installs just ClamAV
-   qmailscanner - installs Qmail-Scanner & qmailscanner stats
         simscan - install simscan
         simconf - configure simscan 
         simtest - run email tests to verify that simscan is working
@@ -289,7 +280,6 @@ A complete set of instructions for building a mail toaster are on the toaster in
 
                   Logs, Statistics, and Monitoring
        maillogs - creates the mail logging directories
-            qss - installs qmailscanner stats
         socklog - installs socklog
         isoqlog - installs and configured isoqlog
       supervise - creates the directories to be used by svscan
@@ -301,8 +291,6 @@ A complete set of instructions for building a mail toaster are on the toaster in
  imap|pop3|smtp - do authentication test for imap, pop3, or smtp-auth
 
         toaster - install Mail::Toaster
-     mattbundle - install MATT::Bundle
-            mrm - install Mysql::Replication
      logmonster - install Apache::Logmonster
         nictool - install nictool (http://www.nictool.com/)
             all - installs everything shown on the toaster INSTALL page

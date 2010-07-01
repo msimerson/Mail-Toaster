@@ -6,6 +6,9 @@
 
    style updates to Ezmlm.pm and fix test failures in t/Ezmlm.t
    maillogs fails more gracefully when the log files are unreadable
+   POD doc cleanups
+   fixed inverted regexp match that caused control/me to be set to the system
+     hostname instead of toaster-watcher.conf configured value
 
 
 =head2 5.26 - Jun 31, 2010

@@ -94,11 +94,11 @@ install_mysql                      = 0       # 0, 1, 2, 3, 40, 41, 5, 51
 install_mysqld                     = 0       # 0, 1
 install_mysql_optimized            = 0
 install_mysql_dir                  = /var/db/mysql
-install_courier_imap               = port    # 0, ver, port (3.0.8)
-install_sqwebmail                  = 0       # 0, ver, port (4.0.7)
+install_courier_imap               = port    # 0, ver, port
+install_sqwebmail                  = 0       # 0, ver, port
 install_dovecot                    = port    # 0, ver, port
 install_gnupg                      = 1       # 0, port
-install_qmail                      = 0       # 0, ver       (1.03)
+install_qmail                      = 0       # 0, ver
 install_netqmail                   = 1.05    # 0, ver
 install_qmailadmin                 = 1.2.9   # 0, ver, port
 install_autorespond                = 2.0.5   # 0, ver, port
@@ -147,23 +147,21 @@ install_dspam                      = 0
 install_simscan                    = 1.4.0   # 0, ver
 install_qmailscanner               = 0       # 0, ver       (1.25  as of 04/08/05)
 install_qmailscanner_stats         = 0       # 0, ver       (2.0.2 as of 02/02/05)
-install_clamav                     = port    # 0, port, ver (0.84  as of 05/02/05)
+install_clamav                     = port    # 0, port, ver
 install_clamav_user                = clamav  # qscand | clamav
 install_pyzor                      = 0
-install_razor                      = port    # 0, port, ver (2.80  as of 03/15/06)
+install_razor                      = port    # 0, port, ver
 install_bogofilter                 = 0
 install_dcc                        = 0
-install_ripmime                    = port    # 0, port, ver (1.4.0.6 as of 3/15/06)
+install_ripmime                    = port    # 0, port, ver
 
 filtering_method                   = tcpserver  # smtp | tcpserver  # see docs for details
 filtering_spamassassin_method      = site       # site | user | domain
 filtering_maildrop_filter_file     = /usr/local/etc/mail/mailfilter
-filtering_spama_discard_score      = 12      # discard messages with a SA score above this
+filtering_spama_discard_score      = 12      # discard messages above this score
 filtering_report_spam_spamassassin = 1
-filtering_report_spam_pyzor        = 0       # don't enable this with report_spamassassin
+filtering_report_spam_pyzor        = 0       # don't enable with report_spamassassin
 filtering_debug                    = 1
-
-install_smtp-delay                 = 0       # feature not coded yet
 
 
 ######################################

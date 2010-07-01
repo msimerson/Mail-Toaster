@@ -296,7 +296,7 @@ sub parse_cmdline_flags {
     my $debug = $self->{'debug'};
 
     my %p = validate(@_, {
-        'prot' => { type=>SCALAR, optional=>1, },
+        'prot' => { type=>SCALAR|UNDEF, optional=>1, },
         %std_opts,
     } );
 

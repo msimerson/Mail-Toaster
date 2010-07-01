@@ -49,7 +49,7 @@ maillogs - A log file post-processer for multilog log files
 
 =head1 SYNOPSIS
  
-  maillog <protocol> [-r] [-v]
+  maillogs <protocol> [-r] [-v]
 
    <protocol> is one of: 
    

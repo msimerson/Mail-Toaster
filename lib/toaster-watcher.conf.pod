@@ -127,10 +127,6 @@ If you already have Apache installed, set install_apache to be your installed ve
 
 Set install_apache_user to the username that apache will run under. The "www" is is very popular, as is "nobody".
 
-  install_apache2_modperl        = 1
-
-If this is set to 1, and install_apache is set to 2, then mod_perl 2 will be built and installed.
-
   install_mysql                  = 4   # 0, 1, 2, 3, 40, 41, 5
 
 You can choose from a variety of MySQL version to install. The code meanings are as follows:
