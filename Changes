@@ -1,38 +1,40 @@
 Mail Toaster Changes
-  5.27 - Jul 
-   style updates to Ezmlm.pm and fix test failures in t/Ezmlm.t
-   maillogs fails more gracefully when the log files are unreadable
+  5.27 - Jul
+       style updates to Ezmlm.pm and fix test failures in t/Ezmlm.t
+       maillogs fails more gracefully when the log files are unreadable
+
   5.26 - Jun 31, 2010
-   added php build and post-install config (php.ini) support for freebsd
-   replaced inline squirrelmail config with local overrides
-   added build and post-install config support for lighttpd
-   added sqlite build option for roundcube when install_mysql = 0
-   added t/01.syntax (syntax checks for bin/*, lib/*, cgi_files/ezmlm.cgi)
-   renamed port_install to install_port (see DEVELOP)
-   added munin install support and configuration
-   updated t_setup -s mailtoaster target (from $util-> to $toaster->)
-   cleaned up more debug and log messages
-   changed API for cwd_source_dir, chown, extract_archive, get_url, is_readable,
-     is_writable, check_pidfile, install_package
-   changed some builtin chown calls to using $util->chown
-   renamed util->file_get to util->get_url
-   renamed util->file_archive to archive_file
-   renamed util->pidfile_check to check_pidfile
-   renamed M:T:U:archive_expand to extract_archive
-   for objects in classes beneath Mail::Toaster:
-     new objects inherit debug and fatal settings from the Mail::Toaster object
-     when loading a M:T:Utility, use $toaster->get_util instead of loading 
-     when a method is run, it can inherit its parents values for debug and 
-       fatal by adding %std_opts to its own parameter validation
-     removed hundreds of places where debug settings were explicity passed.
-   renamed M:T:F:package_install to install_package
-   renamed M:T:F:ports_update to update_ports
-   fixed vqadmin install directories (due to change in FreeBSD port)
-   util->get_my_ips is done in perl now, instead of using CLI cut & grep
-   added config questions for squirrelmail, roundcube, spamassassin, and
-     phpMyAdmin database passwords (requested by Carmi)
-   updated Ezmlm.pm and ezmlm.cgi 
-   t_setup.pl -s webmail will try to find the cgi_files folder before error
+       added php build and post-install config (php.ini) support for freebsd
+       replaced inline squirrelmail config with local overrides
+       added build and post-install config support for lighttpd
+       added sqlite build option for roundcube when install_mysql = 0
+       added t/01.syntax (syntax checks for bin/*, lib/*, cgi_files/ezmlm.cgi)
+       renamed port_install to install_port (see DEVELOP)
+       added munin install support and configuration
+       updated t_setup -s mailtoaster target (from $util-> to $toaster->)
+       cleaned up more debug and log messages
+       changed API for cwd_source_dir, chown, extract_archive, get_url, is_readable,
+         is_writable, check_pidfile, install_package
+       changed some builtin chown calls to using $util->chown
+       renamed util->file_get to util->get_url
+       renamed util->file_archive to archive_file
+       renamed util->pidfile_check to check_pidfile
+       renamed M:T:U:archive_expand to extract_archive
+       for objects in classes beneath Mail::Toaster:
+         new objects inherit debug and fatal settings from the Mail::Toaster object
+         when loading a M:T:Utility, use $toaster->get_util instead of loading 
+         when a method is run, it can inherit its parents values for debug and 
+           fatal by adding %std_opts to its own parameter validation
+         removed hundreds of places where debug settings were explicity passed.
+       renamed M:T:F:package_install to install_package
+       renamed M:T:F:ports_update to update_ports
+       fixed vqadmin install directories (due to change in FreeBSD port)
+       util->get_my_ips is done in perl now, instead of using CLI cut & grep
+       added config questions for squirrelmail, roundcube, spamassassin, and
+         phpMyAdmin database passwords (requested by Carmi)
+       updated Ezmlm.pm and ezmlm.cgi 
+       t_setup.pl -s webmail will try to find the cgi_files folder before error
+
   5.25 - Jun 10, 2010
        added M:T:get_util & get_config methods (rathan than having other classes accessing the object data.
        removed $conf from calls to M:T:U:install_from_source
