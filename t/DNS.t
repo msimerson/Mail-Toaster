@@ -18,7 +18,7 @@ ok( defined $dns, 'new (get a Mail::Toaster::DNS object)' );
 ok( $dns->isa('Mail::Toaster::DNS'), 'dns object class' );
 
 # rbl_test_ns
-my $zone = 'bl.spamcop.net';
+my $zone = 'zen.spamhaus.org';
 my $has_ns = $dns->rbl_test_ns( rbl => $zone );
 ok( $has_ns, "rbl_test_ns +, $zone" )
     or do {
