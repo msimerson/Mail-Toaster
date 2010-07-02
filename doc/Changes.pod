@@ -9,7 +9,8 @@
    POD doc cleanups
    fixed inverted regexp match that caused control/me to be set to the system
      hostname instead of toaster-watcher.conf configured value
-
+   added URI to prereq list in Makefile.PL 
+   skip rbl tests if client can't resolv bl.spamcop.net properly
 
 =head2 5.26 - Jun 31, 2010
 

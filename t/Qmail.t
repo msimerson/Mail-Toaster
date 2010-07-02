@@ -39,14 +39,17 @@ my $has_net_dns;
 # get_list_of_rbls
     $qmail->set_config( {'rbl_bl.spamcop.net'=> 1} );
 	$r = $qmail->get_list_of_rbls(debug=>0,fatal=>0 );
-	cmp_ok ( $r, "eq", ' \
-		-r bl.spamcop.net', 'get_list_of_rbls'); 
+    # some folks have problems resolving bl.spamcop.net
+    if ( $r ) {  
+        cmp_ok ( $r, "eq", ' \
+            -r bl.spamcop.net', 'get_list_of_rbls'); 
 
-	# test one with a sort order
-    $qmail->set_config(  {'rbl_bl.spamcop.net'=> 2} );
-	$r = $qmail->get_list_of_rbls( debug=>0, fatal=>0 );
-	cmp_ok ( $r, "eq", ' \
-		-r bl.spamcop.net', 'get_list_of_rbls'); 
+        # test one with a sort order
+        $qmail->set_config(  {'rbl_bl.spamcop.net'=> 2} );
+        $r = $qmail->get_list_of_rbls( debug=>0, fatal=>0 );
+        cmp_ok ( $r, "eq", ' \
+            -r bl.spamcop.net', 'get_list_of_rbls'); 
+    };
 
 	# no enabled rbls!
     $qmail->set_config( {'rbl_bl.spamcop.net'=> 0} );

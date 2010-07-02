@@ -121,6 +121,7 @@ WriteMakefile(
             'version'         => 0,
 #			'vpopmail'      => 0, 
 #			'HTML::Template' => 1,
+            'URI'             => 0,
 		},
 	AUTHOR            => 'Matt Simerson (matt@tnpi.net)',
 	ABSTRACT          => 'Mail::Toaster perl programs and modules',
