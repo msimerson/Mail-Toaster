@@ -25,14 +25,16 @@ my $conf = $toaster->get_config();
 my $setup = Mail::Toaster::Setup->new( 'log' => $toaster, conf => $conf );
 ok( defined $setup, 'new Mail::Toaster::Setup object)' );
 ok( $setup->isa('Mail::Toaster::Setup'), 'setup object class' );
+# 6 tests completed
 
 my $initial_working_directory = cwd;
-
 my @subs_to_test = qw/ apache autorespond clamav courier_imap cronolog
-  daemontools djbdns expat ezmlm mysql openssl_conf
-  razor simscan spamassassin vpopmail vqadmin 
+  daemontools djbdns dovecot expat ezmlm lighttpd munin mysql 
+  openssl_conf qmailadmin razor roundcube simscan spamassassin 
+  squirrelmail sqwebmail vpopmail vqadmin 
 /;
 
+# 3 tests per sub
 foreach my $sub (@subs_to_test) {
 
     my $install_sub = "install_$sub";

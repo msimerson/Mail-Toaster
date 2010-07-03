@@ -121,6 +121,7 @@ install_ispell                     = 1
 install_quota_tools                = 0
 install_roundcube                  = port    # 0, port
 install_roundcube_db_pass          = To4st3dR0ndc@be
+install_munin                      = port
 
 # openssl 
 install_openssl                    = 1

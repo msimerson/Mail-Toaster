@@ -105,7 +105,7 @@ sub install_1_source {
         $util->syscmd( 
 "./configure --with-apache=../$apache --with-ssl=/usr --enable-shared=ssl --with-mm=/usr/local"
         );
-    }
+    };
 
     chdir("../$mod_perl");
     if ( $OSNAME eq "darwin" ) {

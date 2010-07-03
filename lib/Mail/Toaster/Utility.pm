@@ -741,9 +741,9 @@ sub find_bin {
 
     my @prefixes;
     push @prefixes, $p{dir} if $p{dir};
-    push @prefixes, qw" 
+    push @prefixes, qw"
         /usr/local/bin /usr/local/sbin/ /opt/local/bin /opt/local/sbin
-        $prefix/mysql/bin /bin /usr/bin /sbin /usr/sbin 
+        $prefix/mysql/bin /bin /usr/bin /sbin /usr/sbin
         ";
     push @prefixes, cwd;
 

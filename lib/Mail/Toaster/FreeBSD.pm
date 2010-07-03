@@ -219,13 +219,13 @@ sub is_port_installed {
 
     my $pkg_info = $util->find_bin( 'pkg_info', debug => 0 );
     my @packages = `pkg_info`; chomp @packages;
-    my @matches = grep {/^$port/} @packages;
-    if ( scalar @matches == 0 ) {
-        @matches = grep {/^$alt/} @packages;
-    };   
+    my @matches = grep {/^$port\-/} @packages;
+    if ( scalar @matches == 0 ) { @matches = grep {/^$port/} @packages; };
+    if ( scalar @matches == 0 ) { @matches = grep {/^$alt\-/ } @packages; };
+    if ( scalar @matches == 0 ) { @matches = grep {/^$alt/ } @packages; };
     return if scalar @matches == 0; # no matches
     $toaster->audit( "WARN: found multiple matches for port $port",debug=>1)
-        if scalar @matches != 1;
+        if scalar @matches > 1;
 
     my ($installed_as) = split(/\s/, $matches[0]);
     $toaster->audit( "found port $port installed as $installed_as",debug=>$p{debug} );
