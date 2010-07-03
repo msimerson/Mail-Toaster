@@ -3965,39 +3965,39 @@ sub pop3_test_auth {
     );
 
     foreach ( sort keys %auths ) {
-        pop3_auth( $_, $auths{$_} );
-    }
-
-    sub pop3_auth {
-
-        my ( $key, $v ) = @_;
-
-        my $type  = $v->{'type'};
-        my $descr = $v->{'descr'};
-
-        my $user = $conf->{'toaster_test_email'}        || 'test2@example.com';
-        my $pass = $conf->{'toaster_test_email_pass'}   || 'cHanGeMe';
-        my $host = $conf->{'pop3_ip_address_listen_on'} || 'localhost';
-        $host = "localhost" if ( $host =~ /system|qmail|all/i );
-
-        my $pop = Mail::POP3Client->new(
-            HOST      => $host,
-            AUTH_MODE => $type,
-            USESSL    => $v->{ssl} ? 1 : 0,
-        );
-
-        $pop->User($user);
-        $pop->Pass($pass);
-        $pop->Connect() >= 0 || warn $pop->Message();
-        $log->test( "  $key authentication", ($pop->State() eq "TRANSACTION"));
-
-        if ( my @features = $pop->Capa() ) {
-            #print "  POP3 server supports: " . join( ",", @features ) . "\n";
-        }
-        $pop->Close;
+        $self->pop3_auth( $_, $auths{$_} );
     }
 
     return 1;
+}
+
+sub pop3_auth {
+    my $self = shift;
+    my ( $name, $v ) = @_;
+
+    my $type  = $v->{'type'};
+    my $descr = $v->{'descr'};
+
+    my $user = $conf->{'toaster_test_email'}        || 'test2@example.com';
+    my $pass = $conf->{'toaster_test_email_pass'}   || 'cHanGeMe';
+    my $host = $conf->{'pop3_ip_address_listen_on'} || 'localhost';
+    $host = "localhost" if ( $host =~ /system|qmail|all/i );
+
+    my $pop = Mail::POP3Client->new(
+        HOST      => $host,
+        AUTH_MODE => $type,
+        USESSL    => $v->{ssl} ? 1 : 0,
+    );
+
+    $pop->User($user);
+    $pop->Pass($pass);
+    $pop->Connect() >= 0 || warn $pop->Message();
+    $log->test( "  $name authentication", ($pop->State() eq "TRANSACTION"));
+
+    if ( my @features = $pop->Capa() ) {
+        #print "  POP3 server supports: " . join( ",", @features ) . "\n";
+    }
+    $pop->Close;
 }
 
 sub php {

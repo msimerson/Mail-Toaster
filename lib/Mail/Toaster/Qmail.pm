@@ -1214,6 +1214,27 @@ sub install_qmail_control_log_files {
     }
 }
 
+sub install_ssl_temp_key {
+    my ( $cert, $fatal ) = @_;
+
+    my $user  = $conf->{'smtpd_run_as_user'} || "vpopmail";
+    my $group = $conf->{'qmail_group'}       || "qmail";
+
+    $util->chmod(
+        file_or_dir => "$cert.new",
+        mode        => '0660',
+        fatal       => $fatal,
+    );
+
+    $util->chown( "$cert.new",
+        uid   => $user,
+        gid   => $group,
+        fatal => $fatal,
+    );
+
+    move( "$cert.new", $cert );
+}
+
 sub maildir_in_skel {
 
     my $skel = "/usr/share/skel";
@@ -1751,28 +1772,6 @@ sub rebuild_ssl_temp_keys {
     }
 
     return 1;
-
-    sub install_ssl_temp_key {
-
-        my ( $cert, $fatal ) = @_;
-
-        my $user  = $conf->{'smtpd_run_as_user'} || "vpopmail";
-        my $group = $conf->{'qmail_group'}       || "qmail";
-
-        $util->chmod(
-            file_or_dir => "$cert.new",
-            mode        => '0660',
-            fatal       => $fatal,
-        );
-
-        $util->chown( "$cert.new",
-            uid   => $user,
-            gid   => $group,
-            fatal => $fatal,
-        );
-
-        move( "$cert.new", $cert );
-    }
 }
 
 sub restart {

@@ -1,9 +1,9 @@
 package Mail::Toaster::Utility;
 
-our $VERSION = '5.30';
-
 use strict;
 use warnings;
+
+our $VERSION = '5.30';
 
 use Cwd;
 use Carp;
@@ -32,7 +32,9 @@ sub new {
     if ( ! $log ) {
         my @bits = split '::', $class; pop @bits;
         my $parent_class = join '::', grep { defined $_ } @bits;
+## no critic ( ProhibitStringyEval )
         eval "require $parent_class";
+## use critic
         $log = $parent_class->new();
     };
 
@@ -385,7 +387,7 @@ sub cwd_source_dir {
 
 sub _try_mkdir {
     my ( $dir ) = @_;
-    mkpath( $dir, 0, 0755) 
+    mkpath( $dir, 0, oct('0755') ) 
         or return $log->error( "mkdir $dir failed: $!");
     $log->audit( "created $dir");
     return 1;
@@ -1023,7 +1025,9 @@ sub get_url {
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     my ($ua, $response);
+    ## no critic ( ProhibitStringyEval )
     eval "require LWP::Simple";
+    ## use critic
     return $self->get_url_system( $url, %p ) if $EVAL_ERROR;
 
     my $uri = URI->new($url);
@@ -1472,7 +1476,7 @@ sub install_package {
         }
 
         print "installing $app\n";
-        my $portdir = </usr/ports/*/$portname>;
+        my $portdir = glob("/usr/ports/*/$portname");
 
         return $log->error( "oops, couldn't find port $app at '$portname'")
             if ( ! -d $portdir || ! chdir $portdir );
@@ -1498,7 +1502,9 @@ sub install_module {
 
     my $debug = defined $info{debug} ? $info{debug} : 1;
 
+## no critic ( ProhibitStringyEval )
     eval "use $module";
+## use critic
     return $log->audit( "$module is already installed.",debug=>$debug ) 
         if ! $EVAL_ERROR;
 
@@ -1514,7 +1520,9 @@ sub install_module {
 
     $self->install_module_cpan( $module );
 
+    ## no critic ( ProhibitStringyEval )
     eval "use $module";
+    ## use critic
     if ( ! $EVAL_ERROR ) {
         $log->audit( "$module is installed." );
         return 1;
@@ -1569,7 +1577,7 @@ sub install_module_freebsd {
     my $r = `/usr/sbin/pkg_info | /usr/bin/grep $portname`;
     return $log->audit( "$module is installed as $r") if $r;
 
-    my $portdir = </usr/ports/*/$portname>;
+    my $portdir = glob("/usr/ports/*/$portname");
 
     if ( $portdir && -d $portdir && chdir $portdir ) {
         $log->audit( "installing $module from ports ($portdir)" );
@@ -1690,7 +1698,9 @@ sub is_interactive {
 sub is_process_running {
     my ( $self, $process ) = @_;
 
+## no critic ( ProhibitStringyEval )
     eval "require Proc::ProcessTable";
+## use critic
     if ( ! $EVAL_ERROR ) {
         my $i = 0;
         my $t = Proc::ProcessTable->new();

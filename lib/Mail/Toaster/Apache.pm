@@ -1,9 +1,9 @@
 package Mail::Toaster::Apache;
 
-our $VERSION = '5.26';
-
 use strict;
 use warnings;
+
+our $VERSION = '5.26';
 
 use Carp;
 use English qw( -no_match_vars );

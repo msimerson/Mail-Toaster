@@ -74,9 +74,9 @@ sub get_port_category {
     my $self = shift;
     my $port = shift or die "missing port in request\n";
 
-    my ($path) = </usr/ports/*/$port/distinfo>;
+    my ($path) = glob("/usr/ports/*/$port/distinfo");
     if ( ! $path ) {
-        ($path) = </usr/ports/*/$port/Makefile>;
+        ($path) = glob("/usr/ports/*/$port/Makefile");
     };
 #warn "path: $path\n";
     return if ! $path;
