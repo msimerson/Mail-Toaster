@@ -193,7 +193,7 @@ sub autorespond {
         source_sub_dir => 'mail',
     );
 
-    if ( -x $util->find_bin( "autorespond", fatal => 0, debug => 0, ) ) {
+    if ( $util->find_bin( "autorespond", fatal => 0, debug => 0, ) ) {
         $log->audit( "autorespond: installed ok" );
         return 1;
     }
@@ -1309,10 +1309,10 @@ sub daemontools {
     }
 
     # see if the svscan binary is already installed
-    if ( -x $util->find_bin( "svscan", fatal => 0, debug => 0 ) ) {
+    $util->find_bin( "svscan", fatal => 0, debug => 0 ) and do {
         $log->audit( "daemontools: installing, ok (exists)" );
         return 1;
-    }
+    };
 
     $self->daemontools_src();
 };
@@ -1539,9 +1539,8 @@ sub djbdns {
     $self->daemontools();
     $self->ucspi_tcp();
 
-    # test to see if it is installed.
     return $log->audit( "djbdns: installing djbdns, ok (already installed)" )
-        if ( -x $util->find_bin( 'tinydns', fatal => 0 ) );
+        if $util->find_bin( 'tinydns', fatal => 0 );
 
     if ( $OSNAME eq "freebsd" ) {
         $self->djbdns_freebsd();
@@ -1549,6 +1548,12 @@ sub djbdns {
         return $log->audit( "djbdns: installing djbdns, ok" )
             if $util->find_bin( 'tinydns', fatal => 0 );
     }
+
+    return $self->djbdns_src();
+};
+
+sub djbdns_src {
+    my $self = shift;
 
     my @targets = ( 'make', 'make setup check' );
 
@@ -2521,7 +2526,7 @@ sub isoqlog {
         }
     }
     else {
-        if ( -x $util->find_bin( "isoqlog", fatal => 0 ) ) {
+        if ( $util->find_bin( "isoqlog", fatal => 0 ) ) {
             $log->audit( "isoqlog: install, ok (exists)" );
             $return = 2;
         }
@@ -6344,9 +6349,7 @@ sub ucspi_tcp {
     }
 
     if ( $OSNAME eq "freebsd" ) {
-        # we install it from ports first so that it is registered in the ports
-        # database. Otherwise, installing other ports in the future may overwrite
-        # our customized version.
+        # install it from ports so it is registered in the ports db 
         $self->ucspi_tcp_freebsd();
     }
     elsif ( $OSNAME eq "darwin" ) {
@@ -6366,7 +6369,7 @@ sub ucspi_tcp {
 
     # see if it is installed
     my $tcpserver = $util->find_bin( "tcpserver", fatal => 0, debug=>0 );
-    if ( -x $tcpserver ) {
+    if ( $tcpserver ) {
         if ( ! $conf->{install_mysql} || !$conf->{'vpopmail_mysql'} ) {
             $log->audit( "ucspi-tcp: install, ok (exists)" );
             return 2; # we don't need mysql
@@ -6380,11 +6383,10 @@ sub ucspi_tcp {
             "compiling from sources.");
     }
 
-    # save having to download it again
+    # save some bandwidth
     if ( -e "/usr/ports/distfiles/ucspi-tcp-0.88.tar.gz" ) {
-        copy(
-            "/usr/ports/distfiles/ucspi-tcp-0.88.tar.gz",
-            "/usr/local/src/ucspi-tcp-0.88.tar.gz"
+        copy( "/usr/ports/distfiles/ucspi-tcp-0.88.tar.gz",
+              "/usr/local/src/ucspi-tcp-0.88.tar.gz"
         );
     }
 
@@ -6397,7 +6399,6 @@ sub ucspi_tcp {
         targets   => \@targets,
     );
 
-    print "should be all done!\n";
     return $util->find_bin( "tcpserver", fatal => 0, debug => 0 ) ? 1 : 0;
 }
 
@@ -6444,7 +6445,7 @@ sub ucspi_test {
 
     print "checking ucspi-tcp binaries...\n";
     foreach (qw( tcprules tcpserver rblsmtpd tcpclient recordio )) {
-        $log->test("  $_", -x $util->find_bin( $_, fatal => 0, debug=>0 ) );
+        $log->test("  $_", $util->find_bin( $_, fatal => 0, debug=>0 ) );
     }
 
     if ( $conf->{'vpopmail_mysql'} ) {
