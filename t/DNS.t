@@ -20,18 +20,16 @@ ok( $dns->isa('Mail::Toaster::DNS'), 'dns object class' );
 # rbl_test_ns
 my $zone = 'zen.spamhaus.org';
 my $has_ns = $dns->rbl_test_ns( rbl => $zone );
-ok( $has_ns, "rbl_test_ns +, $zone" )
-    or do {
-        $toaster->dump_audit();
-        $toaster->error( "Your nameserver fails to resolve $zone. Consider installing dnscache locally.");
-        $toaster->dump_errors();
-    };
-
-if ($has_ns) {
+if ( $has_ns ) {
+    ok( $has_ns, "rbl_test_ns +, $zone" );
     ok( $dns->rbl_test_positive_ip( rbl => $zone ), "rbl_test_positive_ip +" );
     ok( $dns->rbl_test_negative_ip( rbl => $zone ), "rbl_test_negative_ip +" );
     ok( $dns->rbl_test( zone => $zone ), 'rbl_test +' );
-}
+} else {
+    $toaster->dump_audit();
+    $toaster->error( "Your nameserver fails to resolve $zone. Consider installing dnscache locally.");
+    $toaster->dump_errors();
+};
 
 # queries that should fail
 $zone = 'bl.spamchop.net';

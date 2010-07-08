@@ -29,11 +29,14 @@ my $has_net_dns;
 
 # test_each_rbl
     $r = $qmail->test_each_rbl( rbls=>$r, debug=>0, fatal=>0 );
-    ok ( @$r[0], 'test_each_rbl')
-        or do {
-            $toaster->dump_audit();
-            $toaster->dump_errors();
-        };
+    if ( $r ) {
+        ok ( @$r[0], 'test_each_rbl');
+    }
+    else {
+        warn "test_each_rbl failed\n";
+        $toaster->dump_audit();
+        $toaster->dump_errors();
+    };
 
 
 # get_list_of_rbls
