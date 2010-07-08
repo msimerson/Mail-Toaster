@@ -71,16 +71,16 @@ sub report_yesterdays_activity {
 #        return;
 #    };
 
-    my $log = $self->get_yesterdays_send_log();
-    if ( ! -s $log ) {
+    my $send_log = $self->get_yesterdays_send_log();
+    if ( ! -s $send_log ) {
         carp "no send log file for yesterday found!\n";
         return;
     };
 
-    $log->audit( "processing log: $log" );
+    $log->audit( "processing log: $send_log" );
 
-    my $cat = $log =~ m/\.bz2$/ ? $util->find_bin( "bzcat" )
-            : $log =~ m/\.gz$/  ? $util->find_bin( "gzcat" )
+    my $cat = $send_log =~ m/\.bz2$/ ? $util->find_bin( "bzcat" )
+            : $send_log =~ m/\.gz$/  ? $util->find_bin( "gzcat" )
             : $util->find_bin( "cat" );
 
     my %cmds = (
@@ -90,14 +90,14 @@ sub report_yesterdays_activity {
     );
 
     foreach ( keys %cmds ) {
-        my $cmd = "$cat $log | $qma_dir/matchup 5>/dev/null | " . $cmds{$_}->{'cmd'};
+        my $cmd = "$cat $send_log | $qma_dir/matchup 5>/dev/null | " . $cmds{$_}->{'cmd'};
         $log->audit( "calculating $_ stats with: $cmd");
-        $cmds{'out'} = `$cmd`;
+        $cmds{$_}{'out'} = `$cmd`;
     };
 
     my ( $dd, $mm, $yy ) = $util->get_the_date(bump=>0);
     my $date = "$yy.$mm.$dd";
-    $log->date( "date: $yy.$mm.$dd" );
+    $log->audit( "date: $yy.$mm.$dd" );
 
     ## no critic
     open my $EMAIL, "| /var/qmail/bin/qmail-inject";
