@@ -1,10 +1,18 @@
 Mail Toaster Changes
-  5.27 - Jul
+  5.27 - Jul 08, 2010
        style updates to Ezmlm.pm and fix test failures in t/Ezmlm.t
        maillogs fails more gracefully when the log files are unreadable
        POD doc cleanups
        fixed inverted regexp match that caused control/me to be set to the system
          hostname instead of toaster-watcher.conf configured value
+       added URI to prereq list in Makefile.PL 
+       skip rbl tests if client can't resolv bl.spamcop.net properly
+       FreeBSD->is_port_installed does a better job of port detection when there
+         are multiple ports with similar names (qmail, qmailanalog, etc)
+       corrected whitespace related test error in get_list_of_rbls test
+       added install_munin to toaster-watcher.conf
+       fixed 'maillogs yesterday' report
+       other minor cleanups for PBP and cleaner 'make test' results
 
   5.26 - Jun 31, 2010
        added php build and post-install config (php.ini) support for freebsd
