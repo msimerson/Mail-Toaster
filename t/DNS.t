@@ -22,9 +22,12 @@ my $zone = 'zen.spamhaus.org';
 my $has_ns = $dns->rbl_test_ns( rbl => $zone );
 if ( $has_ns ) {
     ok( $has_ns, "rbl_test_ns +, $zone" );
-    ok( $dns->rbl_test_positive_ip( rbl => $zone ), "rbl_test_positive_ip +" );
-    ok( $dns->rbl_test_negative_ip( rbl => $zone ), "rbl_test_negative_ip +" );
-    ok( $dns->rbl_test( zone => $zone ), 'rbl_test +' );
+    my $r = $dns->rbl_test_positive_ip( rbl => $zone );
+    if ( $r ) {
+        ok( $r, "rbl_test_positive_ip +" );
+        ok( $dns->rbl_test_negative_ip( rbl => $zone ), "rbl_test_negative_ip +" );
+        ok( $dns->rbl_test( zone => $zone ), 'rbl_test +' );
+    };
 } else {
     $toaster->dump_audit();
     $toaster->error( "Your nameserver fails to resolve $zone. Consider installing dnscache locally.");

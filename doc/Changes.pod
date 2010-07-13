@@ -6,6 +6,7 @@
  
    allow building qmail with no patches
    explicitly include a few more perl modules required by SpamAssassin
+   automatically password protect isoqlog in apache vhost file
 
 =head2 5.27 - Jul 08, 2010
 

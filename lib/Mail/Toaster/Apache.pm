@@ -575,8 +575,15 @@ Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
 <Directory "/usr/local/share/isoqlog/htmltemp/images">
     Options None
     AllowOverride None
-    Order allow,deny
-    Allow from all
+
+    Order deny,allow
+    deny from all
+    #allow from 216.243.3
+    AuthUserFile /usr/local/www/WebUsers
+    AuthName Isoqlog
+    AuthType Basic
+    require valid-user
+    satisfy any
 </Directory>
 ';
     };

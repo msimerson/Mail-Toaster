@@ -446,12 +446,7 @@ sub check_watcher_log_size {
 
 sub learn_mailboxes {
     my $self = shift;
-    my %p = validate( @_, {
-            fatal   => { type=>BOOLEAN, optional=>1, default=>1 },
-            debug   => { type=>BOOLEAN, optional=>1, default=>1 },
-            test_ok => { type=>BOOLEAN, optional=>1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
     my ( $fatal, $debug ) = ( $p{fatal}, $p{debug} );
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
@@ -511,24 +506,18 @@ sub learn_mailboxes {
 
 sub clean_mailboxes {
     my $self = shift;
-    my %p = validate( @_, {
-            fatal   => { type=>BOOLEAN, optional=>1, default=>1 },
-            debug   => { type=>BOOLEAN, optional=>1, default=>1 },
-            test_ok => { type=>BOOLEAN, optional=>1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
-    my ( $fatal, $debug ) = ( $p{fatal}, $p{debug} );
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $p{test_ok} if defined $p{test_ok};
 
     my $days = $conf->{'maildir_clean_interval'} or 
-        return $log->error( 'skipping maildir cleaning, maildir_clean_interval not set in $conf', fatal => 0 );
+        return $log->audit( 'skipping maildir cleaning, not enabled in config' );
 
     my $log_base = $conf->{'qmail_log_base'} || '/var/log/mail';
     my $clean_log = "$log_base/clean.log";
-    $log->audit( "clean log file is: $clean_log") if $debug;
+    $log->audit( "clean log file is: $clean_log");
 
     # create the log file if it does not exist
     if ( ! -e $clean_log ) {
@@ -537,7 +526,7 @@ sub clean_mailboxes {
     }
 
     if ( -M $clean_log <= $days ) {
-        $log->audit( "skipping, $clean_log is less than $days old") if $debug;
+        $log->audit( "skipping, $clean_log is less than $days old");
         return 1;
     }
 
@@ -550,8 +539,7 @@ sub clean_mailboxes {
         
     $log->audit( "checks passed, cleaning");
 
-    my @every_maildir_on_server = 
-        $self->get_maildir_paths( debug=>$debug );
+    my @every_maildir_on_server = $self->get_maildir_paths();
 
     foreach my $maildir (@every_maildir_on_server) {
         
