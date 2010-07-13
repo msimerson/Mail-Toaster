@@ -5140,6 +5140,10 @@ sub spamassassin {
 
     $util->install_module( "Time::HiRes" );
     $util->install_module( "Mail::Audit" );
+    $util->install_module( "HTML::Parser" );
+    $util->install_module( "Archive::Tar" );
+    $util->install_module( "NetAddr::IP" );
+    $util->install_module( "LWP::UserAgent" );  # used by sa-update
     $util->install_module( "Mail::SpamAssassin" );
     $self->maildrop( );
 

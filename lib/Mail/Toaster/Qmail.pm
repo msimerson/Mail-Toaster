@@ -1273,7 +1273,7 @@ sub netqmail {
     $util->cwd_source_dir( "$src/mail" );
 
     $self->netqmail_get_sources( $package ) or return;
-    my @patches = $self->netqmail_get_patches( $package ) or return;
+    my @patches = $self->netqmail_get_patches( $package );
 
     $util->extract_archive( "$package.tar.gz" );
 
@@ -1467,14 +1467,13 @@ sub netqmail_get_patches {
     my $self = shift;
     my $package = shift;
 
-    my $patch_version = $conf->{'qmail_toaster_patch_version'} || 3.1;
+    my $patch_ver = $conf->{'qmail_toaster_patch_version'};
 
-    my @patches = "$package-toaster-$patch_version.patch";
+    my @patches;
+    push @patches, "$package-toaster-$patch_ver.patch" if $patch_ver;
 
-    if ( defined $conf->{qmail_smtp_reject_patch} ) {
-        if ( $conf->{qmail_smtp_reject_patch} ) {
-            push @patches, "$package-smtp_reject-3.0.patch";
-        };
+    if ( defined $conf->{qmail_smtp_reject_patch} && $conf->{qmail_smtp_reject_patch} ) {
+        push @patches, "$package-smtp_reject-3.0.patch";
     }
 
     if ( defined $conf->{qmail_domainkeys} && $conf->{qmail_domainkeys} ) {

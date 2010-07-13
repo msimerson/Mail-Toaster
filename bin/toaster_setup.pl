@@ -194,11 +194,6 @@ __END__
 toaster_setup.pl - runs various build and testing functions for Mail::Toaster
 
 
-=head1 VERSION
-
-This document refers to Mail::Toaster version 5.00
-
-
 =head1 SYNOPSIS
 
 toaster_setupl.pl is the front end to everything you need to turn a computer into a secure, full-featured, high-performance mail server.
