@@ -1330,7 +1330,7 @@ sub install_from_source {
 
     if ( $bintest && $self->find_bin( $bintest, fatal => 0, debug => 0 ) ) {
         return if ! $self->yes_or_no(
-            "$bintest exists, suggesting that"
+            "$bintest exists, suggesting that "
                 . "$package is installed. Do you want to reinstall?",
             timeout  => 60,
         );
