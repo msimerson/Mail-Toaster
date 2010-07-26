@@ -479,7 +479,7 @@ phpMyAdmin_auth_type               = cookie  ( cookie | http )
 #               Simscan               #
 #######################################
 
-simscan_user                       = simscan
+simscan_user                       = clamav
 simscan_trophie                    = 0       # use trophie?
 simscan_clamav                     = 1       # use clamav?
 simscan_ripmime                    = 1       # 0, 1  use ripmime?
