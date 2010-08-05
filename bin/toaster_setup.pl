@@ -138,7 +138,7 @@ my $setup = Mail::Toaster::Setup->new('log'=>$toaster, conf=>$conf);
 : $section eq "mattbundle"  ? $setup->mattbundle       ( )
 : $section eq "logmonster"  ? $setup->logmonster       ( )
 : $section eq "mrm"         ? $setup->mrm              ( )
-: $section eq "toaster"     ? $setup->mailtoaster      ( )
+: $section eq "toaster"     ? $util->mail_toaster      ( )
 : $section eq "nictool"     ? $setup->nictool          ( )
 : $section eq "webmail"     ? $setup->webmail          ( )
 : $section eq "all"         ? all()
