@@ -422,7 +422,7 @@ sub config_freebsd {
 #
 sendmail        /var/qmail/bin/sendmail
 send-mail       /var/qmail/bin/sendmail
-mailq           /usr/local/sbin/maillogs yesterday
+mailq           /usr/local/bin/maillogs yesterday
 #mailq          /var/qmail/bin/qmail-qread
 newaliases      /var/qmail/bin/newaliases
 hoststat        /var/qmail/bin/qmail-tcpto
