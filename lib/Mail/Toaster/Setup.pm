@@ -6647,11 +6647,9 @@ sub vpopmail {
     $conf_args .= $self->vpopmail_etc_passwd();
 
     # in case someone updates their toaster and not their config file
-    if ( defined $conf->{'vpopmail_qmail_ext'} ) {
-        if ( $conf->{'vpopmail_qmail_ext'} ) {
-            $conf_args .= " --enable-qmail-ext=y";
-            print "qmail extensions: yes\n";
-        }
+    if ( defined $conf->{'vpopmail_qmail_ext'} && $conf->{'vpopmail_qmail_ext'} ) {
+        $conf_args .= " --enable-qmail-ext=y";
+        print "qmail extensions: yes\n";
     }
 
     chdir($package);
