@@ -3,7 +3,7 @@ package Mail::Toaster::Qmail;
 use strict;
 use warnings;
 
-our $VERSION = '5.26';
+our $VERSION = '5.28';
 
 use English qw( -no_match_vars );
 use File::Copy;
@@ -414,6 +414,8 @@ sub config_freebsd {
 
     # make sure mailer.conf is set up for qmail
     my $tmp_mailer_conf = "$tmp/mailer.conf";
+    my $maillogs = $util->find_bin('maillogs',fatal=>0 ) 
+        || '/usr/local/bin/maillogs';
     open my $MAILER_CONF, '>', $tmp_mailer_conf 
         or $log->error( "unable to open $tmp_mailer_conf: $!",fatal=>0);
 
@@ -422,7 +424,7 @@ sub config_freebsd {
 #
 sendmail        /var/qmail/bin/sendmail
 send-mail       /var/qmail/bin/sendmail
-mailq           /usr/local/bin/maillogs yesterday
+mailq           ' . $maillogs . ' yesterday
 #mailq          /var/qmail/bin/qmail-qread
 newaliases      /var/qmail/bin/newaliases
 hoststat        /var/qmail/bin/qmail-tcpto
@@ -1299,6 +1301,7 @@ sub netqmail {
     $self->netqmail_darwin_fixups() if $OSNAME eq "darwin";
     $self->netqmail_conf_cc();
     $self->netqmail_conf_fixups();
+    $self->netqmail_chkuser_fixups();
 
     my $servicectl = '/usr/local/sbin/services';
     $servicectl = '/usr/local/bin/services' if ! -x $servicectl;
@@ -1322,6 +1325,23 @@ sub netqmail {
         system "$servicectl start";
     }
 }
+
+sub netqmail_chkuser_fixups {
+    my $self = shift;
+
+    return if ! $conf->{vpopmail_qmail_ext};
+
+    print "netqmail: fixing up chkuser_settings.h\n";
+
+    my @lines = $util->file_read( "chkuser_settings.h" );
+    foreach my $line (@lines) {
+        if ( $line =~ /^\/\* #define CHKUSER_ENABLE_USERS_EXTENSIONS \*\// ) {
+            $line = "#define CHKUSER_ENABLE_USERS_EXTENSIONS";
+        }
+    }
+    $util->file_write( "chkuser_settings.h", lines => \@lines );
+
+};
 
 sub netqmail_conf_cc {
     my $self = shift;

@@ -3462,7 +3462,7 @@ sub maillogs {
     $toaster->supervise_dirs_create( debug=>1 );
     $self->maillogs_create_dirs();
 
-    my $maillogs = $util->find_bin( "/usr/local/bin/maillogs", debug => 0);
+    my $maillogs = $util->find_bin( 'maillogs', debug => 0);
 
     my @multilogs = ( "$logdir/send/sendlog", "$logdir/smtp/smtplog",
                       "$logdir/pop3/pop3log" );
@@ -4894,13 +4894,16 @@ sub simscan_regex {
     my ($self, $conf ) = @_;
     return '' if ! $conf->{'simscan_regex_scanner'};
 
+    my $config = "--enable-regex=y ";
+
     if ( $OSNAME eq "freebsd" ) {
         $freebsd->install_port( "pcre" );
+        $config .= "--with-pcre-include=/usr/local/include ";
     }
     else {
         print "\n\nWARNING: is pcre installed?\n\n";
     }
-    return "--enable-regex=y ";
+    return $config;
 };
 
 sub simscan_ripmime {
@@ -6555,7 +6558,7 @@ sub vpopmail {
 
     my $installed = $self->vpopmail_installed_version();
 
-    if ( $installed eq $version ) {
+    if ( $installed && $installed eq $version ) {
         if ( ! $util->yes_or_no(
                 "Do you want to reinstall vpopmail with the same version?",
             timeout => 60,
