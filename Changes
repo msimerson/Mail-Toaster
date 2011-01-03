@@ -1,8 +1,11 @@
 Mail Toaster Changes
-  5.28 - Jul
+  5.28 - Jan 03, 2011
+       detect location of maillogs when configuring /etc/mailer.conf
        allow building qmail with no patches
        explicitly include a few more perl modules required by SpamAssassin
        automatically password protect isoqlog in apache vhost file
+       'maillogs yesterday' exits 0, so periodic is content
+       t/Utility: test if file exists before testing ability to delete 
 
   5.27 - Jul 08, 2010
        style updates to Ezmlm.pm and fix test failures in t/Ezmlm.t
