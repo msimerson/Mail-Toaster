@@ -2697,6 +2697,9 @@ sub lighttpd_config {
     my $self = shift;
 
     my $lconf = '/usr/local/etc/lighttpd.conf';
+    if ( ! -f $lconf ) {
+        $lconf = '/usr/local/etc/lighttpd/lighttpd.conf';
+    };
 
     `grep toaster $lconf` 
         and return $log->audit("lighttpd configuration already done");
