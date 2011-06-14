@@ -123,7 +123,7 @@ EO_EMAIL
 
     close $EMAIL;
 
-    return 1;
+    return 0; # return 0 on success, because periodic expects that
 }
 
 sub find_qmailanalog {
@@ -314,16 +314,16 @@ sub parse_cmdline_flags {
 
     $log->audit( "parse_cmdline_flags: prot is $prot" );
 
-       if ( $prot eq "smtp"         ) { $self->smtp_auth_count() }
-    elsif ( $prot eq "rbl"          ) { $self->rbl_count  ()     }
-    elsif ( $prot eq "send"         ) { $self->send_count ()     }
-    elsif ( $prot eq "pop3"         ) { $self->pop3_count ()     }
-    elsif ( $prot eq "imap"         ) { $self->imap_count ()     }
-    elsif ( $prot eq "spamassassin" ) { $self->spama_count() }
-    elsif ( $prot eq "qmailscanner" ) { $self->qms_count() }
-    elsif ( $prot eq "webmail"      ) { $self->webmail_count() }
-    elsif ( $prot eq "yesterday"    ) { $self->report_yesterdays_activity() }
-    else                              { pod2usage() };
+    return $self->smtp_auth_count() if $prot eq "smtp";
+    return $self->rbl_count  ()     if $prot eq "rbl";
+    return $self->send_count ()     if $prot eq "send";
+    return $self->pop3_count ()     if $prot eq "pop3";
+    return $self->imap_count ()     if $prot eq "imap";
+    return $self->spama_count()     if $prot eq "spamassassin";
+    return $self->qms_count()       if $prot eq "qmailscanner";
+    return $self->webmail_count()   if $prot eq "webmail";
+    return $self->report_yesterdays_activity() if $prot eq "yesterday";
+    pod2usage();
 }
 
 sub what_am_i {

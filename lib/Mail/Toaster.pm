@@ -3,7 +3,7 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.27_01';
+our $VERSION = '5.28';
 
 use Cwd;
 use English qw/ -no_match_vars /;

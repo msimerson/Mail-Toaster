@@ -200,7 +200,7 @@ SKIP: {
 
     ok( $util->cwd_source_dir( $tmp ), 'cwd_source_dir' );
 
-    my $url = "http://mail-toaster.org/etc/maildrop-qmail-domain";
+    my $url = "http://www.mail-toaster.org/etc/maildrop-qmail-domain";
     ok( $util->get_url( $url ), 'get_url' );
     ok( $util->get_url( $url, dir => $tmp ), 'get_url');
 
@@ -587,9 +587,9 @@ ok( $util->syscmd( "touch $tmpfile", fatal => 0 ), 'syscmd +');
 ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,debug=>0 ), 'syscmd -');
 ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,,debug=>0, timeout=>1), 'syscmd - (w/timeout)');
 ok( $util->syscmd( "rm $tmpfile", fatal => 0, ), 'syscmd +');
-ok( $util->syscmd( "$rm $tmp/maildrop-qmail-domain", fatal => 0, ),
-    'syscmd +'
-) if $network;
+    ok( $util->syscmd( "$rm $tmp/maildrop-qmail-domain", fatal => 0, ),
+        'syscmd +'
+) if ( $network && -f "$tmp/maildrop-qmail-domain" );
 
 # file_delete
 ok( $util->file_delete( file => $backup ), 'file_delete' );
