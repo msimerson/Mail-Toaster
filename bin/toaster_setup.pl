@@ -75,7 +75,6 @@ my $setup = Mail::Toaster::Setup->new('log'=>$toaster, conf=>$conf);
 : $section eq "apache1"    ? $setup->apache   ( ver=>1,)
 : $section eq "apache2"    ? $setup->apache   ( ver=>2,)
 : $section eq "apachessl"  ? $setup->apache(ver=>'ssl',)
-: $section eq "apacheconf" ? $apache->conf_patch      (conf=>$conf, debug=>$debug)
 : $section eq "cronolog"   ? $setup->cronolog         ()
 
 #  Qmail & related
