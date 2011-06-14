@@ -1,4 +1,10 @@
 Mail Toaster Changes
+  5.29 - Jun 12, 2011
+       updated migrate script for compatibility with 5.26 changes
+       updated lighttpd.conf config file location (FreeBSD port change)
+       reverted simscan user back to clamav (works more reliably)
+       if a perl module is already installed, prompt to reinstall
+
   5.28 - Jan 03, 2011
        detect location of maillogs when configuring /etc/mailer.conf
        allow building qmail with no patches

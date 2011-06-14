@@ -1504,9 +1504,11 @@ sub install_module {
 
 ## no critic ( ProhibitStringyEval )
     eval "use $module";
+    if (! $EVAL_ERROR) {
+        $log->audit( "$module is already installed.",debug=>$debug );
+#        return if ! $self->yes_or_no("reinstall",timeout=>5);
+    };
 ## use critic
-    return $log->audit( "$module is already installed.",debug=>$debug ) 
-        if ! $EVAL_ERROR;
 
     if ( lc($OSNAME) eq 'darwin' ) {
         $self->install_module_darwin( $module ) and return 1;

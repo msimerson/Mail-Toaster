@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 use strict;
 
 =head1 NAME
@@ -38,8 +38,9 @@ use lib 'lib';
 use Mail::Toaster::Mysql;   
 use Mail::Toaster::Utility; 
 
-my $mysql = new Mail::Toaster::Mysql;
-my $util = new Mail::Toaster::Utility;
+my $toaster = Mail::Toaster->new();
+my $util  = Mail::Toaster::Utility->new( log => $toaster );
+my $mysql = Mail::Toaster::Mysql->new( log => $toaster );
 
 my ($type, $domain, $newhost) = @ARGV;
 my $vpopdir = "/usr/local/vpopmail";
@@ -68,7 +69,7 @@ sub migrate_vpopmail
 	my $postmaster = add_postmaster(undef, $domain, $host, @users);  # show the domain creation cmd
 	add_emails(undef, $domain, $host, @users);    # the email accounts to add
 
-	if ( $util->yes_or_no( q=>"\nshall I try it for you?", force=>1) ) 
+	if ( $util->yes_or_no( "\nshall I try it for you?", force=>1) ) 
 	{
 		# does the domain directory exist on the other end?
 		unless ( $util->syscmd("ssh $host test -d $vpopdir/domains/$domain", debug=>0)) {
@@ -87,7 +88,7 @@ sub migrate_vpopmail
 	};
 
 	# this test could/should be automated!
-	unless ( $util->yes_or_no( q=>"\nhas the previous task completed successfully (w/o errors)? ", force=>1) ) {
+	unless ( $util->yes_or_no( "\nhas the previous task completed successfully (w/o errors)? ", force=>1) ) {
 		die "ok, bombing out!\n";
 	};
 
@@ -212,7 +213,7 @@ test email
 testing
 .\n\nand make sure it gets delivered properly.";
 
-	unless ( $util->yes_or_no( q=>"\nhave you completed the previous task successfully?", force=>1) ) {
+	unless ( $util->yes_or_no( "\nhave you completed the previous task successfully?", force=>1) ) {
 		die "ok, bombing out!\n";
 	};
 };
@@ -224,11 +225,11 @@ sub delete_domain
 	print "now delete the domain from the (old) server with:\n";
 	print "\n  $vpopdir/bin/vdeldomain $domain";
 
-	if ( $util->yes_or_no( q=>"\nshall I try it for you?", force=>1) ) {
+	if ( $util->yes_or_no( "\nshall I try it for you?", force=>1) ) {
 		$util->syscmd("$vpopdir/bin/vdeldomain $domain", debug=>0);
 	};
 
-	unless ( $util->yes_or_no( q=>"\nhave you completed the previous task successfully?", force=>1) ) {
+	unless ( $util->yes_or_no( "\nhave you completed the previous task successfully?", force=>1) ) {
 		die "ok, bombing out!\n";
 	};
 };
@@ -242,7 +243,7 @@ sub verify_domain_exists_in_rcpthosts
 	$r ? print "ok.\n" : print "FAILED.\n";
 
 	unless ($r) {
-		if ($util->yes_or_no( q=>"shall I fix that for you?", force=>1) ){
+		if ($util->yes_or_no( "shall I fix that for you?", force=>1) ){
 			$util->file_write("/var/qmail/control/rcpthosts", lines=>[$domain], append=>1);
 		};
 	};
@@ -257,7 +258,7 @@ sub verify_domain_exists_in_smtproutes
 	$r ? print "ok.\n" : print "FAILED.\n";
 
 	unless ($r) {
-		if ($util->yes_or_no( q=>"shall I do that for you?", force=>1) ){
+		if ($util->yes_or_no( "shall I do that for you?", force=>1) ){
 			$util->file_write("/var/qmail/control/smtproutes", lines=>["$domain:$host"], append=>1);
 		};
 	};
@@ -281,11 +282,11 @@ sub rsync_mailboxes_to_new
 
 	print "rsync the maildirs from this (old) server to the new one with:\n\n   $cmd \n\n";
 
-	if ( $util->yes_or_no( q=>"\nshall I try it for you?", force=>1) ) {
+	if ( $util->yes_or_no( "\nshall I try it for you?", force=>1) ) {
 		$util->syscmd($cmd, debug=>0);
 	};
 
-	unless ( $util->yes_or_no( q=>"\nhas the previous task completed successfully?", force=>1) ) {
+	unless ( $util->yes_or_no( "\nhas the previous task completed successfully?", force=>1) ) {
 		die "ok, bombing out!\n";
 	};
 };
@@ -313,7 +314,7 @@ sub _check_my_cnf
 
     my ($homedir) = (getpwuid ($<))[7];
 
-	unless ( $util->is_readable( file=>"$homedir/.my.cnf" ) )
+	unless ( $util->is_readable( "$homedir/.my.cnf" ) )
 	{
 		print "\nHey bubba, I need to connect to your MySQL server as the root or vpopmail user. To facilitate this, I expect a configured ~/.my.cnf file. This file format is the same as the mysql client uses and properly configured might look like this:
 

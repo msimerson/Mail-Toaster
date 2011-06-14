@@ -1,6 +1,12 @@
 
 =head1 Mail Toaster Changes
 
+=head2 5.29 - Jun 12, 2011
+
+   updated migrate script for compatibility with 5.26 changes
+   updated lighttpd.conf config file location (FreeBSD port change)
+   reverted simscan user back to clamav (works more reliably)
+   if a perl module is already installed, prompt to reinstall
 
 =head2 5.28 - Jan 03, 2011
  
