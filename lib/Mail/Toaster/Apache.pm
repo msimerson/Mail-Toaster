@@ -588,8 +588,7 @@ Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
 ';
     };
 
-    if ( $conf->{'install_squirrelmail'} ) {
-        print $MT_CONF '
+    print $MT_CONF '
 Alias /squirrelmail/ "/usr/local/www/squirrelmail/"
 <Directory "/usr/local/www/squirrelmail">
     DirectoryIndex index.php
@@ -599,7 +598,6 @@ Alias /squirrelmail/ "/usr/local/www/squirrelmail/"
     Allow from all
 </Directory>
 ';
-    };
 
     if ( $conf->{'install_phpmyadmin'} ) {
         print $MT_CONF '
@@ -614,8 +612,7 @@ Alias /phpMyAdmin/ "/usr/local/www/phpMyAdmin/"
 ';
     };
 
-    if ( $conf->{'install_rrdutil'} ) {
-        print $MT_CONF '
+    print $MT_CONF '
 Alias /rrdutil/ "/usr/local/rrdutil/html/"
 <Directory "/usr/local/rrdutil/html">
     AllowOverride None
@@ -623,10 +620,8 @@ Alias /rrdutil/ "/usr/local/rrdutil/html/"
     Allow from all
 </Directory>
 ';
-    };
 
-    if ( $conf->{'install_roundcube'} ) {
-        print $MT_CONF '
+    print $MT_CONF '
 Alias /roundcube "/usr/local/www/roundcube/"
 <Directory "/usr/local/www/roundcube">
     DirectoryIndex index.php
@@ -635,7 +630,6 @@ Alias /roundcube "/usr/local/www/roundcube/"
     Allow from all
 </Directory>
 ';
-    };
 
     print $MT_CONF '
 Alias /v-webmail/ "/usr/local/www/v-webmail/htdocs/"
@@ -644,6 +638,16 @@ Alias /v-webmail/ "/usr/local/www/v-webmail/htdocs/"
     AllowOverride All
     Order allow,deny
     Allow from all
+</Directory>
+';
+
+    print $MT_CONF '
+Alias /images/vqadmin "'.$htdocs.'/images/vqadmin"
+<Directory "' .$cgibin .'/vqadmin">
+     deny from all
+     Options ExecCGI
+     AllowOverride AuthConfig
+     Order deny,allow
 </Directory>
 ';
 
