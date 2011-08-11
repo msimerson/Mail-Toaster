@@ -2802,19 +2802,19 @@ fastcgi.server = (
                   )
 
 auth.backend               = "htdigest"
-auth.backend.htdigest.userfile = "/usr/local/etc/lighttpd.passwd"
+auth.backend.htdigest.userfile = "/usr/local/etc/lighttpd/lighttpd.passwd"
 
 auth.require   = (   "/isoqlog" =>
                      (
                          "method"  => "digest",
                          "realm"   => "isoqlog",
-                         "require" => "user=matt"
+                         "require" => "valid-user"
                       ),
                      "/cgi-bin/vqadmin" =>
                      (
                          "method"  => "digest",
                          "realm"   => "vqadmin",
-                         "require" => "user=matt"
+                         "require" => "valid-user"
                       )
                   )
 ';
