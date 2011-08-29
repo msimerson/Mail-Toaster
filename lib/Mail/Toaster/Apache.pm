@@ -589,6 +589,8 @@ Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
     };
 
     print $MT_CONF '
+Alias /qmailadmin/ "'.$htdocs.'/qmailadmin/"
+
 Alias /squirrelmail/ "/usr/local/www/squirrelmail/"
 <Directory "/usr/local/www/squirrelmail">
     DirectoryIndex index.php
