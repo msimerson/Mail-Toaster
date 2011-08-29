@@ -341,6 +341,7 @@ sub install_freebsd {
     elsif ( $ver =~ /^41|4.1$/ ) { $dir = "41";  $check = "4.1";  }
     elsif ( $ver =~ /^50|5.0$/ ) { $dir = "50";  $check = "5";    }
     elsif ( $ver =~ /^51|5.1$/ ) { $dir = "51";  $check = "5";    }
+    elsif ( $ver =~ /^55|5.5$/ ) { $dir = "55";  $check = "5";    }
     else                         { $dir = "51";  $check = "5";    }
 
     @ports = 'client';
