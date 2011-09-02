@@ -573,6 +573,12 @@ AddType application/x-httpd-php-source .phps
         print $MT_CONF '
 Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
 <Directory "/usr/local/share/isoqlog/htmltemp/images">
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+</Directory>
+
+<Directory "'.$htdocs.'/isoqlog">
     Options None
     AllowOverride None
 
