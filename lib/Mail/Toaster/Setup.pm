@@ -287,8 +287,10 @@ sub clamav_perms {
     foreach my $file ( $share, "$share/daily.cvd", "$share/main.cvd",
         "$share/viruses.db", "$share/viruses.db2", "/var/log/freshclam.log", ) {
 
-        print "setting the ownership of $file to $clamuid.\n";
-        $util->chown( $file, uid => $clamuid, gid => 'clamav' ) if -e $file;
+        if ( -e $file ) {
+            print "setting the ownership of $file to $clamuid.\n";
+            $util->chown( $file, uid => $clamuid, gid => 'clamav' );
+        };
     }
 
     $util->syscmd( "pw user mod clamav -G qmail" )
