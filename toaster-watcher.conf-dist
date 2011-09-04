@@ -241,7 +241,7 @@ vpopmail_enable_netblocks          = 0
 #
 send_log_method                    = multilog
 send_log_postprocessor             = maillogs   # maillogs | none
-send_log_maxsize_bytes             = 1000000    # make this > 5 minutes of logging
+send_log_maxsize_bytes             = 100000     # make this > 5 minutes of logging
 send_log_isoqlog                   = 1
 send_mailbox_string                = ./Maildir/
 
@@ -292,7 +292,7 @@ smtpd_recordio                     = 0
 
 smtpd_log_method                   = multilog
 smtpd_log_postprocessor            = maillogs   # maillogs | none
-smtpd_log_maxsize_bytes            = 1000000    # make sure this is larger than 5 minutes of logging
+smtpd_log_maxsize_bytes            = 100000     # make sure this is larger than 5 minutes of logging
 
 rbl_enable                         = 0       # master RBL switch. Disables all RBLs
 rbl_enable_fail_closed             = 1       # default is on
@@ -391,7 +391,7 @@ pop3_checkpasswd_bin               = vpopmail_home_dir/bin/vchkpw
 
 pop3_log_method                    = multilog   # multilog required for RRDutil
 pop3_log_postprocessor             = maillogs   # maillogs | none
-pop3_log_maxsize_bytes             = 1000000    # make this > 5 minutes of logging
+pop3_log_maxsize_bytes             = 100000     # make this > 5 minutes of logging
 
 
 #######################################
@@ -447,7 +447,7 @@ submit_qmail_queue                 = /var/qmail/bin/simscan
 
 submit_log_method                  = syslog
 submit_log_postprocessor           = none       # none (maillogs eventually)
-submit_log_maxsize_bytes           = 1000000    # make sure this is larger than 5 minutes of logging
+submit_log_maxsize_bytes           = 100000     # make sure this is larger than 5 minutes of logging
 
 
 
