@@ -457,7 +457,7 @@ function launch_selected_web_app(activateme) {
             if ( ! auth_valid() ) {
                 return false;
             };
-            document.imp.action = mailhost+'/horde/imp/redirect.php';
+            document.imp.action = mailhost+'/horde/imp/index.php';
             document.imp.submit();
             break;
         case "roundcube":

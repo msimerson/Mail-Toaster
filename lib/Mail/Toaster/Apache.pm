@@ -659,6 +659,16 @@ Alias /images/vqadmin "'.$htdocs.'/images/vqadmin"
 </Directory>
 ';
 
+    print $MT_CONF '
+Alias /horde "/usr/local/www/horde/"
+<Directory "/usr/local/www/horde">
+    DirectoryIndex index.php
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+</Directory>
+';
+
 #    if ($conf->{'install_apache'} == 22 ) {
 #        print $MT_CONF '
 #Alias /icons/ "/usr/local/www/apache22/icons/"

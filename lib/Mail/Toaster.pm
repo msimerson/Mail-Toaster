@@ -996,8 +996,7 @@ sub get_maildir_paths {
     }
 
     chomp @paths;
-    $count = @paths;
-    $log->audit( "found $count mailboxes.");
+    $log->audit( "found ". scalar @paths ." mailboxes.");
     return @paths;
 }
 
