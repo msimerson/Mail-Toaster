@@ -3,7 +3,7 @@ package Mail::Toaster::FreeBSD;
 use strict;
 use warnings;
 
-our $VERSION = '5.26';
+our $VERSION = '5.30';
 
 use Cwd;
 use Carp;

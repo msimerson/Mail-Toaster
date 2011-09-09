@@ -2,7 +2,7 @@ package Mail::Toaster::Darwin;
 use strict;
 use warnings;
 
-our $VERSION = '5.26';
+our $VERSION = '5.30';
 
 use Carp;
 use Params::Validate qw(:all);

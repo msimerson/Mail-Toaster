@@ -3,7 +3,7 @@ package Mail::Toaster::Mysql;
 use strict;
 use warnings;
 
-our $VERSION = '5.25';
+our $VERSION = '5.30';
 
 use Carp;
 use Params::Validate qw( :all );

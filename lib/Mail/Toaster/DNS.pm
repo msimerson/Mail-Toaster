@@ -3,13 +3,13 @@ package Mail::Toaster::DNS;
 use strict;
 use warnings;
 
-our $VERSION = '5.26';
+our $VERSION = '5.30';
 
 use Carp;
 use Params::Validate qw( :all );
 
 use lib 'lib';
-use Mail::Toaster 5.26;
+use Mail::Toaster 5.30;
 
 my ( $log, $util, %std_opts );
 
