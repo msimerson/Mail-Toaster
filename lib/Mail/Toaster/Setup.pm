@@ -3,7 +3,7 @@ package Mail::Toaster::Setup;
 use strict;
 use warnings;
 
-our $VERSION = '5.26';
+our $VERSION = '5.30';
 
 use vars qw/ $conf $log $freebsd $darwin $err $qmail $toaster $util %std_opts /;
 
@@ -2747,19 +2747,20 @@ sub lighttpd_config {
 server.network-backend = "writev",
 
 alias.url = (  "/cgi-bin/"       => "' . $cgi_bin . '/",
-               "/squirrelmail/"  => "/usr/local/www/squirrelmail/",
                "/sqwebmail/"     => "' . $htdocs . '/sqwebmail/",
                "/qmailadmin/"    => "' . $htdocs . '/qmailadmin/",
+               "/squirrelmail/"  => "/usr/local/www/squirrelmail/",
                "/roundcube/"     => "/usr/local/www/roundcube/",
                "/v-webmail/"     => "/usr/local/www/v-webmail/htdocs/",
-               "/isoqlog/images/"=> "/usr/local/share/isoqlog/htmltemp/images/",
-               "/phpMyAdmin/"    => "/usr/local/www/phpMyAdmin/",
-               "/rrdutil/"       => "/usr/local/rrdutil/html/",
-               "/munin/"         => "/usr/local/www/munin/",
+               "/horde/"         => "/usr/local/www/horde/",
                "/awstatsclasses" => "/usr/local/www/awstats/classes/",
                "/awstatscss"     => "/usr/local/www/awstats/css/",
                "/awstatsicons"   => "/usr/local/www/awstats/icons/",
                "/awstats/"       => "/usr/local/www/awstats/cgi-bin/",
+               "/munin/"         => "/usr/local/www/munin/",
+               "/rrdutil/"       => "/usr/local/rrdutil/html/",
+               "/isoqlog/images/"=> "/usr/local/share/isoqlog/htmltemp/images/",
+               "/phpMyAdmin/"    => "/usr/local/www/phpMyAdmin/",
             )
 
 $HTTP["url"] =~ "^/awstats/" {
