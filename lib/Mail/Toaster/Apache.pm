@@ -669,6 +669,17 @@ Alias /horde "/usr/local/www/horde/"
 </Directory>
 ';
 
+    print $MT_CONF '
+Alias /munin "/usr/local/www/munin"
+<Directory "/usr/local/www/munin">
+    DirectoryIndex index.html
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+</Directory>
+';
+
+
 #    if ($conf->{'install_apache'} == 22 ) {
 #        print $MT_CONF '
 #Alias /icons/ "/usr/local/www/apache22/icons/"
