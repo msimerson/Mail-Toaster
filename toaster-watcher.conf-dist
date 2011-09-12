@@ -464,6 +464,7 @@ qmailadmin_spam_command            = | /usr/local/bin/maildrop /usr/local/etc/ma
 qmailadmin_cgi_bin_dir             = 0  # override toaster_cgi_bin
 qmailadmin_http_docroot            = 0  # override toaster_http_docs
 qmailadmin_http_images             = /usr/local/www/data/images
+qmailadmin_catchall                = 0
 
 
 #######################################

@@ -4210,6 +4210,10 @@ toaster-watcher.conf and select a version of qmailadmin to install.\n";
     $conf_args .= " --enable-cgibindir=" . $cgi;
     $conf_args .= " --enable-autoresponder-path=".$conf->{'toaster_prefix'}."/bin";
 
+    if ( defined $conf->{'qmailadmin_catchall'} ) {
+        $conf_args .= " --disable-catchall" if ! $conf->{'qmailadmin_catchall'};
+    };
+
     if ( $conf->{'qmailadmin_help_links'} ) {
         $conf_args .= " --enable-help=y";
         $help = 1;
@@ -4288,6 +4292,9 @@ sub qmailadmin_port_install {
     push @args, "WITH_DOMAIN_AUTOFILL=yes" if $conf->{'qmailadmin_domain_autofill'};
     push @args, "WITH_MODIFY_QUOTA=yes"    if $conf->{'qmailadmin_modify_quotas'};
     push @args, "WITH_HELP=yes" if $conf->{'qmailadmin_help_links'};
+    if ( defined $conf->{'qmailadmin_catchall'} ) {
+        push @args, "WITHOUT_CATCHALL=yes" if ! $conf->{'qmailadmin_catchall'};
+    };
     push @args, 'CGIBINSUBDIR=""';
 
     if ( $cgi && $cgi =~ /\/usr\/local\/(.*)$/ ) { 
