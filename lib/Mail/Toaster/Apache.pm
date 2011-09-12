@@ -475,58 +475,48 @@ sub apache2_install_vhost {
 #   These additions must be made to get Squirrelmail, Isoqlog, 
 #   and other toaster features to work.
 #
-# This file is generated automatically, based upon your settings 
-#    in toaster-watcher.conf
+# This file is auto generated, based upon toaster-watcher.conf
 #
-# This should be set in httpd.conf, but is not by default, so we turn it
-# on here.
+# This is not enabled by default in httpd.conf
 NameVirtualHost *:80
 
 <VirtualHost *:80>
     ServerName $hostname
 
-# the redirect effectively requires all users of your email applications to use ssl
-    # connections. This is highly recommended and the default. If you wish to
-    # allow your users to connect and send their passwords in clear text,
-    # thereby allowing Very Naught People[TM] to hijack their accounts and
-    # turn your mail server into a spam relay, then by all means, just go
-    # ahead and comment out this redirect. 
+    # the redirect forces users to use ssl. If you wish to allow users to send
+    # passwords in clear text, enabling Very Naughty People[TM] to hijack their
+    # email account and turn this server into a relay, comment out the redirect.
 
     Redirect / https://$redirect_host/
 
-# these settings are ignored while the  redirect is in force. They
-# are here for those who want access to the email apps without requiring ssl.
-
+# these settings are ignored while the  redirect is in force. 
     DocumentRoot $htdocs
     DirectoryIndex index.html
     ScriptAlias /cgi-bin/ "$cgibin/"
 </VirtualHost>
 
-# The asterisks for port 443 vhosts really should be replaced with an IP
-# address.
-<IfModule ssl_module>
-    Listen $local_ip:443
-    NameVirtualHost $local_ip:443
+# Asterisks (if any) for port 443 vhosts should be an IP address.
+Listen $local_ip:443
+NameVirtualHost $local_ip:443
 
-    AddType application/x-x509-ca-cert .crt
-    AddType application/x-pkcs7-crl    .crl
-    SSLPassPhraseDialog  builtin
-    SSLSessionCache        "shmcb:/var/run/ssl_scache(512000)"
-    SSLSessionCacheTimeout  300
-    SSLMutex  "file:/var/run/ssl_mutex"
-    SSLCipherSuite HIGH:!SSLv2
+AddType application/x-x509-ca-cert .crt
+AddType application/x-pkcs7-crl    .crl
+SSLPassPhraseDialog  builtin
+SSLSessionCache        "shmcb:/var/run/ssl_scache(512000)"
+SSLSessionCacheTimeout  300
+SSLMutex  "file:/var/run/ssl_mutex"
+SSLCipherSuite HIGH:!SSLv2
 
-    <VirtualHost $local_ip:443>
-        ServerName $hostname
-        DocumentRoot $htdocs
-        DirectoryIndex index.html
-        ScriptAlias /cgi-bin/ "$cgibin/"
+<VirtualHost $local_ip:443>
+    ServerName $hostname
+    DocumentRoot $htdocs
+    DirectoryIndex index.html
+    ScriptAlias /cgi-bin/ "$cgibin/"
 
-        SSLEngine on
-        SSLCertificateFile $ssl_crt
-        SSLCertificateKeyFile $ssl_key
-    </VirtualHost>
-</IfModule>
+    SSLEngine on
+    SSLCertificateFile $ssl_crt
+    SSLCertificateKeyFile $ssl_key
+</VirtualHost>
 
 # these is an override for the default htdocs
 # the main difference is having ExecCGI enabled
@@ -569,8 +559,7 @@ AddType application/x-httpd-php-source .phps
     ";
     };
 
-    if ( $conf->{'install_isoqlog'} ) {
-        print $MT_CONF '
+    print $MT_CONF '
 Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
 <Directory "/usr/local/share/isoqlog/htmltemp/images">
     AllowOverride None
@@ -592,7 +581,6 @@ Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
     satisfy any
 </Directory>
 ';
-    };
 
     print $MT_CONF '
 Alias /qmailadmin/ "'.$htdocs.'/qmailadmin/"
@@ -607,18 +595,22 @@ Alias /squirrelmail/ "/usr/local/www/squirrelmail/"
 </Directory>
 ';
 
-    if ( $conf->{'install_phpmyadmin'} ) {
-        print $MT_CONF '
+    print $MT_CONF '
 Alias /phpMyAdmin/ "/usr/local/www/phpMyAdmin/"
 <Directory "/usr/local/www/phpMyAdmin">
     DirectoryIndex index.php
     Options Indexes ExecCGI
     AllowOverride None
-    Order allow,deny
-    Allow from all
+    Order deny,allow
+    deny from all
+    #allow from 216.243.3
+    AuthType Basic
+    AuthName vQadmin
+    AuthUserFile /usr/local/www/WebUsers
+    require valid-user
+    satisfy any
 </Directory>
 ';
-    };
 
     print $MT_CONF '
 Alias /rrdutil/ "/usr/local/rrdutil/html/"
@@ -652,10 +644,17 @@ Alias /v-webmail/ "/usr/local/www/v-webmail/htdocs/"
     print $MT_CONF '
 Alias /images/vqadmin "'.$htdocs.'/images/vqadmin"
 <Directory "' .$cgibin .'/vqadmin">
-     deny from all
-     Options ExecCGI
-     AllowOverride AuthConfig
-     Order deny,allow
+    Options ExecCGI
+    AllowOverride None
+
+    Order deny,allow
+    deny from all
+    #allow from 216.243.3
+    AuthType Basic
+    AuthName vQadmin
+    AuthUserFile /usr/local/www/WebUsers
+    require valid-user
+    satisfy any
 </Directory>
 ';
 

@@ -4708,7 +4708,7 @@ sub simscan {
     return $p{test_ok} if defined $p{test_ok}; # for testing 
 
     my $ver = $conf->{'install_simscan'} or do {
-        $log->audit( "vqadmin: installing, skipping (disabled)" );
+        $log->audit( "simscan: installing, skipping (disabled)" );
         return;
     };
 
