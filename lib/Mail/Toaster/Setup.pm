@@ -5539,7 +5539,7 @@ sub squirrelmail_config {
 \$provider_uri     = 'http://www.tnpi.net/wiki/Mail_Toaster';
 \$domain                 = '$mailhost';
 \$useSendmail            = true;
-\$imap_server_type       = 'courier';
+\$imap_server_type       = 'dovecot';
 \$addrbook_dsn = '$dsn';
 \$prefs_dsn = '$dsn';
 ?>
@@ -5547,6 +5547,23 @@ EOCONFIG
       ;
 
     $util->file_write( "config_local.php", lines => [ $string ] );
+
+    if ( -d "$sqdir/plugins/sasql" ) {
+        if ( ! -e "$sqdir/plugins/sasql/sasql_conf.php" ) {
+            copy('sasql_conf.php.dist', 'sasql_conf.php');
+        };
+
+        my $user = $conf->{install_spamassassin_dbuser};
+        my $pass = $conf->{install_spamassassin_dbpass};
+        $self->config_apply_tweaks(
+            file => "$sqdir/plugins/sasql/sasql_conf.php",
+            changes => [
+                {   search  => q{$SqlDSN = 'mysql://<user>:<pass>@<host>/<db>';},
+                    replace => "\$SqlDSN = 'mysql://$user:$pass\@localhost/spamassassin'",
+                },
+            ],
+        );
+    };
 }
 
 sub sqwebmail {
