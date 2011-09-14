@@ -2486,7 +2486,8 @@ sub isoqlog {
 
     if ( $ver eq "port" ) {
         if ( $OSNAME eq "freebsd" ) {
-            $freebsd->install_port( "isoqlog" ) and return 1;
+            $freebsd->install_port( "isoqlog" );
+            $self->isoqlog_conf();
             return 1 if $freebsd->is_port_installed( "isoqlog", %p );
         }
         else {
@@ -2496,14 +2497,15 @@ sub isoqlog {
     }
     else {
         if ( $util->find_bin( "isoqlog", fatal => 0 ) ) {
+            $self->isoqlog_conf();
             $log->audit( "isoqlog: install, ok (exists)" );
-            $return = 2;
+            return 2;
         }
     }
 
     return $return if $util->find_bin( "isoqlog", fatal => 0 );
 
-    $log->audit( "isoqlog not found. Trying to install v$ver from sources for $OSNAME!");
+    $log->audit( "isoqlog not found. Attempting source install ($ver) on $OSNAME!");
 
     $ver = 2.2 if ( $ver eq "port" || $ver == 1 );
 
@@ -2586,19 +2588,14 @@ EO_ISOQLOG
     $log->audit( "isoqlog_conf: created $file, ok" );
 
     $util->syscmd( "isoqlog", fatal => 0 );
-
-    unless ( -e "$htdocs/isoqlog" ) {
+    
+    # if missing, create the isoqlog web directory
+    if ( ! -e "$htdocs/isoqlog" ) {
         mkdir oct('0755'), "$htdocs/isoqlog";
-    }
+    };
 
-    # what follows is one way to fix the missing images problem. The better
-    # way is with an apache alias directive such as:
+    # to fix the missing images problem, add a web server alias like:
     # Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
-    # that is now included in the Apache 2.0 patch
-
-    my $isoimg = "$htdocs/isoqlog/images";
-    $util->syscmd( "cp -r /usr/local/share/isoqlog/htmltemp/images $isoimg" )
-        if ! -e $isoimg;
 }
 
 sub lighttpd {
