@@ -230,6 +230,7 @@ vpopmail_domain_quotas             = 0
 vpopmail_default_quota             = 100000000S,10000C  # deprecated in 5.4.0+
 vpopmail_disable_many_domains      = 0
 vpopmail_enable_netblocks          = 0
+vpopmail_maildrop                  = 0
 
 
 #######################################

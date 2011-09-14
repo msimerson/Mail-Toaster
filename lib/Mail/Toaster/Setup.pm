@@ -6644,6 +6644,7 @@ sub vpopmail {
         $conf_args .= " --enable-qmail-ext=y";
         print "qmail extensions: yes\n";
     }
+    if ( defined $conf->{'vpopmail_maildrop'} ) { $conf_args .= " --enable-maildrop=y"; };
 
     chdir($package);
     print "running configure with $conf_args\n\n";
@@ -6773,6 +6774,7 @@ sub vpopmail_install_freebsd_port {
     push @defs, "WITH_IP_ALIAS=yes" if $conf->{vpopmail_ip_alias_domains};
     push @defs, "WITH_QMAIL_EXT=yes" if $conf->{vpopmail_qmail_ext};
     push @defs, "WITH_SINGLE_DOMAIN=yes" if $conf->{vpopmail_disable_many_domains};
+    push @defs, "WITH_MAILDROP=yes" if $conf->{vpopmail_maildrop};
     push @defs, 'LOGLEVEL="p"';
 
     if ( $conf->{'vpopmail_mysql'} ) {
