@@ -5272,8 +5272,8 @@ sub spamassassin_sql {
             my $query = "use spamassassin";
             my $sth = $mysql->query( $dbh, $query, 1 );
             if ( $sth->errstr ) {
-                print "vpopmail: oops, no spamassassin database.\n";
-                print "vpopmail: creating MySQL spamassassin database.\n";
+                print "oops, no spamassassin database.\n";
+                print "creating MySQL spamassassin database.\n";
                 $query = "CREATE DATABASE spamassassin";
                 $sth   = $mysql->query( $dbh, $query );
                 $query =
@@ -7127,7 +7127,7 @@ sub vpopmail_mysql_privs {
         use $db;
         CREATE TABLE relay ( ip_addr char(18) NOT NULL default '',
           timestamp char(12) default NULL, name char(64) default NULL,
-          PRIMARY KEY (ip_addr)) TYPE=ISAM PACK_KEYS=1;
+          PRIMARY KEY (ip_addr)) PACK_KEYS=1;
         quit;
 
         If this is an upgrade and you already use MySQL authentication, 
@@ -7156,7 +7156,7 @@ EOMYSQLGRANT
 
     print "vpopmail: creating the relay table.\n";
     $query =
-"CREATE TABLE $db.relay ( ip_addr char(18) NOT NULL default '', timestamp char(12) default NULL, name char(64) default NULL, PRIMARY KEY (ip_addr)) TYPE=ISAM PACK_KEYS=1";
+"CREATE TABLE $db.relay ( ip_addr char(18) NOT NULL default '', timestamp char(12) default NULL, name char(64) default NULL, PRIMARY KEY (ip_addr)) PACK_KEYS=1";
     $sth = $mysql->query( $dbh, $query );
 
     $log->audit( "vpopmail: databases created, ok" );
