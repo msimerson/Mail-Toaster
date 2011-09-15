@@ -1,0 +1,203 @@
+#!/usr/bin/perl
+
+# Copyright (C) 2003 Jonathan Middleton <jjm@ixtab.org.uk
+# Copyright (C) 2001 Paul Slootman <paul@debian.org>
+
+# This file is part of Logcheck.
+
+# Logcheck is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+
+# Logcheck is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Logcheck; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+use strict;
+use warnings;
+my ($size, $logfile, $offsetfile);
+use Getopt::Std;
+use File::Basename;
+my %opts = ();
+
+# process args and switches
+my ($TEST_MODE) = 0;
+getopts("f:o:t", \%opts);
+
+# try to detect plain logtail invocation without switches
+if (!$opts{f} && $#ARGV != 0 && $#ARGV != 1) {
+   print STDERR "No logfile to read. Use -f [LOGFILE].\n";
+   exit 66;
+} elsif ($#ARGV == 0) {
+   $logfile = $ARGV[0];
+   $offsetfile = $opts{o};
+} elsif ($#ARGV == 1) {
+   ($logfile, $offsetfile) = ($ARGV[0], $ARGV[1]);
+} else {
+   ($logfile, $offsetfile) = ($opts{f}, $opts{o});
+}
+
+if ($opts{t}) {
+    $TEST_MODE = 1;
+}
+
+
+sub print_from_offset {
+    my ($filename, $offset) = @_;
+    # this subroutine prints the contents of the file named $filename,
+    # starting offset $offset.
+    #print "print_from_offset $filename, $offset\n";
+    unless (open(LOGFILE, $filename)) {
+        print STDERR "File $logfile cannot be read: $!\n";
+        exit 66;
+    }
+
+    seek(LOGFILE, $offset, 0);
+
+    while (<LOGFILE>) {
+        print $_;
+    }
+
+    $size = tell LOGFILE;
+    close LOGFILE;
+    return $size;
+}
+
+sub mtime {
+    my ($filename) = @_;
+    my $mtime = 0;
+    unless (-e $filename && ($mtime = ((stat($filename))[8])) ) {
+	print STDERR "Cannot get $filename mtime: $!\n";
+	exit 65;
+    }
+    return $mtime;
+}
+
+sub inode {
+    my ($filename) = @_;
+    my $inode = 0;
+    unless (-e $filename && ($inode = ((stat($filename))[1])) ) {
+	print STDERR "Cannot get $filename inode: $!\n";
+	exit 65;
+    }
+    return $inode;
+}
+
+sub get_directory_contents {
+    my ($filename) = @_;
+    my $dirname = dirname($filename);
+    unless (opendir(DIR, $dirname)) {
+	print STDERR "Cannot open directory $dirname: $!\n";
+	exit 65;
+    }
+    my @direntries = readdir(DIR);
+    closedir DIR;
+    return @direntries;
+}
+
+sub determine_rotated_logfile {
+    my ($filename,$inode) = @_;
+    my $rotated_filename;
+    # this subroutine tries to guess to where a given log file was
+    # rotated. Its magic is mainly taken from logcheck's logoutput()
+    # function with dateext magic added.
+
+    #print "determine_rotated_logfile $filename $inode\n";
+    for my $codefile (glob("/usr/local/share/logcheck/detectrotate/*.dtr")) {
+        my $func = do $codefile;
+        if (!$func) {
+	    print STDERR "cannot compile $codefile: $!";
+	    exit 68;
+	}
+        $rotated_filename = $func->($filename);
+	last if $rotated_filename;
+    }
+    #if ($rotated_filename) {
+    #  print "rotated_filename $rotated_filename (". inode($rotated_filename). ")\n";
+    #} else {
+    #  print "no rotated file found\n";
+    #}
+    if ($rotated_filename && -e "$rotated_filename" && inode($rotated_filename) == $inode) {
+      return $rotated_filename;
+    } else {
+      return "";
+    }
+}
+
+if (! -f $logfile) {
+    print STDERR "File $logfile cannot be read: $!\n";
+    exit 66;
+}
+unless ($offsetfile) {
+    # offsetfile not given, use .offset/$logfile in the same directory
+    $offsetfile = $logfile . '.offset';
+}
+
+my ($inode, $ino, $offset) = (0, 0, 0);
+
+if ($offsetfile) {
+    # If offset file exists, open and parse it.
+    if (open(OFFSET, $offsetfile)) {
+        $_ = <OFFSET>;
+        if (defined $_) {
+	    chomp $_;
+	    $inode = $_;
+	    $_ = <OFFSET>;
+	    if (defined $_) {
+	        chomp $_;
+	        $offset = $_;
+	    }
+        }
+    }
+
+    # determine log file inode and size
+    unless (($ino,$size) = (stat($logfile))[1,7]) {
+        print STDERR "Cannot get $logfile file size: $!\n";
+        exit 65;
+    }
+
+    if ($inode == $ino) {
+	# inode is still the same
+        exit 0 if $offset == $size; # short cut
+        if ($offset > $size) {
+            $offset = 0;
+            print "***************\n";
+            print "*** WARNING ***: Log file $logfile is smaller than last time checked!\n";
+            print "*************** This could indicate tampering.\n";
+        }
+    }
+
+    if ($inode != $ino) {
+	# this is the interesting case: inode has changed.
+	# So the file might have been rotated. We need to print the
+	# entire file.
+        # Additionally, we might want to see whether we can find the
+	# previous instance of the file and to process it from here.
+	#print "inode $inode, ino $ino\n";
+	my $rotatedfile = determine_rotated_logfile($logfile,$inode);
+	if ( $rotatedfile ) {
+	  print_from_offset($rotatedfile,$offset);
+	}
+	# print the actual file from beginning
+        $offset = 0;
+    }
+}
+
+$size = print_from_offset($logfile,$offset);
+
+# update offset, unless test mode
+unless ($TEST_MODE) {
+    unless (open(OFFSET, ">", $offsetfile)) {
+        print STDERR "File $offsetfile cannot be created. Check your permissions: $!\n";
+        exit 73;
+    }
+    print OFFSET "$ino\n$size\n";
+    close OFFSET;
+}
+exit 0;
