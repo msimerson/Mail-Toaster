@@ -461,6 +461,7 @@ sub conf_check {
     my $check = $p{check};
     my $line  = $p{line};
     my $file  = $p{file} || "/etc/rc.conf";
+    $log->audit("conf_check: looking for $check");
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
@@ -469,7 +470,7 @@ sub conf_check {
     @lines = $util->file_read( $file ) if -f $file;
     foreach ( @lines ) {
         next if $_ !~ /^$check\=/;
-        return $log->audit("conf_check: no change to $check") if $_ eq $line;
+        return $log->audit("\tno change") if $_ eq $line;
         $log->audit("\tchanged:\n$_\n\tto:\n$line\n" );
         $_ = $line;
         $changes++;

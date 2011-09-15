@@ -3537,19 +3537,11 @@ sub munin {
         return;
     };
 
+    $self->rrdtool();
+
     return $log->audit("no munin install support for $OSNAME") 
         if $OSNAME ne 'freebsd';
 
-# the newer (default) version of rrdtool requires an obscene amount 
-# of x11 software be installed. Install the older one instead.
-    $freebsd->install_port('rrdtool',
-        dir     => 'rrdtool12',
-        options => "#\n# Options for rrdtool-1.2.30_1
-_OPTIONS_READ=rrdtool-1.2.30_1
-WITHOUT_PYTHON_MODULE=true
-WITHOUT_RUBY_MODULE=true
-WITH_PERL_MODULE=true\n",
-    ); 
     $freebsd->install_port('p5-Date-Manip');
     $self->munin_node();
     $freebsd->install_port('munin-master');
@@ -3577,8 +3569,7 @@ sub munin_node {
         file => "$munin_etc/munin-node.conf",
         changes => [
             {   search => q{allow ^127\.0\.0\.1$},
-                replace => q{allow ^127\.0\.0\.1$} .
-qq{\n$locals\n},
+                replace => q{allow ^127\.0\.0\.1$} . qq{\n$locals\n},
             }
         ],
     );
@@ -3603,6 +3594,8 @@ qq{\n$locals\n},
             copy("$dist/contrib/munin/$_", "$munin_etc/plugins" );
             chmod oct('0755'), "$munin_etc/plugins/$_";
         };
+        copy ("$dist/contrib/logtail", "/usr/local/bin/logtail");
+        chmod oct('0755'), "/usr/local/bin/logtail";
     };
 
     system "/usr/local/etc/rc.d/munin-node", "restart";
@@ -4470,6 +4463,46 @@ sub ripmime {
         bintest        => 'ripmime',
         debug          => 1,
         source_sub_dir => 'mail',
+    );
+}
+
+sub rrdtool {
+    my $self  = shift;
+    my %p = validate( @_, { %std_opts },);
+    return $p{test_ok} if defined $p{test_ok}; # for testing 
+
+    unless ( $conf->{'install_rrdutil'} ) {
+        print "install_rrdutil is not set in toaster-watcher.conf! Skipping.\n";
+        return;
+    }
+
+    if ( $OSNAME eq "freebsd" ) {
+
+# the newer (default) version of rrdtool requires an obscene amount 
+# of x11 software be installed. Install the older one instead.
+    $freebsd->install_port('rrdtool',
+        dir     => 'rrdtool12',
+        options => "#\n# Options for rrdtool-1.2.30_1
+_OPTIONS_READ=rrdtool-1.2.30_1
+WITHOUT_PYTHON_MODULE=true
+WITHOUT_RUBY_MODULE=true
+WITH_PERL_MODULE=true\n",
+    ); 
+    }
+    elsif ( $OSNAME eq "darwin" ) {
+        $darwin->port_install( port_name => "rrdtool" );
+    }
+
+    return 1 if -x $util->find_the_bin( 'rrdtool', fatal => 0 );
+
+    $util->install_from_source(
+        package => "rrdtool-1.2.23",
+        site    => 'http://people.ee.ethz.ch',
+        url     => '/~oetiker/webtools/rrdtool/pub',
+        targets => [ './configure', 'make', 'make install' ],
+        patches => [ ],
+        bintest => 'rrdtool',
+        debug   => 1,
     );
 }
 
