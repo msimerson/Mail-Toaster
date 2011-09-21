@@ -765,8 +765,8 @@ sub webmail_count {
                 $temp{'connect'}++;
                 $temp{'success'}++ if ( $line !~ /FAILED/ );
             }
-            elsif ( $line =~ /imapd: LOGIN/ && $line =~ /127\.0\.0\.1/ )
-            {    # IMAP connections from localhost are webmail
+            elsif ( $line =~ /imapd: LOGIN/ && $line =~ /127\.0\.0\./ )
+            {    # IMAP connections on loopback interface are webmail
                 $temp{'success'}++;
             }
         }
@@ -1125,6 +1125,15 @@ sub check_log_files {
     };
     return \@exists;
 }
+
+sub check_log_files_2 {
+  # this will be for logcheck based counters - someday
+    my $self  = shift;
+    my @exists;
+    foreach my $file ( @_ ) {
+    ;
+    return \@exists;
+};
 
 sub process_pop3_logs {
     my $self  = shift;
