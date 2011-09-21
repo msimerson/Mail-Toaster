@@ -75,7 +75,7 @@ sub apache {
 
     return $p{test_ok} if defined $p{test_ok};
 
-    my $ver   = $p{'ver'} || $conf->{install_apache} or do {
+    my $ver   = defined $p{'ver'} || $conf->{install_apache} or do {
         $log->audit( "apache: installing, skipping (disabled)" );
         return;
     };
@@ -1229,7 +1229,8 @@ sub cpan {
     }
 
     $util->install_module( "Params::Validate" );
-    $util->install_module( "Compress::Zlib"   );
+    $util->install_module( "IO::Compress"   );
+    $util->install_module( "Compress::Raw::Zlib"   );
     $util->install_module( "Crypt::PasswdMD5" );
     $util->install_module( "Net::DNS" );
     $util->install_module( "Quota", fatal => 0 ) if $conf->{'install_quota_tools'};

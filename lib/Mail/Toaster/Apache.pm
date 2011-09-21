@@ -538,6 +538,8 @@ SSLCipherSuite HIGH:!SSLv2
     Allow from all
 </Directory>
 
+# Sensible defaults & increased security
+HostnameLookups Off
 # don't divulge Apache version. Adds obscurity from scanners
 # looking for vulnerable Apache versions.
 ServerSignature Off
@@ -835,9 +837,10 @@ sub apache_conf_patch {
         if ( $line =~ q{#Include etc/apache22/extra/httpd-default.conf} ) {
             $line = "Include etc/apache22/extra/httpd-default.conf";
         };
-        if ( $line =~ q{#Include etc/apache22/extra/httpd-ssl.conf} ) {
-            $line = "Include etc/apache22/extra/httpd-ssl.conf";
-        };
+# not needed, all required SSL stuff is included in mail-toaster.conf
+        #if ( $line =~ q{#Include etc/apache22/extra/httpd-ssl.conf} ) {
+        #    $line = "Include etc/apache22/extra/httpd-ssl.conf";
+        #};
 
         # we want these only in mail-toaster.conf
         if ( $line =~ q{DocumentRoot "/usr/local/www/apache22/data"} ) {

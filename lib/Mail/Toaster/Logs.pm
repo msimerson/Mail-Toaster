@@ -1131,7 +1131,7 @@ sub check_log_files_2 {
     my $self  = shift;
     my @exists;
     foreach my $file ( @_ ) {
-    ;
+    };
     return \@exists;
 };
 
@@ -1568,7 +1568,7 @@ sub get_cronolog_handle {
     unless ( -w $logbase ) {
         carp "WARNING: could not write to $logbase. FAILURE!";
         return;
-    }
+    };
 
     my $cronolog = $util->find_bin( "cronolog", debug=>0, fatal=>0 );
     if ( ! $cronolog || !-x $cronolog) {
