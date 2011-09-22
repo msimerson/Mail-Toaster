@@ -67,15 +67,11 @@ sub new {
 
 sub apache {
     my $self  = shift;
-    my %p = validate( @_, {
-            ver   => { type => SCALAR, optional => 1, },
-            %std_opts,
-        },
-    );
+    my %p = validate( @_, { %std_opts, } );
 
     return $p{test_ok} if defined $p{test_ok};
 
-    my $ver   = defined $p{'ver'} || $conf->{install_apache} or do {
+    my $ver   = $conf->{install_apache} or do {
         $log->audit( "apache: installing, skipping (disabled)" );
         return;
     };
@@ -86,7 +82,7 @@ sub apache {
     require Cwd;
     my $old_directory = Cwd::cwd();
 
-    if ( lc($ver) eq "apache" or lc($ver) eq "apache1" or $ver == 1 ) {
+    if ( lc($ver) eq "apache1" or $ver == 1 ) {
         my $src = $conf->{'toaster_src_dir'} || "/usr/local/src";
         $apache->install_apache1( $src, $conf );
     }
@@ -4057,6 +4053,17 @@ sub phpmyadmin {
     $mysql->phpmyadmin_install($conf);
 }
 
+sub portmaster {
+    my $self = shift;
+
+    if ( ! $conf->{install_portmaster} ) {
+        $log->audit("install portmaster skipped, not selected", debug=>1);
+        return;
+    };
+
+    $freebsd->install_port( "portmaster" );
+};
+
 sub ports {
     my $self  = shift;
     my %p = validate( @_, { %std_opts },);
@@ -5183,7 +5190,7 @@ WITH_SPAMC=true
 WITHOUT_SACOMPILE=true
 WITH_DKIM=true
 WITHOUT_SSL=true
-WITHOUT_GNUPG=true 
+WITH_GNUPG=true 
 $mysql  
 WITHOUT_PGSQL=true
 WITH_RAZOR=true
@@ -5212,6 +5219,7 @@ WITH_RELAY_COUNTRY=true",
         debug => 0,
     );
     
+    $self->gnupg_install();
     $self->spamassassin_update();
 
     unless ( $util->is_process_running("spamd") ) {

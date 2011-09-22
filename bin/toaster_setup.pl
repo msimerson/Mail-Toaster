@@ -62,46 +62,45 @@ my $setup = Mail::Toaster::Setup->new('log'=>$toaster, conf=>$conf);
 : $section eq "help"       ? pod2usage                 ( {-verbose=>1 } )
 : $section eq "config"     ? $setup->config            ()
 
-: $section eq "ssl"        ? $setup->openssl_conf       ()
+: $section eq "ssl"        ? $setup->openssl_conf      ()
 
-#  Updates the ports tree on FreeBSD and Darwin
-: $section eq "ports"      ? $setup->ports            ( )
+#  port management on FreeBSD and Darwin
+: $section eq "ports"      ? $setup->ports            ()
+: $section eq 'portmaster' ? $setup->portmaster       ()
 
 #  Standard daemons & utilities
 : $section eq "mysql"      ? $setup->mysql            ()
 : $section eq "phpmyadmin" ? $setup->phpmyadmin       ()
 : $section eq "lighttpd"   ? $setup->lighttpd         ()
 : $section eq "apache"     ? $setup->apache           ()
-: $section eq "apache1"    ? $setup->apache   ( ver=>1,)
-: $section eq "apache2"    ? $setup->apache   ( ver=>2,)
 : $section eq "apachessl"  ? $setup->apache(ver=>'ssl',)
 : $section eq "cronolog"   ? $setup->cronolog         ()
 
 #  Qmail & related
-: $section eq "ucspi"      ? $setup->ucspi_tcp        ( )
-: $section eq "daemontools"? $setup->daemontools      ( )
-: $section eq "ezmlm"      ? $setup->ezmlm            ( )
-: $section eq "autorespond"? $setup->autorespond      ( )
-: $section eq "vpopmail"   ? $setup->vpopmail         ( )
-: $section eq "vpeconfig"  ? $setup->vpopmail_etc     ( )
+: $section eq "ucspi"      ? $setup->ucspi_tcp        ()
+: $section eq "daemontools"? $setup->daemontools      ()
+: $section eq "ezmlm"      ? $setup->ezmlm            ()
+: $section eq "autorespond"? $setup->autorespond      ()
+: $section eq "vpopmail"   ? $setup->vpopmail         ()
+: $section eq "vpeconfig"  ? $setup->vpopmail_etc     ()
 : $section eq "vpopmysql"  ? $setup->vpopmail_mysql_privs()
-: $section eq "vqadmin"    ? $setup->vqadmin          ( )
+: $section eq "vqadmin"    ? $setup->vqadmin          ()
 : $section eq "qmail"      ? $qmail->install_qmail    (debug=>$debug )
 : $section eq "qmailconf"  ? $qmail->config           (debug=>$debug )
 : $section eq "netqmail"   ? $qmail->netqmail         (debug=>$debug )
 : $section eq "netqmailmac"? $qmail->netqmail_virgin  (debug=>$debug )
-: $section eq "djbdns"     ? $setup->djbdns           ( )
+: $section eq "djbdns"     ? $setup->djbdns           ()
 
 # mail servers
-: $section eq "dovecot"    ? $setup->dovecot          ( )
-: $section eq "courier"    ? $setup->courier_imap     ( )
-: $section eq "courierconf"? $setup->courier_config   ( )
+: $section eq "dovecot"    ? $setup->dovecot          ()
+: $section eq "courier"    ? $setup->courier_imap     ()
+: $section eq "courierconf"? $setup->courier_config   ()
 
 #  Web Mail & Admin interfaces
-: $section eq "qmailadmin"  ? $setup->qmailadmin       ( )
-: $section eq "sqwebmail"   ? $setup->sqwebmail        ( )
-: $section eq "squirrelmail"? $setup->squirrelmail     ( )
-: $section eq "roundcube"   ? $setup->roundcube        ( )
+: $section eq "qmailadmin"  ? $setup->qmailadmin       ()
+: $section eq "sqwebmail"   ? $setup->sqwebmail        ()
+: $section eq "squirrelmail"? $setup->squirrelmail     ()
+: $section eq "roundcube"   ? $setup->roundcube        ()
 
 #  Mail Filtering
 : $section eq "filter"      ? $setup->filtering        ( )
@@ -159,7 +158,7 @@ sub all {
 	$setup->openssl_conf  ( );
 	$setup->ports         ( );
 	$setup->mysql         ( ); 
-	$setup->apache        ( ver=>2 );
+	$setup->apache        ( );
 	$setup->webmail       ( fatal=>0 );
 	$setup->phpmyadmin    ( );
 	$setup->ucspi_tcp     ( );
@@ -236,7 +235,6 @@ A complete set of instructions for building a mail toaster are on the toaster in
      phpmyadmin - installs phpMyAdmin
          apache - installs Apache 
       apachessl - installs self signed SSL certs for Apache
-     apacheconf - patches httpd.conf for use with Mail::Toaster
 
                      Qmail and related tools
           ucspi - install ucspi-tcp w/MySQL patch
