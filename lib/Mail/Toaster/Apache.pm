@@ -552,16 +552,10 @@ ServerTokens ProductOnly
     RewriteRule .* - [F]
 </IfModule>
 
-EO_MAIL_TOASTER_CONF
-
-    if ( $conf->{'install_php'} ) {
-        print $MT_CONF "# enable php parsing
+    # enable php parsing
 AddType application/x-httpd-php .php
 AddType application/x-httpd-php-source .phps
-    ";
-    };
 
-    print $MT_CONF '
 Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
 <Directory "/usr/local/share/isoqlog/htmltemp/images">
     AllowOverride None
@@ -582,9 +576,7 @@ Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
     require valid-user
     satisfy any
 </Directory>
-';
 
-    print $MT_CONF '
 Alias /qmailadmin/ "'.$htdocs.'/qmailadmin/"
 
 Alias /squirrelmail/ "/usr/local/www/squirrelmail/"
@@ -595,9 +587,7 @@ Alias /squirrelmail/ "/usr/local/www/squirrelmail/"
     Order allow,deny
     Allow from all
 </Directory>
-';
 
-    print $MT_CONF '
 Alias /phpMyAdmin/ "/usr/local/www/phpMyAdmin/"
 <Directory "/usr/local/www/phpMyAdmin">
     DirectoryIndex index.php
@@ -612,18 +602,14 @@ Alias /phpMyAdmin/ "/usr/local/www/phpMyAdmin/"
     require valid-user
     satisfy any
 </Directory>
-';
 
-    print $MT_CONF '
 Alias /rrdutil/ "/usr/local/rrdutil/html/"
 <Directory "/usr/local/rrdutil/html">
     AllowOverride None
     Order allow,deny
     Allow from all
 </Directory>
-';
 
-    print $MT_CONF '
 Alias /roundcube "/usr/local/www/roundcube/"
 <Directory "/usr/local/www/roundcube">
     DirectoryIndex index.php
@@ -631,9 +617,7 @@ Alias /roundcube "/usr/local/www/roundcube/"
     Order allow,deny
     Allow from all
 </Directory>
-';
 
-    print $MT_CONF '
 Alias /v-webmail/ "/usr/local/www/v-webmail/htdocs/"
 <Directory "/usr/local/www/v-webmail">
     DirectoryIndex index.php
@@ -641,9 +625,7 @@ Alias /v-webmail/ "/usr/local/www/v-webmail/htdocs/"
     Order allow,deny
     Allow from all
 </Directory>
-';
 
-    print $MT_CONF '
 Alias /images/vqadmin "'.$htdocs.'/images/vqadmin"
 <Directory "' .$cgibin .'/vqadmin">
     Options ExecCGI
@@ -658,9 +640,7 @@ Alias /images/vqadmin "'.$htdocs.'/images/vqadmin"
     require valid-user
     satisfy any
 </Directory>
-';
 
-    print $MT_CONF '
 Alias /horde "/usr/local/www/horde/"
 <Directory "/usr/local/www/horde">
     DirectoryIndex index.php
@@ -668,9 +648,7 @@ Alias /horde "/usr/local/www/horde/"
     Order allow,deny
     Allow from all
 </Directory>
-';
 
-    print $MT_CONF '
 Alias /munin "/usr/local/www/munin"
 <Directory "/usr/local/www/munin">
     DirectoryIndex index.html
@@ -680,12 +658,7 @@ Alias /munin "/usr/local/www/munin"
 </Directory>
 ';
 
-
-#    if ($conf->{'install_apache'} == 22 ) {
-#        print $MT_CONF '
-#Alias /icons/ "/usr/local/www/apache22/icons/"
-#';
-#    }
+EO_MAIL_TOASTER_CONF
 
     close $MT_CONF;
 
@@ -714,29 +687,11 @@ WITHOUT_KERBEROS=true\n",
     );
 
     $freebsd->install_port( "p5-libwww" );
-
-    # php stuff
-    if ( $conf->{'package_install_method'} eq "packages" ) {
-        $freebsd->install_package( "bison" );
-        $freebsd->install_package( "gd"  );
-    }
     $freebsd->install_port( "bison" );
     $freebsd->install_port( "gd"    );
-
-    if ( $conf->{'install_php'} == "5" ) {
-        $freebsd->install_port( "php5",
-            flags => "WITH_APACHE=yes WITH_APACHE2=yes BATCH=yes",
-        );
-    }
-    else {
-        $freebsd->install_port( "php4",
-            flags => "WITH_APACHE=yes WITH_APACHE2=yes BATCH=yes",
-        );
-    }
-
-    if ( $conf->{'install_2_modperl'} ) {
-        $freebsd->install_port( "mod_perl2" );
-    }
+    $freebsd->install_port( "php5",
+        flags => "WITH_APACHE=yes WITH_APACHE2=yes BATCH=yes",
+    );
 }
 
 sub conf_get_dir {

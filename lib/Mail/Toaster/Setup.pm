@@ -3967,11 +3967,6 @@ sub pop3_auth {
 sub php {
     my $self = shift;
 
-    if ( ! $conf->{install_php} ) {
-        $log->audit("install php skipped, not selected", debug=>1);
-        return;
-    };
-
     if ( $OSNAME eq 'freebsd' ) {
         return $self->php_freebsd();
     };
@@ -4027,25 +4022,9 @@ sub phpmyadmin {
 
     # prevent t1lib from installing X11
     if ( $OSNAME eq "freebsd" ) {
+        $self->php();
         $freebsd->install_port( "t1lib", flags => "WITHOUT_X11=yes" );
-
-        if (    !$freebsd->is_port_installed( "xorg-libraries" )
-            and !$freebsd->is_port_installed( "XFree86-Libraries" ) )
-        {
-            if (
-                $util->yes_or_no(
-"php-gd requires x11 libraries. Shall I try installing the xorg-libraries package?"
-                )
-              )
-            {
-                $freebsd->install_package( "XFree86-Libraries" );
-            }
-        }
-        if ( $conf->{'install_php'} eq "4" ) {
-            $freebsd->install_port( "php4-gd" );
-        } elsif ( $conf->{'install_php'} eq "5" ) {
-            $freebsd->install_port( "php5-gd" );
-        };
+        $freebsd->install_port( "php5-gd" );
     }
 
     require Mail::Toaster::Mysql;

@@ -88,7 +88,6 @@ install_apache_suexec              = 0
 install_apache_proxy               = 0
 install_apache_bdb                 = 0       # berkeley DB
 install_cronolog                   = 1.6.2   # ver, port
-install_php                        = 5       # 0, 4, 5, ver
 install_phpmyadmin                 = 0       # 0, 1
 install_mysql                      = 0       # 0, 1, 2, 3, 40, 41, 5, 51
 install_mysqld                     = 0       # 0, 1
