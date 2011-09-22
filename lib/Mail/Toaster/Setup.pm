@@ -4566,16 +4566,19 @@ WITHOUT_AUTOCOMP=true
 sub roundcube_config {
     my $self = shift;
     my $rcdir = "/usr/local/www/roundcube";
-    my $config = "$rcdir/config/db.inc.php";
-    my $pass = $conf->{install_roundcube_db_pass};
+    my $config = "$rcdir/config";
 
-    if ( ! -f $config ) {
+    foreach my $c ( qw/ db.inc.php main.inc.php / ) {
+        copy( "$config/$c.dist", "$config/$c" ) if ! -e "$config/$c";
+    };
+
+    if ( ! -f "$config/db.inc.php" ) {
         warn "unable to find roundcube/config/db.inc.php. Edit it with appropriate DSN settings\n";
         return;
     };
 
     $self->config_apply_tweaks(
-        file => "$rcdir/config/main.inc.php",
+        file => "$config/main.inc.php",
         changes => [
             {   search  => q{$rcmail_config['default_host'] = '';},
                 replace => q{$rcmail_config['default_host'] = 'localhost';},
@@ -4583,24 +4586,18 @@ sub roundcube_config {
             {   search  => q{$rcmail_config['session_lifetime'] = 10;},
                 replace => q{$rcmail_config['session_lifetime'] = 30;},
             },
-        ],
-    );
-
-    return $self->roundcube_config_mysql() if $conf->{install_mysql};
-
-    my $spool = '/var/spool/roundcubemail';
-    mkpath $spool;
-    my (undef,undef,$uid,$gid) = getpwnam('www');
-    chown $uid, $gid, $spool;
-
-    $self->config_apply_tweaks(
-        file => $config,
-        changes => [
-            {   search  => q{$rcmail_config['db_dsnw'] = 'mysql://roundcube:pass@localhost/roundcubemail';},
-                replace => q{$rcmail_config['db_dsnw'] = 'sqlite:////var/spool/roundcubemail/sqlite.db?mode=0646';},
+            {   search  => q{$rcmail_config['imap_auth_type'] = null;},
+                replace => q{$rcmail_config['imap_auth_type'] = plain;},
             },
         ],
     );
+
+    if ( $conf->{install_mysql} ) {
+        return $self->roundcube_config_mysql();
+    }
+    else {
+        return $self->roundcube_config_sqlite();
+    };
 };
 
 sub roundcube_config_mysql {
@@ -4660,6 +4657,28 @@ sub roundcube_config_mysql {
 
     $sth->finish;
     return 1;
+};
+
+sub roundcube_config_sqlite {
+    my $self = shift;
+
+    my $rcdir = "/usr/local/www/roundcube";
+    my $config = "$rcdir/config/db.inc.php";
+
+    my $spool = '/var/spool/roundcubemail';
+    mkpath $spool;
+    my (undef,undef,$uid,$gid) = getpwnam('www');
+    chown $uid, $gid, $spool;
+
+    # configure roundcube to use sqlite for DB
+    $self->config_apply_tweaks(
+        file => $config,
+        changes => [
+            {   search  => q{$rcmail_config['db_dsnw'] = 'mysql://roundcube:pass@localhost/roundcubemail';},
+                replace => q{$rcmail_config['db_dsnw'] = 'sqlite:////var/spool/roundcubemail/sqlite.db?mode=0646';},
+            },
+        ],
+    );
 };
 
 sub rsync {
@@ -5459,6 +5478,7 @@ sub squirrelmail_mysql {
         print
 '\nHEY!  You need to add include_path = ".:/usr/local/share/pear" to php.ini.\n\n';
 
+        $freebsd->install_port( "php5-mysql" );
         $freebsd->install_port( "squirrelmail-sasql-plugin" );
     }
 
