@@ -2614,6 +2614,7 @@ sub lighttpd {
     };
 
     $self->lighttpd_config();
+    $self->lighttpd_vhost();
     $self->php();
     $self->lighttpd_start();
     return 1;
@@ -2664,14 +2665,14 @@ sub lighttpd_config {
 
     my $lconf = "$letc/lighttpd.conf";
 
-    `grep toaster $lconf` 
+    `grep toaster $letc/lighttpd.conf` 
         and return $log->audit("lighttpd configuration already done");
 
     my $cgi_bin = $conf->{toaster_cgi_bin} || '/usr/local/www/cgi-bin.toaster/';
     my $htdocs = $conf->{toaster_http_docs} || '/usr/local/www/toaster';
 
     $self->config_apply_tweaks(
-        file    => $lconf,
+        file    => "$letc/lighttpd.conf",
         changes => [
             {   search  => q{#                               "mod_redirect",},
                 replace => q{                                "mod_redirect",},
@@ -2697,41 +2698,99 @@ sub lighttpd_config {
             {   search  => q{server.document-root        = "/usr/local/www/data/"},
                 replace => qq{server.document-root        = "$htdocs/"},
             },
-            {   search  => q{#include /etc/lighttpd/lighttpd-inc.conf},
-                replace => q{include "/usr/local/etc/lighttpd/lighttpd-inc.conf"},
+            {   search  => q{server.document-root = "/usr/local/www/data/"},
+                replace => qq{server.document-root = "$htdocs/"},
+            },
+            {   search  => q{var.server_root = "/usr/local/www/data"},
+                replace => qq{var.server_root = "$htdocs"},
+            },
+            {   search  => q{#include_shell "cat /usr/local/etc/lighttpd/vhosts.d/*.conf"},
+                replace => q{include_shell "cat /usr/local/etc/lighttpd/vhosts.d/*.conf"},
+            },
+            {   search  => q'$SERVER["socket"] == "0.0.0.0:80" { }',
+                replace => q'#$SERVER["socket"] == "0.0.0.0:80" { }',
             },
         ],
     );
 
-    my $include = '
-# avoid upload hang: http://redmine.lighttpd.net/boards/2/topics/show/141
-server.network-backend = "writev",
+    $self->config_apply_tweaks(
+        file    => "$letc/modules.conf",
+        changes => [
+            {   search  => q{#  "mod_alias",},
+                replace => q{  "mod_alias",},
+            },
+            {   search  => q{#  "mod_auth",},
+                replace => q{  "mod_auth",},
+            },
+            {   search  => q{#  "mod_redirect",},
+                replace => q{  "mod_redirect",},
+            },
+            {   search  => q{#  "mod_setenv",},
+                replace => q{  "mod_setenv",},
+            },
+            {   search  => q{#include "conf.d/cgi.conf"},
+                replace => q{include "conf.d/cgi.conf"},
+            },
+            {   search  => q{#include "conf.d/fastcgi.conf"},
+                replace => q{include "conf.d/fastcgi.conf"},
+            },
+        ],
+    );
 
+    return 1; 
+};
+
+sub lighttpd_start {
+    my $self = shift;
+
+    if ( $OSNAME eq 'freebsd' ) {
+        system "/usr/local/etc/rc.d/lighttpd restart";
+        return 1;
+    }
+    elsif ( $OSNAME eq 'linux' ) {
+        system "service lighttpd start";
+        return 1;
+    };
+    print "not sure how to start lighttpd on $OSNAME\n";
+    return;
+};
+
+sub lighttpd_vhost {
+    my $self = shift;
+
+    my $letc = '/usr/local/etc';
+    $letc = "$letc/lighttpd" if -d "$letc/lighttpd";
+
+    my $www   = '/usr/local/www';
+    my $cgi_bin = $conf->{toaster_cgi_bin} || "$www/cgi-bin.toaster/";
+    my $htdocs = $conf->{toaster_http_docs} || "$www/toaster";
+
+    my $vhost = '
 alias.url = (  "/cgi-bin/"       => "' . $cgi_bin . '/",
                "/sqwebmail/"     => "' . $htdocs . '/sqwebmail/",
                "/qmailadmin/"    => "' . $htdocs . '/qmailadmin/",
-               "/squirrelmail/"  => "/usr/local/www/squirrelmail/",
-               "/roundcube/"     => "/usr/local/www/roundcube/",
-               "/v-webmail/"     => "/usr/local/www/v-webmail/htdocs/",
-               "/horde/"         => "/usr/local/www/horde/",
-               "/awstatsclasses" => "/usr/local/www/awstats/classes/",
-               "/awstatscss"     => "/usr/local/www/awstats/css/",
-               "/awstatsicons"   => "/usr/local/www/awstats/icons/",
-               "/awstats/"       => "/usr/local/www/awstats/cgi-bin/",
-               "/munin/"         => "/usr/local/www/munin/",
+               "/squirrelmail/"  => "' . $www . '/squirrelmail/",
+               "/roundcube/"     => "' . $www . '/roundcube/",
+               "/v-webmail/"     => "' . $www . '/v-webmail/htdocs/",
+               "/horde/"         => "' . $www . '/horde/",
+               "/awstatsclasses" => "' . $www . '/awstats/classes/",
+               "/awstatscss"     => "' . $www . '/awstats/css/",
+               "/awstatsicons"   => "' . $www . '/awstats/icons/",
+               "/awstats/"       => "' . $www . '/awstats/cgi-bin/",
+               "/munin/"         => "' . $www . '/munin/",
                "/rrdutil/"       => "/usr/local/rrdutil/html/",
                "/isoqlog/images/"=> "/usr/local/share/isoqlog/htmltemp/images/",
-               "/phpMyAdmin/"    => "/usr/local/www/phpMyAdmin/",
+               "/phpMyAdmin/"    => "' . $www . '/phpMyAdmin/",
             )
 
 $HTTP["url"] =~ "^/awstats/" {
     cgi.assign = ( "" => "/usr/bin/perl" )
 }
 $HTTP["url"] =~ "^/cgi-bin" {
-     cgi.assign = ( "" => "" )
+    cgi.assign = ( "" => "" )
 }
 $HTTP["url"] =~ "^/ezmlm.cgi" {
-         cgi.assign = ( "" => "/usr/bin/perl" )
+    cgi.assign = ( "" => "/usr/bin/perl" )
 }
 
 # redirect users to a secure connection
@@ -2780,26 +2839,17 @@ auth.require   = (   "/isoqlog" =>
                          "realm"   => "vqadmin",
                          "require" => "valid-user"
                       )
+#                     "/munin" =>
+#                     (
+#                         "method"  => "digest",
+#                         "realm"   => "vqadmin",
+#                         "require" => "valid-user"
+#                      )
                   )
 ';
 
-    $util->file_write("$letc/lighttpd-inc.conf", lines => [ $include ],);
+    $util->file_write("$letc/vhosts.d/mail-toaster.conf", lines => [ $vhost ],);
     return 1; 
-};
-
-sub lighttpd_start {
-    my $self = shift;
-
-    if ( $OSNAME eq 'freebsd' ) {
-        system "/usr/local/etc/rc.d/lighttpd restart";
-        return 1;
-    }
-    elsif ( $OSNAME eq 'linux' ) {
-        system "service lighttpd start";
-        return 1;
-    };
-    print "not sure how to start lighttpd on $OSNAME\n";
-    return;
 };
 
 sub logmonster {
