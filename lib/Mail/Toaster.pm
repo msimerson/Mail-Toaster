@@ -428,6 +428,41 @@ sub check_processes {
     return 1;
 }
 
+sub check_cron {
+    my $self = shift;
+    my %p = validate( @_, { %std_opts } );
+    my %args = $self->get_std_args( %p );
+
+    $conf ||= $self->get_config();
+    
+    return $log->audit("unable to check cron jobs on $OSNAME")
+        if $OSNAME ne "freebsd";
+
+    $log->audit( "checking cron jobs");
+    $self->check_cron_dccd();
+};
+
+sub check_cron_dccd {
+    my $self = shift;
+
+    return if ! -f '/usr/local/dcc/libexec/cron-dccd';
+
+    my $periodic_dir = '/usr/local/etc/periodic/daily';
+    if ( ! -d $periodic_dir ) {
+        $util->mkdir_system(dir=>$periodic_dir, mode => '0755')
+            or return $log->error("unable to create $periodic_dir");
+    };
+
+    my $script = "$periodic_dir/501.dccd";
+    if ( ! -f $script ) {
+        $util->file_write( $script,
+            lines => [ '#!/bin/sh', '/usr/local/dcc/libexec/cron-dccd', ],
+            mode => '0755',
+        );
+        $util->audit("created dccd nightly cron job");
+    };
+};
+
 sub check_watcher_log_size {
     my $self = shift;
 
@@ -1713,6 +1748,7 @@ sub supervised_tcpserver_cdb {
     $log->error( "$cdb selected but not readable" ) if ! -r $cdb;
     return "\\\n\t-x $cdb ";
 };
+
 
 1;
 __END__

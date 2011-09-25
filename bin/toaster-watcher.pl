@@ -60,6 +60,7 @@ $toaster->run_qmailscanner( %args );
 $toaster->clean_mailboxes( %args );
 $toaster->learn_mailboxes( %args );
 $toaster->process_logfiles( %args ); 
+$toaster->check_cron( %args );
 
 $qmail->rebuild_ssl_temp_keys( %args );
 $qmail->rebuild_simscan_control( %args );
@@ -141,7 +142,7 @@ This script runs the clearopensmtp program which expires old ip addresses from t
 
 =item Isoqlog
 
-If you have isoqlog installed, you'll want to have it running frequently. I suggest running it from here, or from crondirectly.
+If you have isoqlog installed, you'll want to have it running frequently. I suggest running it from here, or from cron directly.
 
 
 =item Qmail-Scanner Quarantine Processing
