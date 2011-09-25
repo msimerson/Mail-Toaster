@@ -49,6 +49,7 @@ cgi_files/support/pop3.html
 cgi_files/support/ssl.html
 cgi_files/support/webmail.html
 Changes
+contrib/logtail
 contrib/Mail-Ezmlm-0.4.patch
 contrib/Mail-Ezmlm-0.5.patch
 contrib/munin/qmail_rbl
