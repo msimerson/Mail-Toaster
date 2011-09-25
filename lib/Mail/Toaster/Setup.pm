@@ -2831,24 +2831,30 @@ fastcgi.server = (
                   )
 
 auth.backend               = "htdigest"
-auth.backend.htdigest.userfile = "$letc/lighttpd.passwd"
+auth.backend.htdigest.userfile = "/usr/local/etc/WebUsers"
 
 auth.require   = (   "/isoqlog" =>
                      (
                          "method"  => "digest",
-                         "realm"   => "isoqlog",
+                         "realm"   => "Admins Only",
                          "require" => "valid-user"
                       ),
                      "/cgi-bin/vqadmin" =>
                      (
                          "method"  => "digest",
-                         "realm"   => "vqadmin",
+                         "realm"   => "Admins Only",
+                         "require" => "valid-user"
+                      )
+                     "/ezmlm.cgi" =>
+                     (
+                         "method"  => "digest",
+                         "realm"   => "Admins Only",
                          "require" => "valid-user"
                       )
 #                     "/munin" =>
 #                     (
 #                         "method"  => "digest",
-#                         "realm"   => "vqadmin",
+#                         "realm"   => "Admins Only",
 #                         "require" => "valid-user"
 #                      )
                   )

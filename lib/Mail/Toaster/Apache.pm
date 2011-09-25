@@ -571,9 +571,9 @@ Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
     Order deny,allow
     deny from all
     #allow from 216.243.3
-    AuthUserFile /usr/local/www/WebUsers
-    AuthName Isoqlog
-    AuthType Basic
+    AuthUserFile /usr/local/etc/WebUsers
+    AuthName "Admins Only"
+    AuthType Digest
     require valid-user
     satisfy any
 </Directory>
@@ -597,9 +597,9 @@ Alias /phpMyAdmin/ "/usr/local/www/phpMyAdmin/"
     Order deny,allow
     deny from all
     #allow from 216.243.3
-    AuthType Basic
-    AuthName vQadmin
-    AuthUserFile /usr/local/www/WebUsers
+    AuthType Digest
+    AuthName "Admins Only"
+    AuthUserFile /usr/local/etc/WebUsers
     require valid-user
     satisfy any
 </Directory>
@@ -635,9 +635,9 @@ Alias /images/vqadmin "$htdocs/images/vqadmin"
     Order deny,allow
     deny from all
     #allow from 216.243.3
-    AuthType Basic
-    AuthName vQadmin
-    AuthUserFile /usr/local/www/WebUsers
+    AuthType Digest
+    AuthName "Admins Only"
+    AuthUserFile /usr/local/etc/WebUsers
     require valid-user
     satisfy any
 </Directory>
