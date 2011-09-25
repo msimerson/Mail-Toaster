@@ -552,6 +552,7 @@ ServerTokens ProductOnly
     RewriteRule .* - [F]
 </IfModule>
 
+AddHandler cgi-script .cgi
     # enable php parsing
 AddType application/x-httpd-php .php
 AddType application/x-httpd-php-source .phps
@@ -563,7 +564,7 @@ Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
     Allow from all
 </Directory>
 
-<Directory "'.$htdocs.'/isoqlog">
+<Directory "$htdocs/isoqlog">
     Options None
     AllowOverride None
 
@@ -577,7 +578,7 @@ Alias /isoqlog/images/ "/usr/local/share/isoqlog/htmltemp/images/"
     satisfy any
 </Directory>
 
-Alias /qmailadmin/ "'.$htdocs.'/qmailadmin/"
+Alias /qmailadmin/ "$htdocs/qmailadmin/"
 
 Alias /squirrelmail/ "/usr/local/www/squirrelmail/"
 <Directory "/usr/local/www/squirrelmail">
@@ -626,8 +627,8 @@ Alias /v-webmail/ "/usr/local/www/v-webmail/htdocs/"
     Allow from all
 </Directory>
 
-Alias /images/vqadmin "'.$htdocs.'/images/vqadmin"
-<Directory "' .$cgibin .'/vqadmin">
+Alias /images/vqadmin "$htdocs/images/vqadmin"
+<Directory "$cgibin/vqadmin">
     Options ExecCGI
     AllowOverride None
 
@@ -656,7 +657,6 @@ Alias /munin "/usr/local/www/munin"
     Order allow,deny
     Allow from all
 </Directory>
-';
 
 EO_MAIL_TOASTER_CONF
 
