@@ -2844,7 +2844,7 @@ auth.require   = (   "/isoqlog" =>
                          "method"  => "digest",
                          "realm"   => "Admins Only",
                          "require" => "valid-user"
-                      )
+                      ),
                      "/ezmlm.cgi" =>
                      (
                          "method"  => "digest",
