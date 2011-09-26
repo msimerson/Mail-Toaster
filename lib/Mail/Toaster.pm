@@ -459,7 +459,7 @@ sub check_cron_dccd {
             lines => [ '#!/bin/sh', '/usr/local/dcc/libexec/cron-dccd', ],
             mode => '0755',
         );
-        $util->audit("created dccd nightly cron job");
+        $self->audit("created dccd nightly cron job");
     };
 };
 
