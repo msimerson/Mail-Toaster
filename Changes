@@ -1,4 +1,35 @@
 Mail Toaster Changes
+  5.30 - Sep 26, 2011
+       Apache Config Changes
+          shortened config file comments
+          removed IfModule ssl_module from apache config file
+          added vqadmin declaration
+          removed deprecated apacheconf build target
+          default config password protects ezmlm.cgi, isoqlog, vqadmin, phpmyadmin
+          http auth files use Digest authentication, for both lighttpd and apache
+          add .cgi handler to apache vhost
+          add qmailadmin http alias, so graphics will load if docroot is not default
+          automatically add pear include path to php.ini, used by squirrel mail
+          added munin declarations in apache config
+       updated horde web address, added apache config settings for horde
+       added periodic (cron) task for dccd cleanup (if installed)
+       build updates for lighttpd
+       removed php4 build support
+       updates for roundcube webmail support
+       added portmaster build target
+       added gnupg install to spam assassin build (used by sa-update)
+       moved rrdtool install from munin into its own sub
+       added maildrop build option for vpopmail build
+       added squirrelmail sasql plugin configuration
+       isoqlog build did not install config file, fixed
+       update ezmlm-idx build for v7
+       remove mysql db type, future mysql versions use a different syntax
+       added qmailadmin catchall preference, defaults to disabled
+       added horde support to lighttpd config
+       give smtpd and pop3 processes more RAM (better accomodate 64bit)
+       reduce default multilog file size from 1M to 100k
+       change user=matt to 'valid-user' in http config
+
   5.29 - Jun 12, 2011
        updated migrate script for compatibility with 5.26 changes
        updated lighttpd.conf config file location (FreeBSD port change)
