@@ -1753,15 +1753,18 @@ sub dovecot {
     $self->dovecot_start();
 }
 
-sub dovecot_conf {
+sub dovecot_1_conf {
     my $self = shift;
+
     my $dconf = '/usr/local/etc/dovecot.conf';
     if ( ! -f $dconf ) {
         foreach ( qw{ /opt/local/etc /etc } ) {
             $dconf = "$_/dovecot.conf";
             last if -e $dconf;
         };
-        return $log->error( "could not locate dovecot.conf. Toaster modifications not applied.");
+        if ( ! -f $dconf ) {
+            return $log->error( "could not locate dovecot.conf. Toaster modifications not applied.");
+        };
     };
 
     my $updated = `grep 'Mail Toaster' $dconf`;
@@ -1860,6 +1863,140 @@ auth_username_format = %Lu",
     );
 };
 
+sub dovecot_2_conf {
+    my $self = shift;
+
+    my $dconf = '/usr/local/etc/dovecot';
+    return if ! -d $dconf;
+
+    if ( ! -f "$dconf/dovecot.conf" ) {
+        my $ex = '/usr/local/share/doc/dovecot/example-config';
+
+        foreach ( qw/ dovecot.conf / ) {
+            if ( -f "$ex/$_" ) {
+                copy("$ex/$_", $dconf);
+            };
+        };
+        system "cp $ex/conf.d /usr/local/etc/dovecot";
+    };
+
+    my $updated = `grep 'Mail Toaster' $dconf/dovecot.conf`;
+    if ( $updated ) {
+        $log->audit( "Toaster modifications detected, skipping config" );
+        return 1;
+    };
+
+    $self->config_apply_tweaks(
+        file => "$dconf/dovecot.conf",
+        changes => [
+            {   search  => "#login_greeting = Dovecot ready.",
+                replace => "#login_greeting = Dovecot ready.
+login_greeting = Mail Toaster (Dovecot) ready.",
+            },
+            {   search  => "#listen = *, ::",
+                replace => "#listen = *, ::\nlisten = *",
+            },
+        ],
+    );
+
+    $self->config_apply_tweaks(
+        file => "$dconf/conf.d/10-auth.conf",
+        changes => [
+            {   search  => "#auth_username_format =",
+                replace => "#auth_username_format =\nauth_username_format = %Lu",
+                nowarn  => 1,
+            },
+            {   search  => "auth_mechanisms = plain",
+                replace => "auth_mechanisms = plain login digest-md5 cram-md5",
+            },
+            {   search  => "!include auth-system.conf.ext",
+                replace => "#!include auth-system.conf.ext",
+                nowarn  => 1,
+            },
+            {   search  => "#!include auth-vpopmail.conf.ext",
+                replace => "!include auth-vpopmail.conf.ext",
+                nowarn  => 1,
+            },
+        ],
+    );
+
+    $self->config_apply_tweaks(
+        file => "$dconf/conf.d/10-ssl.conf",
+        changes => [
+            {   search  => "ssl_cert = </etc/ssl/certs/dovecot.pem",
+                replace => "#ssl_cert = </etc/ssl/certs/dovecot.pem
+ssl_cert = </var/qmail/control/servercert.pem",
+            },
+            {   search  => "ssl_key = </etc/ssl/private/dovecot.pem",
+                replace => "#ssl_key = </etc/ssl/private/dovecot.pem
+ssl_key = </var/qmail/control/servercert.pem",
+            },
+        ],
+    );
+
+    $self->config_apply_tweaks(
+        file => "$dconf/conf.d/10-mail.conf",
+        changes => [
+            {
+                search  => "#mail_location = ",
+                replace => "#mail_location = 
+mail_location = maildir:~/Maildir",
+            },
+            {   search  => "#first_valid_uid = 500",
+                replace => "#first_valid_uid = 500\nfirst_valid_uid = 89",
+            },
+            {   search  => "#last_valid_uid = 0",
+                replace => "#last_valid_uid = 0\nlast_valid_uid = 89",
+            },
+            {   search  => "first_valid_gid = 1",
+                replace => "#first_valid_gid = 1\nfirst_valid_gid = 89",
+            },
+            {   search  => "#last_valid_gid = 0",
+                replace => "#last_valid_gid = 0\nlast_valid_gid = 89",
+            },
+            {   search  => "#mail_plugins =",
+                replace => "#mail_plugins =\nmail_plugins = quota",
+            },
+        ],
+    );
+
+    $self->config_apply_tweaks(
+        file => "$dconf/conf.d/20-pop3.conf",
+        changes => [
+            {   search => "  #pop3_client_workarounds = ",
+                replace => "  #pop3_client_workarounds = \n  pop3_client_workarounds = outlook-no-nuls oe-ns-eo",
+            },
+        ],
+    );
+
+    $self->config_apply_tweaks(
+        file => "$dconf/conf.d/15-lda.conf",
+        changes => [
+            {   search  => "#sendmail_path = /usr/sbin/sendmail",
+                replace => "#sendmail_path = /usr/sbin/sendmail\nsendmail_path = /var/qmail/bin/sendmail",
+            },
+        ],
+    );
+
+    $self->config_apply_tweaks(
+        file => "$dconf/conf.d/90-quota.conf",
+        changes => [
+            {   search  => "  #quota = maildir:User quota",
+                replace => "  quota = maildir:User quota",
+            },
+        ],
+    );
+
+    $self->config_apply_tweaks(
+        file => "$dconf/conf.d/20-imap.conf",
+        changes => [
+            {   search  => "  #mail_plugins = ",
+                replace => "  #mail_plugins = \n  mail_plugins = \$mail_plugins imap_quota",
+            },
+        ],
+    );
+};
+
 sub dovecot_install_freebsd {
     my $self = shift;
 
@@ -1902,12 +2039,6 @@ WITHOUT_SQLITE=true
         };
     };
 
-    # append dovecot_enable to /etc/rc.conf
-    $freebsd->conf_check(
-        check => "dovecot_enable",
-        line  => 'dovecot_enable="YES"',
-    );
-
     return 1;
 }
 
@@ -1917,11 +2048,18 @@ sub dovecot_start {
     my $debug = $self->{'debug'};
 
     unless ( $OSNAME eq "freebsd" ) {
-        $log->error( "sorry, no dovecot startup support yet on $OSNAME", fatal => 0);
+        $log->error( "sorry, no dovecot startup support on $OSNAME", fatal => 0);
         return;
     };
 
-    $self->dovecot_conf() or return;
+    $self->dovecot_1_conf() or return;
+    $self->dovecot_2_conf() or return;
+
+    # append dovecot_enable to /etc/rc.conf
+    $freebsd->conf_check(
+        check => "dovecot_enable",
+        line  => 'dovecot_enable="YES"',
+    );
 
     # start dovecot
     if ( -x "/usr/local/etc/rc.d/dovecot" ) {
