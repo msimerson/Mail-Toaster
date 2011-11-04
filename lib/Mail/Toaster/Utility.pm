@@ -1,9 +1,10 @@
 package Mail::Toaster::Utility;
+# ABSTRACT: utility subroutines for sysadmin tasks
 
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.31';
 
 use Cwd;
 use Carp;
@@ -11,6 +12,7 @@ use English qw( -no_match_vars );
 use File::Basename;
 use File::Copy;
 use File::Path;
+use File::Spec;
 use File::stat;
 use Params::Validate qw(:all);
 use Scalar::Util qw( openhandle );
@@ -22,9 +24,9 @@ use vars qw/ $log %std_opts /;
 sub new {
     my $class = shift;
     my %p     = validate( @_,
-        {   'log' => { type => OBJECT   },
+        {   'log' => { type => OBJECT,  optional => 1 },
             fatal => { type => BOOLEAN, optional => 1, default => 1 },
-            debug => { type => BOOLEAN, optional => 1 },
+            debug => { type => BOOLEAN, optional => 1, default => 1 },
         }
     );
 
@@ -50,7 +52,7 @@ sub new {
     };
     bless $self, $class;
 
-    # globally scoped hash, populated with defaults as requested by the caller
+# globally scoped hash, populated with defaults as requested by the caller
     %std_opts = (
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
@@ -66,7 +68,7 @@ sub ask {
     my $question = shift;
     my %p = validate(
         @_,
-        {   default  => { type => SCALAR,  optional => 1 },
+        {   default  => { type => SCALAR|UNDEF, optional => 1 },
             timeout  => { type => SCALAR,  optional => 1 },
             password => { type => BOOLEAN, optional => 1, default => 0 },
             test_ok  => { type => BOOLEAN, optional => 1 },
@@ -134,46 +136,57 @@ sub archive_file {
     my %p = validate( @_,
         {   %std_opts,
             'sudo'  => { type => BOOLEAN, optional => 1, default => 1 },
+            'mode'  => { type => SCALAR,  optional => 1 },
+            destdir => { type => SCALAR,  optional => 1 },
         }
     );
 
-    my $date = time;
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
-    return $log->error( "file ($file) is missing!", %args ) if !-e $file;
+    return $log->error( "file ($file) is missing!", %args )
+        if !-e $file;
+
+    my $archive = $file . time;
+
+    if ( $p{destdir} && -d $p{destdir} ) {
+        my ($vol,$dirs,$file_wo_path) = File::Spec->splitpath( $archive );
+        $archive = File::Spec->catfile( $p{destdir}, $file_wo_path );
+    };
 
     # see if we can write to both files (new & archive) with current user
     if (    $self->is_writable( $file, %args )
-         && $self->is_writable( "$file.$date", %args ) ) {
+         && $self->is_writable( $archive, %args ) ) {
 
         # we have permission, use perl's native copy
-        copy( $file, "$file.$date" ) and do {
-            $log->audit("archive_file: $file backed up to $file.$date");
-            return "$file.$date" if -e "$file.$date";
+        copy( $file, $archive );
+        if ( -e $archive ) {
+            $log->audit("archive_file: $file backed up to $archive");
+            $self->chmod( file => $file, mode => $p{mode}, %args ) if $p{mode};
+            return $archive;
         };
     }
 
     # we failed with existing permissions, try to escalate
     $self->archive_file_sudo( $file ) if ( $p{sudo} && $< != 0 );
 
-    if ( -e "$file.$date" ) {
-        $log->audit("$file backed up to $file.$date");
-        return "$file.$date";
-    }
+    return $log->error( "backup of $file to $archive failed: $!", %args)
+        if ! -e $archive;
 
-    return $log->error( "backup of $file to $file.$date failed: $!", %args);
+    $self->chmod( file => $file, mode => $p{mode}, %args ) if $p{mode};
+
+    $log->audit("$file backed up to $archive");
+    return $archive;
 }
 
 sub archive_file_sudo {
     my $self = shift;
-    my $file = shift;
+    my ($file, $archive) = @_;
 
     my $sudo = $self->sudo();
     my $cp = $self->find_bin( 'cp',fatal=>0 );
 
     if ( $sudo && $cp ) {
-        my $date = time;
-        return $self->syscmd( "$sudo $cp $file $file.$date",fatal=>0 );
+        return $self->syscmd( "$sudo $cp $file $archive",fatal=>0 );
     }
     $log->error( "archive_file: sudo or cp was missing, could not escalate.",fatal=>0);
     return;
@@ -240,20 +253,19 @@ sub chown {
         group => $gid,
     ) if $sudo;
 
-    my ( $nuid, $ngid );
+    my ( $nuid, $ngid ); # if uid or gid is not numeric, convert it
 
     if ( $uid =~ /\A[0-9]+\z/ ) {
-        $nuid = int($uid); 
+        $nuid = int($uid);
         $log->audit("  using $nuid from int($uid)");
     }
     else {
-        # if uid or gid is not numeric, convert it
         $nuid = getpwnam($uid);
         return $log->error( "failed to get uid for $uid", %args) if ! defined $nuid;
         $log->audit("  converted $uid to a number: $nuid");
     }
 
-    if ( $p{gid} =~ /\A[0-9\-]+\z/ ) {
+    if ( $gid =~ /\A[0-9\-]+\z/ ) {
         $ngid = int( $gid );
         $log->audit("  using $ngid from int($gid)");
     }
@@ -272,8 +284,7 @@ sub chown {
 sub chown_system {
     my $self = shift;
     my $dir = shift;
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   'user'    => { type => SCALAR,  optional => 0, },
             'group'   => { type => SCALAR,  optional => 1, },
             'recurse' => { type => BOOLEAN, optional => 1, },
@@ -284,7 +295,7 @@ sub chown_system {
     my ( $user, $group, $recurse ) = ( $p{user}, $p{group}, $p{recurse} );
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
-    $dir or return $log->error( "missing file or dir", %args ); 
+    $dir or return $log->error( "missing file or dir", %args );
     my $cmd = $self->find_bin( 'chown', %args );
 
     $cmd .= " -R"     if $recurse;
@@ -350,8 +361,7 @@ sub clean_tmp_dir {
 sub cwd_source_dir {
     my $self = shift;
     my $dir = shift or die "missing dir in request\n";
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   'src'   => { type => SCALAR,  optional => 1, },
             'sudo'  => { type => BOOLEAN, optional => 1, },
             %std_opts,
@@ -387,7 +397,7 @@ sub cwd_source_dir {
 
 sub _try_mkdir {
     my ( $dir ) = @_;
-    mkpath( $dir, 0, oct('0755') ) 
+    mkpath( $dir, 0, oct('0755') )
         or return $log->error( "mkdir $dir failed: $!");
     $log->audit( "created $dir");
     return 1;
@@ -414,12 +424,12 @@ sub extract_archive {
 
     $ENV{PATH} = '/bin:/usr/bin'; # do this or taint checks will blow up on ``
 
-    return $log->error( "unknown archive type: $archive", %args)
+    return $log->error( "unknown archive type: $archive", %args )
         if $archive !~ /[bz2|gz]$/;
 
     # find these binaries, we need them to inspect and expand the archive
-    my $tar  = $self->find_bin( 'tar'  );
-    my $file = $self->find_bin( 'file' );
+    my $tar  = $self->find_bin( 'tar',  %args );
+    my $file = $self->find_bin( 'file', %args );
 
     my %types = (
         gzip => { bin => 'gunzip',  content => 'gzip',       },
@@ -430,13 +440,13 @@ sub extract_archive {
     my $type
         = $archive =~ /bz2$/ ? 'bzip'
         : $archive =~ /gz$/  ? 'gzip'
-        :  return $log->error( 'unknown archive type',%args);
+        :  return $log->error( 'unknown archive type', %args);
 
     # make sure the archive contents match the file extension
-    return $log->error( "$archive not a $type compressed file",%args)
+    return $log->error( "$archive not a $type compressed file", %args)
         unless grep ( /$types{$type}{content}/, `$file $archive` );
 
-    my $bin = $self->find_bin( $types{$type}{bin}, %args );
+    my $bin = $self->find_bin( $types{$type}{bin}, %args);
 
     $self->syscmd( "$bin -c $archive | $tar -xf -" ) or return;
 
@@ -446,8 +456,7 @@ sub extract_archive {
 
 sub file_delete {
     my $self = shift;
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   'file'  => { type => SCALAR },
             'sudo'  => { type => BOOLEAN, optional => 1, default => 0 },
             %std_opts,
@@ -468,7 +477,7 @@ sub file_delete {
         return 1;
     }
 
-    if ( !$p{sudo} ) {
+    if ( !$p{sudo} ) {    # all done
         return -e $file ? undef : 1;
     }
 
@@ -729,7 +738,7 @@ sub find_bin {
     my %p = validate(
         @_,
         {   'dir'   => { type => SCALAR, optional => 1, },
-            %std_opts
+            %std_opts,
         },
     );
 
@@ -737,7 +746,7 @@ sub find_bin {
     my %args = $log->get_std_args(%p);
 
     if ( $bin =~ /^\// && -x $bin ) {  # we got a full path
-        $log->audit( "find_bin: found $bin", %args);
+        $log->audit( "find_bin: found $bin", %args );
         return $bin;
     };
 
@@ -913,7 +922,7 @@ TRY:
     my @ips = grep {/inet/} `$ifconfig`; chomp @ips;
        @ips = grep {!/inet6/} @ips if $p{exclude_ipv6};
        @ips = grep {!/inet 127\.0\.0/} @ips if $p{exclude_localhost};
-       @ips = grep {!/inet (192\.168\.|10\.|172\.16\.|169\.254\.)/} @ips 
+       @ips = grep {!/inet (192\.168\.|10\.|172\.16\.|169\.254\.)/} @ips
             if $p{exclude_internals};
 
     # this keeps us from failing if the box has only internal IPs 
@@ -1504,11 +1513,10 @@ sub install_module {
 
 ## no critic ( ProhibitStringyEval )
     eval "use $module";
-    if (! $EVAL_ERROR) {
-        $log->audit( "$module is already installed.",debug=>$debug );
-#        return if ! $self->yes_or_no("reinstall",timeout=>5);
-    };
 ## use critic
+    if ( ! $EVAL_ERROR ) {
+        $log->audit( "$module is already installed.",debug=>$debug );
+    };
 
     if ( lc($OSNAME) eq 'darwin' ) {
         $self->install_module_darwin( $module ) and return 1;
@@ -1714,7 +1722,7 @@ sub is_process_running {
         };
     };
 
-    my $ps   = $self->find_bin( 'ps', debug=>0 );
+    my $ps   = $self->find_bin( 'ps', debug => 0 );
 
     if    ( lc($OSNAME) =~ /solaris/i ) { $ps .= ' -ef';  }
     elsif ( lc($OSNAME) =~ /irix/i    ) { $ps .= ' -ef';  }
@@ -1824,7 +1832,7 @@ sub mkdir_system {
     # if we are root, just do it (no sudo nonsense)
     if ( $< == 0 ) {
         $self->syscmd( "$mkdir -p $dir", %args) or return;
-        $self->chmod( dir => $dir, mode => $mode, %args) if $mode;
+        $self->chmod( dir => $dir, mode => $mode, %args ) if $mode;
 
         return 1 if -d $dir;
         return $log->error( "failed to create $dir", %args);
@@ -1840,7 +1848,8 @@ sub mkdir_system {
         my $chown = $self->find_bin( 'chown', %args);
         $self->syscmd( "$sudo $chown $< $dir", %args);
 
-        $self->chmod( dir => $dir, mode => $mode, sudo => $sudo, %args) if $mode;
+        $self->chmod( dir => $dir, mode => $mode, sudo => $sudo, %args)
+            if $mode;
         return -d $dir ? 1 : 0;
     }
 
@@ -1888,7 +1897,7 @@ sub check_pidfile {
         if ( -e $file && !-f $file );
 
     # test if file & enclosing directory is writable, revert to /tmp if not
-    $self->is_writable( $file, %args) 
+    $self->is_writable( $file, %args)
         or do {
             my ( $base, $path, $suffix ) = fileparse($file);
             $log->audit( "NOTICE: using /tmp for file, $path is not writable!", %args);
@@ -2055,7 +2064,8 @@ sub source_warning {
     $log->audit( "  wd: " . cwd );
     $log->audit( "  deleting $src/$package");
 
-    return $log->error( "failed to delete $package: $OS_ERROR", %args ) if ! rmtree "$src/$package";
+    return $log->error( "failed to delete $package: $OS_ERROR", %args )
+        if ! rmtree "$src/$package";
     return 1;
 }
 
@@ -2287,10 +2297,6 @@ sub yes_or_no {
 1;
 __END__
 
-
-=head1 NAME
-
-Mail::Toaster::Utility - utility subroutines for sysadmin tasks
 
 
 =head1 SYNOPSIS
@@ -2996,15 +3002,6 @@ try creating a directory using perl's builtin mkdir.
 
 =back
 
-=head1 AUTHOR
-
-Matt Simerson (matt@tnpi.net)
-
-
-=head1 BUGS
-
-None known. Report any to author.
-
 
 =head1 TODO
 
@@ -3019,19 +3016,5 @@ The following are all man/perldoc pages:
 
  Mail::Toaster 
 
-
-=head1 COPYRIGHT
-
-Copyright (c) 2003-2009, The Network People, Inc. All Rights Reserved.
-
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-
-Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =cut

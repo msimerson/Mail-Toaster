@@ -21,8 +21,8 @@ require_ok('Mail::Toaster');
 require_ok('Mail::Toaster::Utility');
 
 # let the testing begin
-my $log = my $toaster = Mail::Toaster->new( debug => 0 );
-my $util = Mail::Toaster::Utility->new( 'log' => $toaster );
+my $log = Mail::Toaster->new( debug => 0 );
+my $util = Mail::Toaster::Utility->new( 'log' => $log );
 ok( defined $util, 'get Mail::Toaster::Utility object' );
 isa_ok( $util, 'Mail::Toaster::Utility' );
 
@@ -91,7 +91,7 @@ SKIP: {
     ok( -e $archive, 'temp archive exists' );
 
     ok( $util->extract_archive( $archive, fatal => 0 ), 'extract_archive +');
-    ok( ! $util->extract_archive( "$archive.fizzlefuzz", fatal => 0 ), 'extract_archive -');
+    ok( !$util->extract_archive( "$archive.fizzlefuzz", fatal => 0 ), 'extract_archive -');
 
     # clean up behind the tests
     ok( $util->file_delete( file => $archive, fatal => 0 ), 'file_delete' );
@@ -112,8 +112,7 @@ ok( $util->cwd_source_dir( $tmp ), 'cwd_source_dir' );
 
 # clean up after previous runs
 if ( -f "$tmp/foo" ) {
-    ok( $util->file_delete( file => "$tmp/foo", fatal => 0 ),
-        'file_delete' );
+    ok( $util->file_delete( file => "$tmp/foo", fatal => 0 ), 'file_delete' );
 }
 
 # a dir to create
@@ -129,7 +128,7 @@ my $sudo_bin = $util->find_bin( 'sudo', fatal => 0 );
 if ( $UID == 0 && $sudo_bin && -x $sudo_bin ) {
 
     # avoid the possiblity of a sudo call in testing
-    ok( $util->chown_system( $tmp, user => $<, fatal => 0,), 'chown_system');
+    ok( $util->chown_system( $tmp, user => $<, fatal => 0), 'chown_system');
 }
 
 # clean_tmp_dir
@@ -203,16 +202,6 @@ SKIP: {
     my $url = "http://www.mail-toaster.org/etc/maildrop-qmail-domain";
     ok( $util->get_url( $url ), 'get_url' );
     ok( $util->get_url( $url, dir => $tmp ), 'get_url');
-
-    #print getcwd . "\n";
-    #ok( $util->get_url( "http://mail-toaster.org/Mail-Toaster.tar.gz",
-    #   ), 'get_url'
-    #);
-    #
-## extract_archive
-    # ok( $util->extract_archive( 'Mail-Toaster.tar.gz', fatal => 0
-    #     ), 'extract_archive'
-    # );
 }
 
 chdir($cwd);
