@@ -496,21 +496,21 @@ sub learn_mailboxes {
     return $p{test_ok} if defined $p{test_ok};
 
     # create the log file if it does not exist
-    $util->logfile_append( %args,
-        file  => $learn_log,
-        prog  => $0,
-        lines => ["created file"],
-    )
-    if ! -e $learn_log;
+    if ( ! -e $learn_log ) {
+        $util->logfile_append( %args,
+            file  => $learn_log,
+            prog  => $0,
+            lines => ["created file"],
+        )
+    };
 
     return $log->audit( "skipping message learning, $learn_log is less than $days old")
         if -M $learn_log <= $days;
     
-    $util->logfile_append(
+    $util->logfile_append( %args,
         file  => $learn_log,
         prog  => $0,
         lines => ["learn_mailboxes running."],
-        %args,
     ) or return;
     
     my $tmp      = $conf->{'toaster_tmp_dir'} || "/tmp";
@@ -520,8 +520,15 @@ sub learn_mailboxes {
     unlink $spamlist if -e $spamlist;
 
     my @every_maildir_on_server = $self->get_maildir_paths();
+    $util->logfile_append( %args,
+        file  => $learn_log,
+        prog  => $0,
+        lines => ["\tfound ". scalar @every_maildir_on_server . " mailboxes."],
+    );
+
     foreach my $maildir (@every_maildir_on_server) {
-        next if ( ! $maildir || ! -d $maildir );
+        next if ! $maildir;
+        next if ! -d $maildir;
         $log->audit( "processing in $maildir");
         $self->build_ham_list( path =>$maildir ) if $conf->{'maildir_learn_Read'};
         $self->build_spam_list( path => $maildir ) if $conf->{'maildir_learn_Spam'};
@@ -638,28 +645,24 @@ sub build_spam_list {
 
     my ( $path, $debug ) = ( $p{'path'}, $p{'debug'} );
 
-    my $spam = "$path/Maildir/.Spam";
-    unless ( -d $spam ) {
-        $log->audit( "skipped spam learning because $spam does not exist.");
-        return;
-    }
-
     my $find = $util->find_bin( "find", debug=>0 );
     my $tmp  = $conf->{'toaster_tmp_dir'};
     my $list = "$tmp/toaster-spam-learn-me";
 
     $log->audit( "build_spam_list: finding new spam to recognize.");
 
-    # how often do we process spam?  It's not efficient (or useful) to feed spam
-    # through sa-learn if we've already learned from them.
-
     my $interval = $conf->{'maildir_learn_interval'} || 7;    # default 7 days
        $interval = $interval + 2;
 
-    my @files = `$find $spam/cur -type f -mtime +1 -mtime -$interval;`;
-    push @files, `$find $spam/new -type f -mtime +1 -mtime -$interval;`;
-    chomp @files;
-    $util->file_write( $list, lines => \@files, append=>1 );
+    my @messages;
+    my @spams = ( '.spam', '.Spam', '.Learn Spam' );
+    foreach my $folder ( @spams ) {
+        my $spam = "$path/Maildir/$folder";
+        next if ! -d $spam;
+        push @messages, `$find $spam -type f -mtime +1 -mtime -$interval;`;
+    };
+    chomp @messages;
+    $util->file_write( $list, lines => \@messages, append=>1 );
 }
 
 sub maildir_clean_trash {
@@ -757,7 +760,9 @@ sub build_ham_list {
         push @files, `$find $path/Maildir/cur -type f -mtime +$days -mtime -$interval;`;
     }
 
-    foreach my $folder ( "$path/Maildir/.read", "$path/Maildir/.Read" ) {
+    my @hams = ( '.read', '.Read', '.Learn Ham' );
+    foreach my $folder ( @hams ) {
+        $folder = "$path/Maildir/$folder";
         $log->audit( "learning read messages as ham ($folder)");
         next if ! -d $folder;
         push @files, `$find $folder/cur -type f`;
