@@ -530,12 +530,26 @@ sub learn_mailboxes {
     my $nice    = $util->find_bin( "nice" );
     my $salearn = $util->find_bin( "sa-learn" );
 
-    $util->syscmd( "$nice $salearn --ham -f $hamlist", %args )
-        if -s $hamlist;
+    if ( -s $hamlist ) {
+        $util->logfile_append(
+            file  => $learn_log,
+            prog  => $0,
+            lines => ["$nice $salearn --ham -f $hamlist"],
+            %args,
+        );
+        $util->syscmd( "$nice $salearn --ham -f $hamlist", %args );
+    };
     unlink $hamlist;
     
-    $util->syscmd( "$nice $salearn --spam -f $spamlist", %args )
-        if -s $spamlist;
+    if ( -s $spamlist ) {
+        $util->logfile_append(
+            file  => $learn_log,
+            prog  => $0,
+            lines => ["$nice $salearn --spam -f $spamlist"],
+            %args,
+        );
+        $util->syscmd( "$nice $salearn --spam -f $spamlist", %args );
+    };
     unlink $spamlist;
 }
 

@@ -4551,7 +4551,7 @@ WITH_PERL_MODULE=true\n",
         $darwin->port_install( port_name => "rrdtool" );
     }
 
-    return 1 if -x $util->find_the_bin( 'rrdtool', fatal => 0 );
+    return 1 if -x $util->find_bin( 'rrdtool', fatal => 0 );
 
     $util->install_from_source(
         package => "rrdtool-1.2.23",
