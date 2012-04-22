@@ -250,6 +250,7 @@ send_mailbox_string                = ./Maildir/
 #           qmail-smtpd               #
 #######################################
 
+smtpd_daemon                       = qmail      # qmail, qpsmtpd
 smtpd_listen_on_address            = all        # all, a hostname, or IP
 smtpd_listen_on_port               = smtp       # smtp or a port number
 smtpd_hostname                     = 0
@@ -294,7 +295,7 @@ smtpd_log_method                   = multilog
 smtpd_log_postprocessor            = maillogs   # maillogs | none
 smtpd_log_maxsize_bytes            = 100000     # make sure this is larger than 5 minutes of logging
 
-rbl_enable                         = 0       # master RBL switch. Disables all RBLs
+rbl_enable                         = 0       # master RBL switch. Enables all RBLs
 rbl_enable_fail_closed             = 1       # default is on
 rbl_enable_soft_failure            = 1       # default is on (off means bounce immediately (553)
 rbl_enable_lookup_using            = net-dns # dig, net-dns
@@ -352,7 +353,7 @@ rbl_proxies.relays.monkeys.com     = 0       # monkeys.com DEAD as of 2003.09.22
 rbl_abuse.easynet.nl               = 0       # DEAD as of 2003.12.11
 
 rwl_enable                         = 0       # master RWL switch. Disables all RWLs
-rwl_list.dnswl.org                 = 1       # http://www.dnswl.org/
+rwl_list.dnswl.org                 = 0       # http://www.dnswl.org/
 rwl_qmail.bondedsender.org         = 0       # http://www.bondedsender.org/
 
 
@@ -517,6 +518,7 @@ maildir_clean_Spam                 = 14      # spam messages over x days are rem
 
 maildir_learn_interval             = 1       # how many days between spam learning runs
 maildir_learn_Spam                 = 1       # feed spam through sa-learn (SpamAssassin)
+maildir_learn_Spam_unread          = 0       # learn from unread messages in Spam folders?
 maildir_learn_Read                 = 1       # feed ham through sa-learn (SpamAssassin)
 maildir_learn_Read_days            = 1       # only learn from messages older than x days
 
