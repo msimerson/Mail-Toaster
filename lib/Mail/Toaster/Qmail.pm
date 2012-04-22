@@ -124,7 +124,7 @@ sub build_smtp_run {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
 
-    $log->audit( "generating smtp/run...");
+    $log->audit( "generating supervise/smtp/run...");
 
     $self->_test_smtpd_config_values() or return;
 
