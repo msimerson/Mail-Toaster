@@ -4,7 +4,7 @@ package Mail::Toaster::Utility;
 use strict;
 use warnings;
 
-our $VERSION = '5.31';
+our $VERSION = '5.32';
 
 use Cwd;
 use Carp;
@@ -146,7 +146,7 @@ sub archive_file {
     return $log->error( "file ($file) is missing!", %args )
         if !-e $file;
 
-    my $archive = $file . time;
+    my $archive = $file .' .' . time;
 
     if ( $p{destdir} && -d $p{destdir} ) {
         my ($vol,$dirs,$file_wo_path) = File::Spec->splitpath( $archive );
@@ -561,9 +561,12 @@ sub file_read {
 # reading in the entire line and then truncating it.
     };
 
-    while ( my $i < $max_lines ) {
+    my $i = 0;
+    while ( $i < $max_lines ) {
         if ($max_length) { $line = substr <$FILE>, 0, $max_length; }
         else             { $line = <$FILE>; };
+        last if ! $line;
+        last if eof $FILE;
         push @lines, $line;
         $i++;
     }
