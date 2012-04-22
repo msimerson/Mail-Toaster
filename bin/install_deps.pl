@@ -21,14 +21,12 @@ my $deps = {
         { module => 'version'           , info => {} },
     ],
     'apps' => [
-
-        { app => 'expat'         , info => { port => 'expat2',         dport=>'expat2' },
-        { app => 'gettext'       , info => { port => 'gettext',        dport=>'gettext'},
-        { app => 'gmake'         , info => { port => 'gmake',          dport=>'gmake'  },
-        { app => 'mysql-server-5', info => { port => 'mysql50-server', dport=>'mysql5',  yum => 'mysql-server' },
-        { app => 'apache22'      , info => { port => 'apache22',       dport=>'',     yum => 'httpd' },
-        { app => 'mod_perl2'     , info => { port => 'mod_perl2',      dport=>'',     yum => 'mod_perl' },
-
+        { app => 'expat'         , info => { port => 'expat2',         dport=>'expat2' } },
+        { app => 'gettext'       , info => { port => 'gettext',        dport=>'gettext'} },
+        { app => 'gmake'         , info => { port => 'gmake',          dport=>'gmake'  } },
+        { app => 'mysql-server-5', info => { port => 'mysql50-server', dport=>'mysql5',  yum => 'mysql-server' } },
+        { app => 'apache22'      , info => { port => 'apache22',       dport=>'',     yum => 'httpd' } },
+        { app => 'mod_perl2'     , info => { port => 'mod_perl2',      dport=>'',     yum => 'mod_perl' } },
     ]
 };
 
