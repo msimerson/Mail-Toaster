@@ -216,7 +216,7 @@ sub chmod {
     if ( $p{sudo} ) {
         my $chmod = $self->find_bin( 'chmod', debug => 0 );
         my $sudo  = $self->sudo();
-        $self->syscmd( "$sudo $chmod $mode $file", debug => 0 ) 
+        $self->syscmd( "$sudo $chmod $mode $file", debug => 0 )
             or return $log->error( "couldn't chmod $file: $!", %args );
     }
 
@@ -305,7 +305,7 @@ sub chown_system {
 
     $log->audit( "cmd: $cmd" );
 
-    $self->syscmd( $cmd, %args ) or 
+    $self->syscmd( $cmd, %args ) or
         return $log->error( "couldn't chown with $cmd: $!", %args);
 
     my $mess;
@@ -371,7 +371,7 @@ sub cwd_source_dir {
     my ( $src, $sudo, ) = ( $p{src}, $p{sudo}, );
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
-    return $log->error( "Something (other than a directory) is at $dir and " . 
+    return $log->error( "Something (other than a directory) is at $dir and " .
         "that's my build directory. Please remove it and try again!", %args )
         if ( -e $dir && !-d $dir );
 
@@ -385,7 +385,7 @@ sub cwd_source_dir {
 
             if ( !-d $dir ) {
                 $log->audit( "trying one last time with $sudo mkdir -p....");
-                $self->mkdir_system( dir  => $dir, sudo => 1, %args) 
+                $self->mkdir_system( dir  => $dir, sudo => 1, %args)
                     or return $log->error("Couldn't create $dir.", %args);
             }
         }
@@ -433,7 +433,7 @@ sub extract_archive {
 
     my %types = (
         gzip => { bin => 'gunzip',  content => 'gzip',       },
-        bzip => { bin => 'bunzip2', content => 'b(un)?zip2', }, 
+        bzip => { bin => 'bunzip2', content => 'b(un)?zip2', },
             # on BSD bunzip2, on Linux bzip2
     );
 
@@ -491,7 +491,7 @@ sub file_delete {
         $err .= " (sudo)";
     }
 
-    $self->syscmd( $rm_command, %args ) 
+    $self->syscmd( $rm_command, %args )
         or return $log->error( $err, %args );
 
     return -e $file ? 0 : 1;
@@ -548,7 +548,7 @@ sub file_read {
     return $log->error( "$file does not exist!", %args) if !-e $file;
     return $log->error( "$file is not readable", %args ) if !-r $file;
 
-    open my $FILE, '<', $file or 
+    open my $FILE, '<', $file or
         return $log->error( "could not open $file: $OS_ERROR", %args );
 
     my ( $line, @lines );
@@ -622,7 +622,7 @@ sub file_write {
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $log->error( "oops, $file is a directory", %args) if -d $file;
-    return $log->error( "oops, $file is not writable", %args ) 
+    return $log->error( "oops, $file is not writable", %args )
         if ( ! $self->is_writable( $file, %args) );
 
     my $m = "wrote";
@@ -637,7 +637,7 @@ sub file_write {
         };
     };
 
-    open my $HANDLE, $write_mode, "$file.tmp" 
+    open my $HANDLE, $write_mode, "$file.tmp"
         or return $log->error( "file_write: couldn't open $file: $!", %args );
 
     my $c = 0;
@@ -646,11 +646,11 @@ sub file_write {
 
     $log->audit( "file_write: $m $c lines to $file", %args );
 
-    move( "$file.tmp", $file ) 
+    move( "$file.tmp", $file )
         or return $log->error("  unable to update $file", %args);
 
     # set file permissions mode if requested
-    $self->chmod( file => $file, mode => $p{mode}, %args ) 
+    $self->chmod( file => $file, mode => $p{mode}, %args )
         or return if $p{mode};
 
     return 1;
@@ -762,10 +762,10 @@ sub find_bin {
     push @prefixes, cwd;
 
     my $found;
-    foreach my $prefix ( @prefixes ) { 
+    foreach my $prefix ( @prefixes ) {
         if ( -x "$prefix/$bin" ) {
             $found = "$prefix/$bin" and last;
-        };  
+        };
     };
 
     if ($found) {
@@ -817,7 +817,7 @@ sub get_cpan_config {
     my $make = `which make`; chomp $make;
     my $wget = `which wget`; chomp $wget;
 
-    return 
+    return
 {
   'build_cache' => q[10],
   'build_dir' => qq[$ENV{HOME}/.cpan/build],
@@ -851,7 +851,7 @@ sub get_cpan_config {
   'term_is_latin' => q[1],
   'unzip' => $unzip,
   'urllist' => [ 'http://www.perl.com/CPAN/', 'ftp://cpan.cs.utah.edu/pub/CPAN/', 'ftp://mirrors.kernel.org/pub/CPAN', 'ftp://osl.uoregon.edu/CPAN/', 'http://cpan.yahoo.com/' ],
-  'wget' => $wget, 
+  'wget' => $wget,
 };
 
 }
@@ -928,7 +928,7 @@ TRY:
        @ips = grep {!/inet (192\.168\.|10\.|172\.16\.|169\.254\.)/} @ips
             if $p{exclude_internals};
 
-    # this keeps us from failing if the box has only internal IPs 
+    # this keeps us from failing if the box has only internal IPs
     if ( @ips < 1 || $ips[0] eq "" ) {
         carp "yikes, you really don't have any public IPs?!" if $debug;
         $p{exclude_internals} = 0;
@@ -1211,7 +1211,7 @@ sub install_if_changed {
         gid => $gid,
         sudo => $sudo,
         %args
-    ) 
+    )
     if ( $uid && $gid );  # set file ownership on the new file
 
     # set file permissions on the new file
@@ -1359,8 +1359,8 @@ sub install_from_source {
     # cd into the package directory
     my $sub_path;
     if ( -d $package ) {
-        chdir $package or 
-            return $log->error( "FAILED to chdir $package!", %args ); 
+        chdir $package or
+            return $log->error( "FAILED to chdir $package!", %args );
     }
     else {
 
@@ -1446,7 +1446,7 @@ sub install_from_source_get_files {
     my $self = shift;
     my ($package,$site,$url,$patch_url,$patches) = @_;
 
-    $self->sources_get( 
+    $self->sources_get(
         package => $package,
         site    => $site,
         path    => $url,
@@ -1455,7 +1455,7 @@ sub install_from_source_get_files {
     if ( ! $patches || ! $patches->[0] ) {
         $log->audit( "install_from_source: no patches to fetch." );
         return 1;
-    };  
+    };
 
     return $log->error( "oops! You supplied patch names to apply without a URL!")
         if ! $patch_url;
@@ -1467,7 +1467,7 @@ sub install_from_source_get_files {
 
         $log->audit( "install_from_source: fetching patch from $url");
         my $url = "$patch_url/$patch";
-        $self->get_url( $url ) 
+        $self->get_url( $url )
             or return $log->error( "could not fetch $url" );
     };
 
@@ -1549,7 +1549,7 @@ sub install_module_cpan {
 
     print " from CPAN...";
     require CPAN;
-    
+
     # some Linux distros break CPAN by auto/preconfiguring it with no URL mirrors.
     # this works around that annoying little habit
     no warnings;
@@ -1794,7 +1794,7 @@ sub logfile_append {
 
     my ( $dd, $mm, $yy, $lm, $hh, $mn, $ss ) = $self->get_the_date( %args );
 
-    open my $LOG_FILE, '>>', $file 
+    open my $LOG_FILE, '>>', $file
         or return $log->error( "couldn't open $file: $OS_ERROR", %args);
 
     print $LOG_FILE "$yy-$mm-$dd $hh:$mn:$ss $p{prog} ";
@@ -1896,7 +1896,7 @@ sub check_pidfile {
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $log->error( "missing filename", %args) if ! $file;
-    return $log->error( "$file is not a regular file", %args) 
+    return $log->error( "$file is not a regular file", %args)
         if ( -e $file && !-f $file );
 
     # test if file & enclosing directory is writable, revert to /tmp if not
@@ -2011,7 +2011,7 @@ sub sources_get {
 
         $log->audit( "sources_get: fetching $site$path/$tarball");
 
-        $self->get_url( "$site$path/$tarball", fatal => 0) 
+        $self->get_url( "$site$path/$tarball", fatal => 0)
             or return $log->error( "couldn't fetch $site$path/$tarball", %args);
 
         next if ! -e $tarball;
@@ -2170,7 +2170,7 @@ sub syscmd {
     my $before_path = $ENV{PATH};
 
     # instead of croaking, maybe try setting a
-    # very restrictive PATH?  I'll err on the side of safety 
+    # very restrictive PATH?  I'll err on the side of safety
     # $ENV{PATH} = '';
     return $log->error( "syscmd request has tainted data", %args)
         if ( $tainted && !$is_safe );
@@ -2315,12 +2315,12 @@ This is just one of the many handy little methods I have amassed here. Rather th
 
 =head1 DESCRIPTION
 
-This Mail::Toaster::Utility package is my most frequently used one. Each method has its own documentation but in general, all methods accept as input a hashref with at least one required argument and a number of optional arguments. 
+This Mail::Toaster::Utility package is my most frequently used one. Each method has its own documentation but in general, all methods accept as input a hashref with at least one required argument and a number of optional arguments.
 
 
 =head1 DIAGNOSTICS
 
-All methods set and return error codes (0 = fail, 1 = success) unless otherwise stated. 
+All methods set and return error codes (0 = fail, 1 = success) unless otherwise stated.
 
 Unless otherwise mentioned, all methods accept two additional parameters:
 
@@ -2361,7 +2361,7 @@ Get a response from the user. If the user responds, their response is returned. 
   ############################################
   # Usage      :  my $ask = $util->ask( "Would you like fries with that",
   #  		           default  => "SuperSized!",
-  #  		           timeout  => 30  
+  #  		           timeout  => 30
   #               );
   # Purpose    : prompt the user for information
   #
@@ -2393,7 +2393,7 @@ Decompresses a variety of archive formats using your systems built in tools.
 =item cwd_source_dir
 
 
-Changes the current working directory to the supplied one. Creates it if it does not exist. Tries to create the directory using perl's builtin mkdir, then the system mkdir, and finally the system mkdir with sudo. 
+Changes the current working directory to the supplied one. Creates it if it does not exist. Tries to create the directory using perl's builtin mkdir, then the system mkdir, and finally the system mkdir with sudo.
 
   ############ cwd_source_dir ###################
   # Usage      : $util->cwd_source_dir( "/usr/local/src" );
@@ -2402,7 +2402,7 @@ Changes the current working directory to the supplied one. Creates it if it does
   # Parameters : S - dir - a directory to build programs in
 
 
-=item check_homedir_ownership 
+=item check_homedir_ownership
 
 Checks the ownership on all home directories to see if they are owned by their respective users in /etc/password. Offers to repair the permissions on incorrectly owned directories. This is useful when someone that knows better does something like "chown -R user /home /user" and fouls things up.
 
@@ -2414,7 +2414,7 @@ Checks the ownership on all home directories to see if they are owned by their r
   #   Optional : I - auto - no prompts, just fix everything
   # See Also   : sysadmin
 
-Comments: Auto mode should be run with great caution. Run it first to see the results and then, if everything looks good, run in auto mode to do the actual repairs. 
+Comments: Auto mode should be run with great caution. Run it first to see the results and then, if everything looks good, run in auto mode to do the actual repairs.
 
 
 =item chown_system
@@ -2441,7 +2441,7 @@ The advantage this sub has over a Pure Perl implementation is that it can utiliz
   # Usage      : $util->clean_tmp_dir( dir=>$dir );
   # Purpose    : clean up old build stuff before rebuilding
   # Returns    : 0 - failure,  1 - success
-  # Parameters : S - $dir - a directory or file. 
+  # Parameters : S - $dir - a directory or file.
   # Throws     : die on failure
   # Comments   : Running this will delete its contents. Be careful!
 
@@ -2523,10 +2523,10 @@ Set the ownership (user and group) of a file. Will use the native perl methods (
   # Usage      : $util->file_delete( file=>$file );
   # Purpose    : Deletes a file.
   # Returns    : 0 - failure, 1 - success
-  # Parameters 
+  # Parameters
   #   Required : file - a file path
   # Comments   : none
-  # See Also   : 
+  # See Also   :
 
  Uses unlink if we have appropriate permissions, otherwise uses a system rm call, using sudo if it is not being run as root. This sub will try very hard to delete the file!
 
@@ -2552,14 +2552,14 @@ Use the standard URL fetching utility (fetch, curl, wget) for your OS to downloa
 
 =item file_is_newer
 
-compares the mtime on two files to determine if one is newer than another. 
+compares the mtime on two files to determine if one is newer than another.
 
 
 =item file_mode
 
  usage:
    my @lines = "1", "2", "3";  # named array
-   $util->file_write ( "/tmp/foo", lines=>\@lines );   
+   $util->file_write ( "/tmp/foo", lines=>\@lines );
         or
    $util->file_write ( "/tmp/foo", lines=>['1','2','3'] );  # anon arrayref
 
@@ -2599,7 +2599,7 @@ Reads in a file, and returns it in an array. All lines in the array are chomped.
 
  usage:
    my @lines = "1", "2", "3";  # named array
-   $util->file_write ( "/tmp/foo", lines=>\@lines );   
+   $util->file_write ( "/tmp/foo", lines=>\@lines );
         or
    $util->file_write ( "/tmp/foo", lines=>['1','2','3'] );  # anon arrayref
 
@@ -2648,7 +2648,7 @@ Check all the "normal" locations for a binary that should be on the system and r
 
    $util->find_bin( 'dos2unix', dir=>'/opt/local/bin' );
 
-Example: 
+Example:
 
    my $apachectl = $util->find_bin( "apachectl", dir=>"/usr/local/sbin" );
 
@@ -2668,7 +2668,7 @@ Example:
 
 =item get_my_ips
 
-returns an arrayref of IP addresses on local interfaces. 
+returns an arrayref of IP addresses on local interfaces.
 
 =item is_process_running
 
@@ -2700,7 +2700,7 @@ $process is the name as it would appear in the process table.
 
 =item is_writable
 
-If the file exists, it checks to see if it is writable. If the file does not exist, it checks to see if the enclosing directory is writable. 
+If the file exists, it checks to see if it is writable. If the file does not exist, it checks to see if the enclosing directory is writable.
 
   ############################################
   # Usage      : $util->is_writable( "/tmp/boogers");
@@ -2739,7 +2739,7 @@ If the file exists, it checks to see if it is writable. If the file does not exi
 
 =item get_the_date
 
-Returns the date split into a easy to work with set of strings. 
+Returns the date split into a easy to work with set of strings.
 
    $util->get_the_date( bump=>$bump, debug=>$debug )
 
@@ -2779,14 +2779,14 @@ Downloads and installs a program from sources.
 
  required arguments:
     conf    - hashref - mail-toaster.conf settings.
-    site    - 
-    url     - 
-    package - 
+    site    -
+    url     -
+    package -
 
  optional arguments:
     targets - arrayref - defaults to [./configure, make, make install].
     patches - arrayref - patch(es) to apply to the sources before compiling
-    patch_args - 
+    patch_args -
     source_sub_dir - a subdirectory within the sources build directory
     bintest - check the usual places for an executable binary. If found, it will assume the software is already installed and require confirmation before re-installing.
     debug
@@ -2854,7 +2854,7 @@ check_pidfile is a process management method. It will check to make sure an exis
 
    $pidfile = $util->check_pidfile( "/var/run/program.pid" );
 
-The above example is all you need to do to add process checking (avoiding multiple daemons running at the same time) to a program or script. This is used in toaster-watcher.pl. toaster-watcher normally completes a run in a few seconds and is run every 5 minutes. 
+The above example is all you need to do to add process checking (avoiding multiple daemons running at the same time) to a program or script. This is used in toaster-watcher.pl. toaster-watcher normally completes a run in a few seconds and is run every 5 minutes.
 
 However, toaster-watcher can be configured to do things like expire old messages from maildirs and feed spam through a processor like sa-learn. This can take a long time on a large mail system so we don't want multiple instances of toaster-watcher running.
 
@@ -2878,8 +2878,8 @@ Example:
 Prints out a string with the regexp match bracketed. Credit to Damien Conway from Perl Best Practices.
 
  Example:
-    $util->regexp_test( 
-		exp    => 'toast', 
+    $util->regexp_test(
+		exp    => 'toast',
 		string => 'mailtoaster rocks',
 	);
 
@@ -2899,8 +2899,8 @@ Checks to see if the old build sources are present. If they are, offer to remove
 
    $util->source_warning(
 		package => "Mail-Toaster-5.26",
-		clean   => 1, 
-		src     => "/usr/local/src" 
+		clean   => 1,
+		src     => "/usr/local/src"
    );
 
  arguments required:
@@ -2921,8 +2921,8 @@ Checks to see if the old build sources are present. If they are, offer to remove
 Tries to download a set of sources files from the site and url provided. It will try first fetching a gzipped tarball and if that files, a bzipped tarball. As new formats are introduced, I will expand the support for them here.
 
   usage:
-	$self->sources_get( 
-		package => 'simscan-1.07', 
+	$self->sources_get(
+		package => 'simscan-1.07',
 		site    => 'http://www.inter7.com',
 		path    => '/simscan/',
 	)
@@ -2961,7 +2961,7 @@ If sudo is not installed and you're running as root, it'll offer to install sudo
 
 =item syscmd
 
-   Just a little wrapper around system calls, that returns any failure codes and prints out the error(s) if present. A bit of sanity testing is also done to make sure the command to execute is safe. 
+   Just a little wrapper around system calls, that returns any failure codes and prints out the error(s) if present. A bit of sanity testing is also done to make sure the command to execute is safe.
 
       my $r = $util->syscmd( "gzip /tmp/example.txt" );
       $r ? print "ok!\n" : print "not ok.\n";
@@ -2984,7 +2984,7 @@ try creating a directory using perl's builtin mkdir.
 
 =item yes_or_no
 
-  my $r = $util->yes_or_no( 
+  my $r = $util->yes_or_no(
       "Would you like fries with that?",
       timeout  => 30
   );
@@ -3015,9 +3015,9 @@ try creating a directory using perl's builtin mkdir.
 
 =head1 SEE ALSO
 
-The following are all man/perldoc pages: 
+The following are all man/perldoc pages:
 
- Mail::Toaster 
+ Mail::Toaster
 
 
 =cut

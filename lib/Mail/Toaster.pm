@@ -17,14 +17,14 @@ use vars qw/ $INJECT $util $conf $log $qmail %std_opts /;
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, { 
+    my %p = validate( @_, {
             test_ok => { type => BOOLEAN, optional => 1 },
             debug   => { type => BOOLEAN, optional => 1, default => 1 },
             fatal   => { type => BOOLEAN, optional => 1, default => 1 },
         }
     );
 
-    my $self = { 
+    my $self = {
         audit  => [],
         errors => [],
         last_audit => 0,
@@ -53,17 +53,17 @@ sub new {
 
 sub audit {
     my $self = shift;
-    my $mess = shift; 
+    my $mess = shift;
 
     my %p = validate( @_, { %std_opts, }, );
 
     if ($mess) {
         push @{ $self->{audit} }, $mess;
         print "$mess\n" if $self->{debug} || $p{debug};
-    } 
+    }
 
     return \$self->{audit};
-}   
+}
 
 sub error {
     my $self = shift;
@@ -72,7 +72,7 @@ sub error {
         @_,
         {   location => { type => SCALAR,  optional => 1, },
             %std_opts,
-        }, 
+        },
     );
 
     my $location = $p{location};
@@ -104,7 +104,7 @@ sub error {
 
 sub dump_audit {
     my $self = shift;
-    my %p = validate( @_, { 
+    my %p = validate( @_, {
         quiet => { type => SCALAR, optional=> 1, default => 0 },
     } );
 
@@ -310,7 +310,7 @@ sub parse_line {
     # this regexp must match and return these patterns
     # localhost1  = localhost, disk, da0, disk_da0
     # hosts   = localhost lab.simerson.net seattle.simerson.net
-            
+
     my ( $key, $val ) = $line =~ /\A
         \s*      # any amount of leading white space, greedy
         (.*?)    # all characters, non greedy
@@ -320,7 +320,7 @@ sub parse_line {
         (.*?)
         \s*
         \z/xms;
-    
+
     # remove any comments
     if ( $strip && $val && $val =~ /#/ ) {
 
@@ -328,10 +328,10 @@ sub parse_line {
         # any spaces to the left of the # symbol.
         ($val) = $val =~ /(.*?\S)\s*#/;
     }
-        
+
     return ( $key, $val );
 }
- 
+
 sub check {
     my $self = shift;
     my %p = validate( @_, { %std_opts,
@@ -353,7 +353,7 @@ sub check {
     $self->supervised_dir_test( prot=>"send",  %targs );
     $self->supervised_dir_test( prot=>"pop3",  %targs );
     $self->supervised_dir_test( prot=>"submit",%targs );
-    
+
     return 1;
 }
 
@@ -398,7 +398,7 @@ sub check_processes {
     my %targs = ( %args, quiet => $p{quiet} );
 
     $conf ||= $self->get_config();
-    
+
     $log->audit( "checking running processes");
 
     my @processes = qw( svscan qmail-send );
@@ -410,7 +410,7 @@ sub check_processes {
     push @processes, "sqwebmaild"         if $conf->{'install_sqwebmail'};
     push @processes, "imapd-ssl", "imapd", "pop3d-ssl"
       if $conf->{'install_courier-imap'};
-      
+
     push @processes, "authdaemond"
       if ( $conf->{'install_courier_imap'} eq "port"
         || $conf->{'install_courier_imap'} > 4 );
@@ -426,7 +426,7 @@ sub check_processes {
     foreach (@processes) {
         $self->test( "  $_", $util->is_process_running($_), %targs );
     }
-    
+
     return 1;
 }
 
@@ -436,7 +436,7 @@ sub check_cron {
     my %args = $self->get_std_args( %p );
 
     $conf ||= $self->get_config();
-    
+
     return $log->audit("unable to check cron jobs on $OSNAME")
         if $OSNAME ne "freebsd";
 
@@ -979,8 +979,8 @@ sub get_debug {
     my ($self, $debug) = @_;
     return $debug if defined $debug;
     return $self->{debug};
-};  
-    
+};
+
 sub get_dspam_class {
     my ($self, $file) = @_;
     my @headers = $util->file_read( $file, max_lines => 20 );
@@ -992,7 +992,8 @@ sub get_dspam_class {
     use warnings;
 
     return if ! $dspam_status || ! $signature;
-    my ($class) = $dspam_status =~ /^X-DSPAM-Result:\s+([\w]+)\,/;
+    my ($class) = $dspam_status =~ /^X-DSPAM-Result:\s+([\w]+)\,/
+        or return;
     return lc($class);
 };
 
@@ -1145,7 +1146,7 @@ sub get_toaster_cgibin {
     if ( -d "/Library/WebServer/CGI-Executables" ) {
         return "/Library/WebServer/CGI-Executables";
     }
-    
+
     # all else has failed, we must try to predict
     return $OSNAME eq "linux"  ? "/var/www/cgi-bin"
          : $OSNAME eq "darwin" ? "/Library/WebServer/CGI-Executables"
@@ -1162,7 +1163,7 @@ sub get_toaster_logs {
     if ( defined $conf && defined $conf->{'qmail_log_base'} ) {
         return $conf->{'qmail_log_base'};
     };
-    
+
     #otherwise, we simply default to /var/log/mail
     return "/var/log/mail";
 }
@@ -1175,13 +1176,13 @@ sub get_toaster_conf {
     if ( defined $conf && defined $conf->{'system_config_dir'} ) {
         return $conf->{'system_config_dir'};
     };
-    
+
 	return $OSNAME eq "darwin"  ? "/opt/local/etc"  # Mac OS X
 	     : $OSNAME eq "freebsd" ? "/usr/local/etc"  # FreeBSD
 	     : $OSNAME eq "linux"   ? "/etc"            # Linux
 	     : "/usr/local/etc"                         # reasonably good guess
 	     ;
-	     
+
 }
 
 sub get_util {
@@ -1230,7 +1231,7 @@ sub run_isoqlog {
 sub run_qmailscanner {
     my $self = shift;
 
-    return if ! ( $conf->{'install_qmailscanner'} 
+    return if ! ( $conf->{'install_qmailscanner'}
         && $conf->{'qs_quarantine_process'} );
 
     $log->audit( "checking qmail-scanner quarantine.");
@@ -1239,10 +1240,10 @@ sub run_qmailscanner {
     $qs_debug++ if $self->{debug};
 
     my @list = $qmail->get_qmailscanner_virus_sender_ips( $qs_debug );
-         
+
     $log->audit( "found " . scalar @list . " infected files" ) if scalar @list;
 
-    $qmail->UpdateVirusBlocks( ips => \@list ) 
+    $qmail->UpdateVirusBlocks( ips => \@list )
         if $conf->{'qs_block_virus_senders'};
 };
 
@@ -1275,7 +1276,7 @@ sub service_dir_get {
 
 sub service_symlinks {
     my $self = shift;
-    
+
     my %p = validate( @_, {
             'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
             'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
@@ -1352,7 +1353,7 @@ sub service_dir_create {
     my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
 
     return $p{test_ok} if defined $p{test_ok};
-    
+
     my $service = $conf->{'qmail_service'} || "/var/service";
 
     if ( ! -d $service ) {
@@ -1372,7 +1373,7 @@ sub service_dir_create {
 
 sub service_dir_test {
     my $self = shift;
-    
+
     my %p = validate( @_, {
             'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
         },
@@ -1399,7 +1400,7 @@ sub sqwebmail_clean_cache {
     return 1 if ! $conf->{install_sqwebmail};
 
     my $script = "/usr/local/share/sqwebmail/cleancache.pl";
-    return if ! -x $script; 
+    return if ! -x $script;
     system $script;
 };
 
@@ -1440,7 +1441,7 @@ sub supervise_dirs_create {
     my $supervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
 
     return $p{test_ok} if defined $p{test_ok};
-    
+
     if ( -d $supervise ) {
         $log->audit( "supervise_dirs_create: $supervise, ok (exists)", %args );
     }
@@ -1461,10 +1462,10 @@ sub supervise_dirs_create {
 
         mkdir( $dir, oct('0775') ) or die "failed to create $dir: $!\n";
         $log->audit( "supervise_dirs_create: creating $dir, ok", %args );
-        
+
         mkdir( "$dir/log", oct('0775') ) or die "failed to create $dir/log: $!\n";
         $log->audit( "supervise_dirs_create: creating $dir/log, ok", %args );
-            
+
         $util->syscmd( "chmod +t $dir", debug=>0 );
 
         symlink( $dir, $prot ) if ! -e $prot;
@@ -1556,7 +1557,7 @@ sub supervised_do_not_edit_notice {
     my $path  = "PATH=$qdir/bin";
        $path .= ":$vdir/bin" if $vdir;
        $path .= ":$prefix/bin:/usr/bin:/bin";
-    
+
     push @lines, $path;
     push @lines, "export PATH\n";
     return @lines;
@@ -1570,7 +1571,7 @@ sub supervised_hostname {
 
     $prot .= "_hostname";
     $prot = $conf->{ $prot . '_hostname' };
-    
+
     if ( ! $prot || $prot eq "system" ) {
         $log->audit( "using system hostname (" . hostname() . ")" );
         return hostname() . " ";
@@ -1675,7 +1676,7 @@ sub supervise_restart {
         if ! -x $svc;
 
     if ( $svok ) {
-        system "$svok $dir" and 
+        system "$svok $dir" and
             return $log->error( "sorry, $dir isn't supervised!" );
     };
 
@@ -1805,25 +1806,25 @@ Mail::Toaster - turns a computer into a secure, full-featured, high-performance 
                        toaster_setup.pl
                        qqtool.pl
 
-To expose much of what can be done with these, run toaster_setup.pl -s help and you'll get a list of the available targets. 
+To expose much of what can be done with these, run toaster_setup.pl -s help and you'll get a list of the available targets.
 
-The functions in Mail::Toaster.pm are used by toaster-watcher.pl (which is run every 5 minutes via cron), as well as in toaster_setup.pl and other functions, particularly those in Qmail.pm and mailadmin. 
+The functions in Mail::Toaster.pm are used by toaster-watcher.pl (which is run every 5 minutes via cron), as well as in toaster_setup.pl and other functions, particularly those in Qmail.pm and mailadmin.
 
 
 =head1 USAGE
 
     use Mail::Toaster;
     my $toaster = Mail::Toaster->new;
-    
+
     # verify that processes are all running and complain if not
     $toaster->check();
 
     # get a list of all maildirs on the system
     my @all_maildirs = $toaster->get_maildir_paths();
-    
+
     # clean up old messages over X days old
     $toaster->clean_mailboxes();
-    
+
     # clean up messages in Trash folders that exceed X days
     foreach my $maildir ( @all_maildirs ) {
         $toaster->maildir_clean_trash( path => $maildir );
@@ -1844,12 +1845,12 @@ A collection of perl scripts and modules that are quite useful for building and 
 =head1 SUBROUTINES
 
 
-A separate section listing the public components of the module's interface. 
+A separate section listing the public components of the module's interface.
 These normally consist of either subroutines that may be exported, or methods
 that may be called on objects belonging to the classes that the module provides.
 Name the section accordingly.
- 
-In an object-oriented module, this section should begin with a sentence of the 
+
+In an object-oriented module, this section should begin with a sentence of the
 form "An object of this class represents...", to give the reader a high-level
 context to help them understand the methods that are subsequently described.
 
@@ -1876,8 +1877,8 @@ context to help them understand the methods that are subsequently described.
   # Returns    : prints out a series of test failures
   # Throws     : no exceptions
   # See Also   : toaster-watcher.pl
-  # Comments   : 
-  
+  # Comments   :
+
 Performs the following tests:
 
    • check for processes that should be running.
@@ -1895,9 +1896,9 @@ When this is run by toaster-watcher.pl via cron, the mail server admin will get 
   # Purpose    : train SpamAssassin bayesian filters with your ham & spam
   # Returns    : 0 - failure, 1 - success
   # See Also   : n/a
-  # Comments   : 
+  # Comments   :
 
-Powers an easy to use mechanism for training SpamAssassin on what you think is ham versus spam. It does this by trawling through a mail system, finding mail messages that have arrived since the last time it ran. It passes these messages through sa-learn with the appropriate flags (sa-learn --ham|--spam) to train its bayesian filters. 
+Powers an easy to use mechanism for training SpamAssassin on what you think is ham versus spam. It does this by trawling through a mail system, finding mail messages that have arrived since the last time it ran. It passes these messages through sa-learn with the appropriate flags (sa-learn --ham|--spam) to train its bayesian filters.
 
 
 =item clean_mailboxes
@@ -1980,11 +1981,11 @@ If that fails, then go prowling around the drive and look in all the usual place
   /usr/local/etc/
   /etc
 
-Finally, if none of those work, then check the working directory for the named .conf file, or a .conf-dist. 
+Finally, if none of those work, then check the working directory for the named .conf file, or a .conf-dist.
 
 Example:
   my $twconf = $util->find_config (
-      file   => 'toaster-watcher.conf', 
+      file   => 'toaster-watcher.conf',
       etcdir => '/usr/local/etc',
     )
 
@@ -1998,7 +1999,7 @@ Example:
 
  result:
    0 - failure
-   the path to $file  
+   the path to $file
 
 
 =item get_toaster_cgibin
@@ -2023,13 +2024,13 @@ Determine the location of the htdocs directory used for email applications.
 =item maildir_clean_spam
 
   ########### maildir_clean_spam #############
-  # Usage      : $toaster->maildir_clean_spam( 
+  # Usage      : $toaster->maildir_clean_spam(
   #                  path => '/home/domains/example.com/user',
   #              );
   # Purpose    : Removes spam that exceeds age as defined in t-w.conf.
   # Returns    : 0 - failure, 1 - success
   # Parameters : path - path to a maildir
-  
+
 
 results in the Spam folder of a maildir with messages older than X days removed.
 
@@ -2042,13 +2043,13 @@ results in the Spam folder of a maildir with messages older than X days removed.
   # Returns    : an array listing every maildir on a Mail::Toaster
   # Throws     : exception on failure, or 0 if fatal=>0
 
-This sub creates a list of all the domains on a Mail::Toaster, and then creates a list of every email box (maildir) on every domain, thus generating a list of every mailbox on the system. 
+This sub creates a list of all the domains on a Mail::Toaster, and then creates a list of every email box (maildir) on every domain, thus generating a list of every mailbox on the system.
 
 
 =item  build_spam_list
 
   ############################################
-  # Usage      : $toaster->build_spam_list( 
+  # Usage      : $toaster->build_spam_list(
   #                  path => '/home/domains/example.com/user',
   #              );
   # Purpose    : find spam messages newer than the last spam learning run
@@ -2059,12 +2060,12 @@ This sub creates a list of all the domains on a Mail::Toaster, and then creates 
   # Throws     : no exceptions
   # See Also   : learn_mailboxes
   # Comments   : this is for a single mailbox
-  
+
 
 =item maildir_clean_trash
 
   ############################################
-  # Usage      : $toaster->maildir_clean_trash( 
+  # Usage      : $toaster->maildir_clean_trash(
   #                 path => '/home/domains/example.com/user',
   #              );
   # Purpose    : expire old messages in Trash folders
@@ -2232,12 +2233,12 @@ Checks a supervised directory to see if it is set up properly for supervise to s
     prot - a protocol to check (smtp, pop3, send, submit)
 
  arguments optional:
-    debug 
+    debug
 
 
 =item supervise_restart
 
-Restarts a supervised process. 
+Restarts a supervised process.
 
 
 =item check_processes
@@ -2252,30 +2253,30 @@ Tests to see if all the processes on your Mail::Toaster that should be running i
 
 
 
-=back  
+=back
 
 =head1 SEE ALSO
 
-The following man (perldoc) pages: 
+The following man (perldoc) pages:
 
-  Mail::Toaster 
+  Mail::Toaster
   Mail::Toaster::Conf
-  toaster.conf 
+  toaster.conf
   toaster-watcher.conf
 
   http://www.mail-toaster.org/
 
 
 =head1 DIAGNOSTICS
- 
-Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the "debug" argument which is passed to each sub/function. 
+
+Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the "debug" argument which is passed to each sub/function.
 
 Status messages and verbose logging is enabled by default. toaster-watcher.pl and most of the automated tests (see t/toaster-watcher.t and t/Toaster.t) explicitely turns this off by setting debug=>0.
 
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
-The primary means of configuration for Mail::Toaster is via toaster-watcher.conf. It is typically installed in /usr/local/etc, but may also be found in /opt/local/etc, or simply /etc. Documentation for the man settings in toaster-watcher.conf can be found in the man page (perldoc toaster-watcher.conf). 
+The primary means of configuration for Mail::Toaster is via toaster-watcher.conf. It is typically installed in /usr/local/etc, but may also be found in /opt/local/etc, or simply /etc. Documentation for the man settings in toaster-watcher.conf can be found in the man page (perldoc toaster-watcher.conf).
 
 
 =head1 DEPENDENCIES
@@ -2286,8 +2287,8 @@ The primary means of configuration for Mail::Toaster is via toaster-watcher.conf
 
 
 =head1 BUGS AND LIMITATIONS
- 
-There are no known bugs in this module. 
+
+There are no known bugs in this module.
 Please report problems to author
 Patches are welcome.
 
