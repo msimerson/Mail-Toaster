@@ -146,7 +146,7 @@ sub archive_file {
     return $log->error( "file ($file) is missing!", %args )
         if !-e $file;
 
-    my $archive = $file .' .' . time;
+    my $archive = $file . '.' . time;
 
     if ( $p{destdir} && -d $p{destdir} ) {
         my ($vol,$dirs,$file_wo_path) = File::Spec->splitpath( $archive );

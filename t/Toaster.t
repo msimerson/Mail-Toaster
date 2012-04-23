@@ -147,12 +147,6 @@ my $r = $toaster->get_maildir_paths( fatal => 0 );
 if ( -r $assign && $assign_size > 10 ) { ok( $r, 'get_maildir_paths' );  }
 else                                   { ok( !$r, 'get_maildir_paths' ); };
 
-# build_spam_list
-ok(
-    !$toaster->build_spam_list( path => '/home/example.com/user' ),
-    'build_spam_list'
-);
-
 # maildir_clean_trash
 ok(
     !$toaster->maildir_clean_trash( path => '/home/example.com/user',),
@@ -174,11 +168,6 @@ ok(
 # maildir_clean_ham
 ok( !$toaster->maildir_clean_ham( path => '/home/example.com/user',),
         'maildir_clean_ham'
-);
-
-# build_ham_list
-ok( !$toaster->build_ham_list( path => '/home/example.com/user' ),
-        'build_ham_list'
 );
 
 # service_dir_create

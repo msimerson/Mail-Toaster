@@ -3,10 +3,12 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.31';
 
 use Cwd;
 use English qw/ -no_match_vars /;
+use File::Basename;
+use File::stat;
 use Params::Validate qw/ :all /;
 use Sys::Hostname;
 use version;
@@ -472,8 +474,8 @@ sub check_watcher_log_size {
     return if ! -e $logfile;
 
     # make sure watcher.log is not larger than 1MB
-    my $size = ( stat($logfile) )[7];
-    if ( $size > 999999 ) {
+    my $size = stat($logfile)->size;
+    if ( $size && $size > 999999 ) {
         $log->audit( "compressing $logfile! ($size)");
         $util->syscmd( "gzip -f $logfile" );
     }
@@ -486,72 +488,110 @@ sub learn_mailboxes {
     my ( $fatal, $debug ) = ( $p{fatal}, $p{debug} );
     my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
-    my $days = $conf->{'maildir_learn_interval'} or return $log->error(
-        'email spam/ham learning is disabled because maildir_learn_interval is not set in \$conf', fatal => 0 );
+    return $p{test_ok} if defined $p{test_ok};
+
+    $self->learn_mailboxes_setup() or return;
+    my $find = $util->find_bin( 'find', debug=>0 );
+
+    foreach my $d ( $self->get_maildir_paths() ) {  # every email box
+        my ($user,$domain) = (split('/', $d))[-1,-2];
+        my $email = lc($user) . '@'. lc($domain);
+
+        my $age = $conf->{'maildir_learn_interval'} * 86400;
+        if ( -f "$d/learn.log" ) {
+            $age = time - stat("$d/learn.log")->ctime;
+        };
+
+        my %counter = ( spam => 0, ham => 0 );
+        my %messages = ( ham => [], spam => [] );
+
+        foreach my $dir ( $self->get_maildir_folders( $d, $find ) ) {
+            my $type = 'ham';
+            $type = 'spam' if $dir =~ /spam|junk/i;
+
+            foreach my $message ( $self->get_maildir_messages($dir, $age, $find) ) {
+                $counter{$type}++;  # throttle learning for really big maildirs
+                next if $counter{$type} > 10000 && $counter{$type} % 50 != 0;
+                next if $counter{$type} >  5000 && $counter{$type} % 25 != 0;
+                next if $counter{$type} >  2500 && $counter{$type} % 10 != 0;
+
+                $self->train_dspam( $type, $message, $email );
+                push @{$messages{$type}}, $message; # for SA training
+            };
+        };
+
+        $self->train_spamassassin($d, \%messages );
+
+        if ( $counter{'ham'} || $counter{'spam'} ) {
+            $util->logfile_append( file => "$d/learn.log",
+                prog => $0,
+                lines => [ "trained $counter{'ham'} hams and $counter{'spam'} spams" ],
+                debug => 0,
+            );
+        };
+    }
+}
+
+sub learn_mailboxes_setup {
+    my $self = shift;
+    my %p = validate( @_, { %std_opts } );
+    my ( $fatal, $debug ) = ( $p{fatal}, $p{debug} );
+    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     my $log_base = $conf->{'qmail_log_base'} || '/var/log/mail';
     my $learn_log = "$log_base/learn.log";
     $log->audit( "learn log file is: $learn_log");
 
-    return $p{test_ok} if defined $p{test_ok};
+    my $days = $conf->{'maildir_learn_interval'}
+        or return $log->error(
+        'learning is disabled because maildir_learn_interval is not set in \$conf', fatal => 0 );
 
-    # create the log file if it does not exist
-    $util->logfile_append( %args,
-        file  => $learn_log,
-        prog  => $0,
-        lines => ["created file"],
-    )
-    if ! -e $learn_log;
+    return 1;
+};
 
-    return $log->audit( "skipping message learning, $learn_log is less than $days old")
-        if -M $learn_log <= $days;
-    
-    $util->logfile_append(
-        file  => $learn_log,
-        prog  => $0,
-        lines => ["learn_mailboxes running."],
-        %args,
-    ) or return;
-    
-    my $tmp      = $conf->{'toaster_tmp_dir'} || "/tmp";
-    my $hamlist  = "$tmp/toaster-ham-learn-me";
-    my $spamlist = "$tmp/toaster-spam-learn-me";
-    unlink $hamlist  if -e $hamlist;
-    unlink $spamlist if -e $spamlist;
+sub train_spamassassin {
+    my ($self, $d, $messages ) = @_;
 
-    my @every_maildir_on_server = $self->get_maildir_paths();
-    foreach my $maildir (@every_maildir_on_server) {
-        next if ( ! $maildir || ! -d $maildir );
-        $log->audit( "processing in $maildir");
-        $self->build_ham_list( path =>$maildir ) if $conf->{'maildir_learn_Read'};
-        $self->build_spam_list( path => $maildir ) if $conf->{'maildir_learn_Spam'};
+    return if ! $self->{'install_spamassassin'};
+    my $salearn = '/usr/local/bin/sa-learn';
+
+    if ( scalar @{$messages->{'ham'}} ) {
+        my $hamlist  = "$d/learned-ham-messages";
+        $util->file_write($hamlist, lines => $messages->{ham}, debug=>0 );
+        $util->syscmd( "$salearn --ham -f $hamlist", debug=>0 );
+    }
+    if ( scalar @{$messages->{'spam'}} ) {
+        my $spamlist = "$d/learned-spam-messages";
+        $util->file_write($spamlist, lines => $messages->{spam}, debug=>0 );
+        $util->syscmd( "$salearn --spam -f $spamlist", debug=>0 );
+    }
+};
+
+sub train_dspam {
+    my ($self, $type, $file, $email) = @_;
+    return if ! $conf->{install_dspam};
+    #$log->audit($file);
+    my $cmd;
+    my $dspam = '/usr/local/bin/dspamc';
+    -x $dspam or return;
+    if ( $type eq 'ham' ) {
+        $cmd = "$dspam --client --user $email --source=corpus --class=innocent --deliver=summary --stdout";
+        my $dspam_class = $self->get_dspam_class( $file );
+        if ( $dspam_class && $dspam_class eq 'spam' ) {
+            $cmd = "$dspam --client --user $email --mode=toe --source=error --class=innocent --deliver=summary --stdout";
+        };
+    }
+    elsif ( $type eq 'spam' ) {
+        $cmd = "$dspam --client --user $email --source=corpus --class=spam --deliver=summary --stdout";
+        my $dspam_class = $self->get_dspam_class( $file );
+        if ( $dspam_class && $dspam_class eq 'innocent' ) {
+            $cmd = "$dspam --client --user $email --mode=toe --source=error --class=spam --deliver=summary --stdout";
+        };
     };
-
-    my $nice    = $util->find_bin( "nice" );
-    my $salearn = $util->find_bin( "sa-learn" );
-
-    if ( -s $hamlist ) {
-        $util->logfile_append(
-            file  => $learn_log,
-            prog  => $0,
-            lines => ["$nice $salearn --ham -f $hamlist"],
-            %args,
-        );
-        $util->syscmd( "$nice $salearn --ham -f $hamlist", %args );
-    };
-    unlink $hamlist;
-    
-    if ( -s $spamlist ) {
-        $util->logfile_append(
-            file  => $learn_log,
-            prog  => $0,
-            lines => ["$nice $salearn --spam -f $spamlist"],
-            %args,
-        );
-        $util->syscmd( "$nice $salearn --spam -f $spamlist", %args );
-    };
-    unlink $spamlist;
-}
+    $log->audit( "$cmd" );
+    my $r = `$cmd < '$file'`;  # capture the stdout
+    $log->audit( $r );
+};
 
 sub clean_mailboxes {
     my $self = shift;
@@ -561,7 +601,7 @@ sub clean_mailboxes {
 
     return $p{test_ok} if defined $p{test_ok};
 
-    my $days = $conf->{'maildir_clean_interval'} or 
+    my $days = $conf->{'maildir_clean_interval'} or
         return $log->audit( 'skipping maildir cleaning, not enabled in config' );
 
     my $log_base = $conf->{'qmail_log_base'} || '/var/log/mail';
@@ -585,13 +625,13 @@ sub clean_mailboxes {
         lines => ["clean_mailboxes running."],
         %args,
     ) or return;
-        
+
     $log->audit( "checks passed, cleaning");
 
     my @every_maildir_on_server = $self->get_maildir_paths();
 
     foreach my $maildir (@every_maildir_on_server) {
-        
+
         if ( ! $maildir || ! -d $maildir ) {
             $log->audit( "$maildir does not exist, skipping!");
             next;
@@ -611,7 +651,7 @@ sub clean_mailboxes {
 
 sub clear_open_smtp {
     my $self = shift;
-    
+
     return if ! $conf->{'vpopmail_roaming_users'};
 
     my $vpopdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
@@ -637,44 +677,10 @@ sub maildir_clean_spam {
 
     $log->audit( "clean_spam: cleaning spam messages older than $days days." );
 
-    my $find = $util->find_bin( 'find' );
+    my $find = $util->find_bin( 'find', debug=>0 );
     $util->syscmd( "$find $spambox/cur -type f -mtime +$days -exec rm {} \\;" );
     $util->syscmd( "$find $spambox/new -type f -mtime +$days -exec rm {} \\;" );
 };
-
-sub build_spam_list {
-    my $self = shift;
-    my %p = validate( @_, {
-            'path'    => { type=>SCALAR,  },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
-
-    my ( $path, $debug ) = ( $p{'path'}, $p{'debug'} );
-
-    my $spam = "$path/Maildir/.Spam";
-    unless ( -d $spam ) {
-        $log->audit( "skipped spam learning because $spam does not exist.");
-        return;
-    }
-
-    my $find = $util->find_bin( "find", debug=>0 );
-    my $tmp  = $conf->{'toaster_tmp_dir'};
-    my $list = "$tmp/toaster-spam-learn-me";
-
-    $log->audit( "build_spam_list: finding new spam to recognize.");
-
-    # how often do we process spam?  It's not efficient (or useful) to feed spam
-    # through sa-learn if we've already learned from them.
-
-    my $interval = $conf->{'maildir_learn_interval'} || 7;    # default 7 days
-       $interval = $interval + 2;
-
-    my @files = `$find $spam/cur -type f -mtime +1 -mtime -$interval;`;
-    push @files, `$find $spam/new -type f -mtime +1 -mtime -$interval;`;
-    chomp @files;
-    $util->file_write( $list, lines => \@files, append=>1 );
-}
 
 sub maildir_clean_trash {
     my $self = shift;
@@ -739,7 +745,7 @@ sub maildir_clean_ham {
     my $path = $p{path};
     my $read = "$path/Maildir/cur";
     my $days = $conf->{'maildir_clean_Read'} or return;
-    
+
     if ( ! -d $read ) {
         $log->audit( "clean_ham: skipped because $read does not exist.");
         return 0;
@@ -748,37 +754,6 @@ sub maildir_clean_ham {
     $log->audit( "clean_ham: cleaning read messages older than $days days");
     my $find = $util->find_bin( "find", debug=>0 );
     $util->syscmd( "$find $read -type f -mtime +$days -exec rm {} \\;" );
-}
-
-sub build_ham_list {
-    my $self = shift;
-    my %p = validate( @_, { 'path' => { type=>SCALAR } } );
-    my $path = $p{'path'};
-    
-    return $log->error( "learn_ham: $path/Maildir/cur does not exist!",fatal=>0)
-        unless -d "$path/Maildir/cur";
-
-    my $tmp  = $conf->{'toaster_tmp_dir'};
-    my $list = "$tmp/toaster-ham-learn-me";
-    my $find = $util->find_bin( "find" );
-    my $interval = $conf->{'maildir_learn_interval'} || 7;
-       $interval = $interval + 2;
-    my $days     = $conf->{'maildir_learn_Read_days'};
-    my @files;
-
-    if ($days) {
-        $log->audit( "learning read INBOX messages older than $days days as ham ($path)");
-        push @files, `$find $path/Maildir/cur -type f -mtime +$days -mtime -$interval;`;
-    }
-
-    foreach my $folder ( "$path/Maildir/.read", "$path/Maildir/.Read" ) {
-        $log->audit( "learning read messages as ham ($folder)");
-        next if ! -d $folder;
-        push @files, `$find $folder/cur -type f`;
-    };
-
-    chomp @files;
-    $util->file_write( $list, append=>1, lines => \@files );
 }
 
 sub email_send {
@@ -861,7 +836,7 @@ From: Mail Toaster testing <$email>
 To: Email Administrator <$email>
 Subject: Email test (virus message)
 
-This is a viral message containing the clam.zip test virus pattern. It should be blocked by any scanning software using ClamAV. 
+This is a viral message containing the clam.zip test virus pattern. It should be blocked by any scanning software using ClamAV.
 
 
 --Apple-Mail-7-468588064
@@ -927,9 +902,9 @@ Content-Disposition: inline
 This is an example email containing a virus. It should trigger any good virus
 scanner.
 
-If it is caught by AV software, it will not be delivered to its intended 
-recipient (the email admin). The Qmail-Scanner administrator should receive 
-an Email alerting him/her to the presence of the test virus. All other 
+If it is caught by AV software, it will not be delivered to its intended
+recipient (the email admin). The Qmail-Scanner administrator should receive
+an Email alerting him/her to the presence of the test virus. All other
 software should block the message.
 
 --gKMricLos+KVdGMg
@@ -998,14 +973,29 @@ sub get_config {
 
     $self->{conf} = $conf = $self->parse_config( file => "toaster-watcher.conf" );
     return $conf;
-};  
-    
+};
+
 sub get_debug {
     my ($self, $debug) = @_;
     return $debug if defined $debug;
     return $self->{debug};
 };  
     
+sub get_dspam_class {
+    my ($self, $file) = @_;
+    my @headers = $util->file_read( $file, max_lines => 20 );
+    #foreach my $h ( @headers ) { print "\t$h\n"; };
+
+    no warnings;
+    my ($dspam_status) = grep {/^X-DSPAM-Result:/} @headers;
+    my ($signature) = grep {/^X-DSPAM-Signature:/} @headers;
+    use warnings;
+
+    return if ! $dspam_status || ! $signature;
+    my ($class) = $dspam_status =~ /^X-DSPAM-Result:\s+([\w]+)\,/;
+    return lc($class);
+};
+
 sub get_fatal {
     my ($self, $fatal) = @_;
     return $fatal if defined $fatal;
@@ -1015,8 +1005,8 @@ sub get_fatal {
 sub get_maildir_paths {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
+    my %args = $self->get_std_args( %p );
 
-    my @paths;
     my $vpdir = $conf->{'vpopmail_home_dir'};
 
     # this method requires a SQL query for each domain
@@ -1034,20 +1024,52 @@ sub get_maildir_paths {
         unless $all_domains[0];
 
     my $count = @all_domains;
-    $log->audit( "get_maildir_paths: found $count domains.");
+    $log->audit( "get_maildir_paths: found $count domains." );
 
+    my @paths;
     foreach (@all_domains) {
         my $domain_name = $_->{'dom'};
-        $log->audit( "  processing $domain_name mailboxes.");
+        #$log->audit( "  processing $domain_name mailboxes.", %args);
         my @list_of_maildirs = `$vpdir/bin/vuserinfo -d -D $domain_name`;
-        chomp @list_of_maildirs;
         push @paths, @list_of_maildirs;
     }
 
     chomp @paths;
-    $log->audit( "found ". scalar @paths ." mailboxes.");
-    return @paths;
+    my %saw;
+    my @unique_paths = grep(!$saw{$_}++, @paths);
+
+    $log->audit( "found ". scalar @unique_paths ." mailboxes.");
+    return @unique_paths;
 }
+
+sub get_maildir_folders {
+    my ( $self, $d, $find ) = @_;
+
+    $find ||= $util->find_bin( 'find', debug=>0 );
+    my $find_dirs = "$find $d -type d -name cur";
+
+    my @dirs;
+    foreach my $maildir ( `$find_dirs` ) {
+        chomp $maildir;
+        next if $maildir =~ /\.Notes\/cur$/i;    # not email
+        next if $maildir =~ /\.Apple/i;          # not email
+        next if $maildir =~ /drafts|sent/i;   # not 'received' email
+        next if $maildir =~ /trash|delete/i;  # unknown ham/spam
+        push @dirs, $maildir;
+    };
+    return @dirs;
+};
+
+sub get_maildir_messages {
+    my ($self, $dir, $age, $find) = @_;
+    $dir =~ s/"/\\"/g;   # escape any " characters
+    $find ||= $util->find_bin( 'find', debug=>0 );
+    my @messages = `$find "$dir" -type f -ctime -${age}s`;
+    #my @messages = `$find "$dir" -type f`;  # find all messages
+    #print "found " . @messages . " messages in $dir\n";
+    chomp @messages;
+    return @messages;
+};
 
 sub get_std_args {
     my $self = shift;
@@ -1167,7 +1189,7 @@ sub get_util {
     return $util if ref $util;
     use lib 'lib';
     require Mail::Toaster::Utility;
-    $self->{util} = $util = Mail::Toaster::Utility->new( 'log' => $self );
+    $self->{util} = $util = Mail::Toaster::Utility->new( 'log' => $self, debug => $self->{debug} );
     return $util;
 };
 
@@ -1177,7 +1199,7 @@ sub process_logfiles {
     my $pop3_logs = $conf->{pop3_log_method} || $conf->{'logs_pop3d'};
 
     $self->supervised_log_rotate( prot => 'send' );
-    $self->supervised_log_rotate( prot => 'smtp' );
+    $self->supervised_log_rotate( prot => 'smtp' ) if $conf->{'smtpd_daemon'} eq 'qmail';
     $self->supervised_log_rotate( prot => 'submit' ) if $conf->{submit_enable};
     $self->supervised_log_rotate( prot => 'pop3'   ) if $pop3_logs eq 'qpop3d';
 
@@ -1185,7 +1207,7 @@ sub process_logfiles {
     my $logs = Mail::Toaster::Logs->new( 'log' => $self, conf => $conf ) or return;
 
     $logs->compress_yesterdays_logs( file=>"sendlog" );
-    $logs->compress_yesterdays_logs( file=>"smtplog" );
+    $logs->compress_yesterdays_logs( file=>"smtplog" ) if $conf->{'smtpd_daemon'} eq 'qmail';
     $logs->compress_yesterdays_logs( file=>"pop3log" ) if $pop3_logs eq "qpop3d";
 
     $logs->purge_last_months_logs() if $conf->{'logs_archive_purge'};
@@ -1263,10 +1285,14 @@ sub service_symlinks {
     my $debug = $p{'debug'};
     my $fatal = $p{'fatal'};
 
-    my @active_services = ("smtp", "send");
+    my @active_services = ('send');
 
-    if ( $conf->{'pop3_daemon'} eq "qpop3d" ) {
-        push @active_services, "pop3";
+    if ( ! defined $conf->{'smtpd_daemon'} || $conf->{'smtpd_daemon'} eq 'qmail' ) {
+        push @active_services, 'smtp';
+    };
+
+    if ( $conf->{'pop3_daemon'} eq 'qpop3d' ) {
+        push @active_services, 'pop3';
     }
     else {
         my $pop_service_dir = $self->service_dir_get( prot => "pop3" );
