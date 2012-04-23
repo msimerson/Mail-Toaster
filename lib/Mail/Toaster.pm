@@ -2046,22 +2046,6 @@ results in the Spam folder of a maildir with messages older than X days removed.
 This sub creates a list of all the domains on a Mail::Toaster, and then creates a list of every email box (maildir) on every domain, thus generating a list of every mailbox on the system.
 
 
-=item  build_spam_list
-
-  ############################################
-  # Usage      : $toaster->build_spam_list(
-  #                  path => '/home/domains/example.com/user',
-  #              );
-  # Purpose    : find spam messages newer than the last spam learning run
-  # Returns    : 0 - failure, 1 - success
-  # Results    : matching spam messages are appended to a tmpfile to be
-  #              fed to sa-learn via the caller.
-  # Parameters : path - path to a maildir
-  # Throws     : no exceptions
-  # See Also   : learn_mailboxes
-  # Comments   : this is for a single mailbox
-
-
 =item maildir_clean_trash
 
   ############################################
@@ -2117,24 +2101,6 @@ Comments: Removes messages in .Trash folders that exceed the number of days defi
   # Results    : an INBOX minus read messages older than X days
   # Parameters : path - path to a maildir
   # Throws     : no exceptions
-
-
-
-=item build_ham_list
-
-
-  ############################################
-  # Usage      : $toaster->build_ham_list(
-  #                 path => '/home/domains/example.com/user',
-  #              );
-  # Purpose    : find ham messages newer than the last learning run
-  # Returns    : 0 - failure, 1 - success
-  # Results    : matching ham messages are appended to a tmpfile to be
-  #              fed to sa-learn via the caller.
-  # Parameters : path - path to a maildir
-  # Throws     : no exceptions
-  # See Also   : learn_mailboxes
-  # Comments   : this is for a single mailbox
 
 
 =item service_dir_create

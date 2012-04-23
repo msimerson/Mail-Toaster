@@ -231,6 +231,9 @@ sub qmail_conf {
 sub lighttpd {
 
     my $http_conf = "/usr/local/etc/lighttpd.conf";
+    if ( ! -e $http_conf ) {
+        $http_conf = "/usr/local/etc/lighttpd/lighttpd.conf";
+    }
 
     print "\nchecking lighttpd...";
     sleep 1;
@@ -391,9 +394,10 @@ sub sshd_config {
         print "\tchmod 600 /etc/ssh/sshd_config\n";
     };
 
-    my $denyhosts = `which denyhosts.py`; chomp $denyhosts;
+    my $sentry = '/var/db/sentry/sentry.pl';
     if ( ! -x $denyhosts ) {
-        print "\t consider installing denyhosts to protect your SSH daemon.\n";
+        print "\t consider installing Sentry to protect your SSH daemon.
+\thttp://www.tnpi.net/wiki/Sentry\n";
     };
 
     sleep 2;
