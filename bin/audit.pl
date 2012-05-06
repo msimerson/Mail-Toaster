@@ -395,7 +395,7 @@ sub sshd_config {
     };
 
     my $sentry = '/var/db/sentry/sentry.pl';
-    if ( ! -x $denyhosts ) {
+    if ( ! -x $sentry ) {
         print "\t consider installing Sentry to protect your SSH daemon.
 \thttp://www.tnpi.net/wiki/Sentry\n";
     };
