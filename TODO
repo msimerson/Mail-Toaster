@@ -1,4 +1,5 @@
  
+ - add a password mod tool to webmail, require strong passwords
  - t/Ezmlm.t needs work
  - qmail-verh patch
  - qscanq support
