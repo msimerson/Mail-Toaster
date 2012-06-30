@@ -3,7 +3,7 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.31';
+our $VERSION = '5.32';
 
 use Cwd;
 use English qw/ -no_match_vars /;
@@ -494,6 +494,7 @@ sub learn_mailboxes {
     my $find = $util->find_bin( 'find', debug=>0 );
 
     foreach my $d ( $self->get_maildir_paths() ) {  # every email box
+        next if ! -d $d;
         my ($user,$domain) = (split('/', $d))[-1,-2];
         my $email = lc($user) . '@'. lc($domain);
 
@@ -577,13 +578,15 @@ sub train_dspam {
     if ( $type eq 'ham' ) {
         $cmd = "$dspam --client --user $email --source=corpus --class=innocent --deliver=summary --stdout";
         my $dspam_class = $self->get_dspam_class( $file );
-        if ( $dspam_class && $dspam_class eq 'spam' ) {
+        return if ( $dspam_class && $dspam_class eq 'innocent' ); # dspam correct
+        if ( $dspam_class && $dspam_class eq 'spam' ) {         # dspam miss
             $cmd = "$dspam --client --user $email --mode=toe --source=error --class=innocent --deliver=summary --stdout";
         };
     }
     elsif ( $type eq 'spam' ) {
         $cmd = "$dspam --client --user $email --source=corpus --class=spam --deliver=summary --stdout";
         my $dspam_class = $self->get_dspam_class( $file );
+        return if ( $dspam_class && $dspam_class eq 'innocent' );
         if ( $dspam_class && $dspam_class eq 'innocent' ) {
             $cmd = "$dspam --client --user $email --mode=toe --source=error --class=spam --deliver=summary --stdout";
         };
@@ -1198,9 +1201,10 @@ sub process_logfiles {
     my $self = shift;
 
     my $pop3_logs = $conf->{pop3_log_method} || $conf->{'logs_pop3d'};
+    my $smtpd = $conf->{'smtpd_daemon'} || 'qmail';
 
     $self->supervised_log_rotate( prot => 'send' );
-    $self->supervised_log_rotate( prot => 'smtp' ) if $conf->{'smtpd_daemon'} eq 'qmail';
+    $self->supervised_log_rotate( prot => 'smtp' ) if $smtpd eq 'qmail';
     $self->supervised_log_rotate( prot => 'submit' ) if $conf->{submit_enable};
     $self->supervised_log_rotate( prot => 'pop3'   ) if $pop3_logs eq 'qpop3d';
 
@@ -1208,7 +1212,7 @@ sub process_logfiles {
     my $logs = Mail::Toaster::Logs->new( 'log' => $self, conf => $conf ) or return;
 
     $logs->compress_yesterdays_logs( file=>"sendlog" );
-    $logs->compress_yesterdays_logs( file=>"smtplog" ) if $conf->{'smtpd_daemon'} eq 'qmail';
+    $logs->compress_yesterdays_logs( file=>"smtplog" ) if $smtpd eq 'qmail';
     $logs->compress_yesterdays_logs( file=>"pop3log" ) if $pop3_logs eq "qpop3d";
 
     $logs->purge_last_months_logs() if $conf->{'logs_archive_purge'};
@@ -1797,7 +1801,7 @@ __END__
 
 =head1 NAME
 
-Mail::Toaster - turns a computer into a secure, full-featured, high-performance mail server.
+Mail::Toaster - a fast, secure, full-featured mail server.
 
 
 =head1 SYNOPSIS
