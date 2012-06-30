@@ -1,6 +1,8 @@
 .git
 .svn
-.tar.gz
 .DS_Store
-Mail-Toaster.tmproj
-MANIFEST.bak
+^.tar.gz
+^.travis.yml
+^html
+^Mail-Toaster.tmproj
+^MANIFEST.bak

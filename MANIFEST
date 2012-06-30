@@ -1,9 +1,10 @@
-bin/audit.pl
 bin/install_deps.pl
 bin/maillogs
-bin/migrate.pl
 bin/qqtool.pl
 bin/toaster-watcher.pl
+bin/toaster_audit.pl
+bin/toaster_migrate.pl
+bin/toaster_quota_report.pl
 bin/toaster_setup.pl
 cgi_files/ezmlm.cgi
 cgi_files/ezmlm.tmpl
