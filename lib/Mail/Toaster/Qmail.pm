@@ -1331,15 +1331,16 @@ sub netqmail_chkuser_fixups {
 
     return if ! $conf->{vpopmail_qmail_ext};
 
-    print "netqmail: fixing up chkuser_settings.h\n";
+    my $file = 'chkuser_settings.h';
+    print "netqmail: fixing up $file\n";
 
-    my @lines = $util->file_read( "chkuser_settings.h" );
+    my @lines = $util->file_read( $file );
     foreach my $line (@lines) {
-        if ( $line =~ /^\/\* #define CHKUSER_ENABLE_USERS_EXTENSIONS \*\// ) {
+        if ( $line =~ /^\/\* \#define CHKUSER_ENABLE_USERS_EXTENSIONS/ ) {
             $line = "#define CHKUSER_ENABLE_USERS_EXTENSIONS";
         }
     }
-    $util->file_write( "chkuser_settings.h", lines => \@lines );
+    $util->file_write( $file, lines => \@lines );
 
 };
 
@@ -1768,7 +1769,7 @@ sub rebuild_ssl_temp_keys {
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    if ( -M $cert >= 1 || !-e $cert ) {
+    if ( ! -f $cert || -M $cert >= 1 || !-e $cert ) {
         $log->audit( "rebuild_ssl_temp_keys: rebuilding RSA key");
         $util->syscmd( "$openssl genrsa -out $cert.new 512 2>/dev/null" );
 
@@ -1776,7 +1777,7 @@ sub rebuild_ssl_temp_keys {
     }
 
     $cert = "$qmdir/control/dh512.pem";
-    if ( -M $cert >= 1 || !-e $cert ) {
+    if ( ! -f $cert || -M $cert >= 1 || !-e $cert ) {
         $log->audit( "rebuild_ssl_temp_keys: rebuilding DSA 512 key");
         $util->syscmd( "$openssl dhparam -2 -out $cert.new 512 2>/dev/null" );
 
@@ -1784,7 +1785,7 @@ sub rebuild_ssl_temp_keys {
     }
 
     $cert = "$qmdir/control/dh1024.pem";
-    if ( -M $cert >= 1 || !-e $cert ) {
+    if ( ! -f $cert || -M $cert >= 1 || !-e $cert ) {
         $log->audit( "rebuild_ssl_temp_keys: rebuilding DSA 1024 key");
         system  "$openssl dhparam -2 -out $cert.new 1024 2>/dev/null";
         install_ssl_temp_key( $cert, $fatal );
