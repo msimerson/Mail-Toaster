@@ -3,12 +3,13 @@ package Mail::Toaster::Qmail;
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.31';
 
 use English qw( -no_match_vars );
 use File::Copy;
 use File::Path;
 use Params::Validate qw( :all );
+use POSIX;
 
 use vars qw/ $conf $toaster $setup $t_dns $log $util %std_opts /;
 
@@ -1500,6 +1501,11 @@ sub netqmail_get_patches {
     if ( defined $conf->{qmail_domainkeys} && $conf->{qmail_domainkeys} ) {
         push @patches, "$package-toaster-3.1-dk.patch";
     };
+
+    my ($sysname, undef, $version) = POSIX::uname;
+    if ( $sysname eq 'FreeBSD' && $version =~ /^9/ )  {
+        push @patches, "qmail-extra-patch-utmpx.patch";
+    }
 
     my $dl_site    = $conf->{'toaster_dl_site'}   || "http://www.tnpi.net";
     my $dl_url     = $conf->{'toaster_dl_url'}    || "/internet/mail/toaster";
