@@ -783,7 +783,7 @@ sub config_tweaks_mysql {
 
     $log->audit( "config_tweaks: applying MT testing tweaks" );
 
-    $changes{'install_mysql'}   = '51      # 0, 1, 2, 3, 40, 41, 5, 51';
+    $changes{'install_mysql'}   = '55      # 0, 1, 2, 3, 40, 41, 5, 55';
     $changes{'install_mysqld'}  = '1       # 0, 1';
     $changes{'vpopmail_mysql'}  = '1         # disables all mysql options';
     $changes{'smtpd_use_mysql_relay_table'} = 1;
@@ -4540,6 +4540,10 @@ sub qmailadmin_port_install {
 sub qpsmtpd {
     my $self = shift;
 
+# install Qmail::Deliverable
+# install vpopmaild service
+# install qpsmtpd
+# install qpsmtpd service
 
 };
 
