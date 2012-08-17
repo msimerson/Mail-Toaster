@@ -262,8 +262,8 @@ smtpd_hostname                     = 0
 #  other  - anything else is considered to be a hostname
 ##
 
-smtpd_max_memory_per_connection    = 25         # in megabytes
-smtpd_max_connections              = 20
+smtpd_max_memory_per_connection    = 50         # in megabytes
+smtpd_max_connections              = 10
 smtpd_max_memory                   = 512
 smtpd_use_mysql_relay_table        = 0
 smtpd_lookup_tcpremotehost         = 0          # tcpserver -H
@@ -375,8 +375,8 @@ pop3_daemon                        = dovecot # qpop3d | courier | dovecot
 ##
 
 pop3_hostname                      = system
-pop3_max_memory_per_connection     = 8
-pop3_max_connections               = 60
+pop3_max_memory_per_connection     = 16
+pop3_max_connections               = 30
 pop3_max_memory                    = 500
 pop3_lookup_tcpremotehost          = 0
 pop3_lookup_tcpremoteinfo          = 0
@@ -420,8 +420,8 @@ submit_hostname                    = 0
 #  other  - anything else is considered to be a hostname
 ##
 
-submit_max_memory_per_connection   = 25         # in megabytes
-submit_max_connections             = 50
+submit_max_memory_per_connection   = 50         # in megabytes
+submit_max_connections             = 15
 submit_use_mysql_relay_table       = 0
 submit_lookup_tcpremotehost        = 0
 submit_lookup_tcpremoteinfo        = 0
