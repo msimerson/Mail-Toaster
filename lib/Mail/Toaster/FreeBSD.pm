@@ -3,12 +3,13 @@ package Mail::Toaster::FreeBSD;
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.31';
 
-use Cwd;
+#use Cwd; # included with POSIX
 use Carp;
 use File::Copy;
 use Params::Validate qw( :all );
+use POSIX;
 
 use vars qw($err);
 
@@ -89,11 +90,7 @@ sub get_version {
     my $self  = shift;
     my $debug = shift;
 
-    my $uname = $util->find_bin( "uname", debug => 0 );
-    print "found uname: $uname\n" if $debug;
-
-    my $version = `$uname -r`;
-    chomp $version;
+    my (undef, undef, $version) = POSIX::uname;
     print "version is $version\n" if $debug;
 
     return $version;
@@ -153,27 +150,18 @@ sub install_port {
         $self->port_options( port => $portname, opts => $options );
     }
 
-    if ( $portname eq "qmail" ) {
-        $util->syscmd( "make clean && make $make_defines install && make clean");
-    }
-    elsif ( $portname eq "ezmlm-idx" ) {
-        $util->syscmd( "make clean && make $make_defines install" );
+    # reset our PATH, to make sure we use our system supplied tools
+    $ENV{PATH} = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
+
+    # the vast majority of ports work great this way
+    print "running: make $make_defines install clean\n";
+    system "make clean";
+    system "make $make_defines";
+    system "make $make_defines install";
+    if ( $portname eq "ezmlm-idx" ) {
         copy( "work/ezmlm-0.53/ezmlmrc", "/usr/local/bin" );
-        $util->syscmd( "make clean" );
     }
-    else {
-
-        # reset our PATH, to make sure we use our system supplied tools
-        $ENV{PATH}
-            = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
-
-        # the vast majority of ports work great this way
-        print "running: make $make_defines install clean\n";
-        system "make clean";
-        system "make $make_defines";
-        system "make $make_defines install";
-        system "make clean";
-    }
+    system "make clean";
 
     # return to our original working directory
     chdir($start_directory);
