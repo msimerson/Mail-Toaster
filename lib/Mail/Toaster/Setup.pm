@@ -2188,19 +2188,20 @@ sub ezmlm {
     }
 
     $self->ezmlm_freebsd_port() and return 1;
+    $self->ezmlm_src();
+};
 
+sub ezmlm_src {
+    my $self = shift;
     print "ezmlm: attemping to install ezmlm from sources.\n";
 
     my $ezmlm_dist = "ezmlm-0.53";
+    my $ver     = $conf->{'install_ezmlm'};
     my $idx     = "ezmlm-idx-$ver";
-    my $site    = "http://www.ezmlm.org";
+    my $site    = "http://untroubled.org/ezmlm";
     my $src     = $conf->{'toaster_src_dir'} || "/usr/local/src/mail";
     my $httpdir = $conf->{'toaster_http_base'} || "/usr/local/www";
-    my $cgi     = $conf->{'qmailadmin_cgi-bin_dir'};
-
-    $cgi = -d $cgi ? $cgi : $toaster->get_toaster_cgibin();
-
-    # figure out where to install the CGI
+    my $cgi     = $toaster->get_toaster_cgibin() or die "unable to determine cgi-bin dir\n";
 
     $util->cwd_source_dir( "$src/mail" );
 
