@@ -986,6 +986,9 @@ sub get_debug {
 
 sub get_dspam_class {
     my ($self, $file) = @_;
+    if ( ! -f $file ) {
+        return $log->error( "file $file disappeared",fatal=>0 );
+    };
     my @headers = $util->file_read( $file, max_lines => 20 );
     #foreach my $h ( @headers ) { print "\t$h\n"; };
 
