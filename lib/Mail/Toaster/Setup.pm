@@ -2235,6 +2235,21 @@ sub ezmlm {
     chdir($ezmlm_dist);
 
     $util->syscmd( "patch < idx.patch", );
+    $self->ezmlm_conf_fixups();
+
+    $util->syscmd( "make" );
+    $util->syscmd( "chmod 775 makelang" );
+
+#$util->syscmd( "make mysql" );  # haven't figured this out yet (compile problems)
+    $util->syscmd( "make man" );
+    $util->syscmd( "make setup");
+
+    $self->ezmlm_cgi();
+    return 1;
+}
+
+sub ezmlm_conf_fixups {
+    my $self = shift;
 
     if ( $OSNAME eq "darwin" ) {
         my $local_include = "/usr/local/mysql/include";
@@ -2266,17 +2281,7 @@ sub ezmlm {
     $util->file_write( "conf-bin", lines => ["/usr/local/bin"] );
     $util->file_write( "conf-man", lines => ["/usr/local/man"] );
     $util->file_write( "conf-etc", lines => ["/usr/local/etc"] );
-
-    $util->syscmd( "make" );
-    $util->syscmd( "chmod 775 makelang" );
-
-#$util->syscmd( "make mysql" );  # haven't figured this out yet (compile problems)
-    $util->syscmd( "make man" );
-    $util->syscmd( "make setup");
-
-    $self->ezmlm_cgi();
-    return 1;
-}
+};
 
 sub ezmlm_cgi {
     my $self  = shift;
@@ -4340,15 +4345,16 @@ sub qmailadmin {
     my $toaster = "$conf->{'toaster_dl_site'}$conf->{'toaster_dl_url'}";
     $toaster ||= "http://mail-toaster.org";
 
-    my $httpdir = $conf->{'toaster_http_base'} || "/usr/local/www";
+    my $cgi     = $conf->{'qmailadmin_cgi-bin_dir'};
 
-    my $cgi = $conf->{'qmailadmin_cgi-bin_dir'};
     unless ( $cgi && -e $cgi ) {
         $cgi = $conf->{'toaster_cgi_bin'};
+        mkpath $cgi if ! -e $cgi;
+
         unless ( $cgi && -e $cgi ) {
-            -d "/usr/local/www/cgi-bin.mail"
-              ? $cgi = "/usr/local/www/cgi-bin.mail"
-              : $cgi = "/usr/local/www/cgi-bin";
+            my $httpdir = $conf->{'toaster_http_base'} || "/usr/local/www";
+            $cgi = "$httpdir/cgi-bin";
+            $cgi = "$httpdir/cgi-bin.mail" if -d "$httpdir/cgi-bin.mail";
         }
     }
 
@@ -5516,84 +5522,17 @@ sub spamassassin_sql {
     }
 
     if ( $OSNAME eq "freebsd" ) {
-
-        # is SpamAssassin installed?
-        if ( ! $freebsd->is_port_installed( "p5-Mail-SpamAssassin" ) ) {
-            print "SpamAssassin is not installed, skipping database setup.\n";
-            return;
-        }
-
-        # have we been here already?
-        if ( -f "/usr/local/etc/mail/spamassassin/sql.cf" ) {
-            print "SpamAssassing database setup already done...skipping.\n";
-            return 1;
-        };
-
-        print "SpamAssassin is installed, setting up MySQL databases\n";
-
-        my $user = $conf->{'install_spamassassin_dbuser'};
-        my $pass = $conf->{'install_spamassassin_dbpass'};
-
-        require Mail::Toaster::Mysql;
-        my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
-
-        my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 );
-        my ( $dbh, $dsn, $drh ) = $mysql->connect( $dot, 1 );
-
-        if ($dbh) {
-            my $query = "use spamassassin";
-            my $sth = $mysql->query( $dbh, $query, 1 );
-            if ( $sth->errstr ) {
-                print "oops, no spamassassin database.\n";
-                print "creating MySQL spamassassin database.\n";
-                $query = "CREATE DATABASE spamassassin";
-                $sth   = $mysql->query( $dbh, $query );
-                $query =
-"GRANT ALL PRIVILEGES ON spamassassin.* TO $user\@'localhost' IDENTIFIED BY '$pass'";
-                $sth = $mysql->query( $dbh, $query );
-                $sth = $mysql->query( $dbh, "flush privileges" );
-                $sth->finish;
-            }
-            else {
-                print "spamassassin: spamassassin database exists!\n";
-                $sth->finish;
-            }
-        }
-
-        my $mysqlbin = $util->find_bin( "mysql", fatal => 0 );
-        my $sqldir = "/usr/local/share/doc/p5-Mail-SpamAssassin/sql";
-        foreach (qw/bayes_mysql.sql awl_mysql.sql userpref_mysql.sql/) {
-            $util->syscmd( "$mysqlbin spamassassin < $sqldir/$_" )
-              if ( -f "$sqldir/$_" );
-        }
-
-        my $file = "/usr/local/etc/mail/spamassassin/sql.cf";
-        unless ( -f $file ) {
-            my @lines = <<EO_SQL_CF;
-loadplugin Mail::SpamAssassin::Plugin::AWL
-
-user_scores_dsn                 DBI:mysql:spamassassin:localhost
-user_scores_sql_username        $conf->{'install_spamassassin_dbuser'}
-user_scores_sql_password        $conf->{'install_spamassassin_dbpass'}
-#user_scores_sql_table           userpref
-
-bayes_store_module              Mail::SpamAssassin::BayesStore::SQL
-bayes_sql_dsn                   DBI:mysql:spamassassin:localhost
-bayes_sql_username              $conf->{'install_spamassassin_dbuser'}
-bayes_sql_password              $conf->{'install_spamassassin_dbpass'}
-#bayes_sql_override_username    someusername
-
-auto_whitelist_factory          Mail::SpamAssassin::SQLBasedAddrList
-user_awl_dsn                    DBI:mysql:spamassassin:localhost
-user_awl_sql_username           $conf->{'install_spamassassin_dbuser'}
-user_awl_sql_password           $conf->{'install_spamassassin_dbpass'}
-user_awl_sql_table              awl
-EO_SQL_CF
-            $util->file_write( $file, lines => \@lines );
-        }
+        $self->spamassassin_sql_freebsd();
     }
     else {
-        print
+        $self->spamassassin_sql_manual();
+    };
+};
+
+sub spamassassin_sql_manual {
+    my $self = shift;
+
+    print
 "Sorry, automatic MySQL SpamAssassin setup is not available on $OSNAME yet. You must
 do this process manually by locating the *_mysql.sql files that arrived with SpamAssassin. Run
 each one like this:
@@ -5629,6 +5568,86 @@ the following contents:
 	user_awl_sql_password        $conf->{'install_spamassassin_dbpass'}
 	user_awl_sql_table           awl
 ";
+};
+
+sub spamassassin_sql_freebsd {
+    my $self = shift;
+
+    # is SpamAssassin installed?
+    if ( ! $freebsd->is_port_installed( "p5-Mail-SpamAssassin" ) ) {
+        print "SpamAssassin is not installed, skipping database setup.\n";
+        return;
+    }
+
+    # have we been here already?
+    if ( -f "/usr/local/etc/mail/spamassassin/sql.cf" ) {
+        print "SpamAssassing database setup already done...skipping.\n";
+        return 1;
+    };
+
+    print "SpamAssassin is installed, setting up MySQL databases\n";
+
+    my $user = $conf->{'install_spamassassin_dbuser'};
+    my $pass = $conf->{'install_spamassassin_dbpass'};
+
+    require Mail::Toaster::Mysql;
+    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
+
+    my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 );
+    my ( $dbh, $dsn, $drh ) = $mysql->connect( $dot, 1 );
+
+    if ($dbh) {
+        my $query = "use spamassassin";
+        my $sth = $mysql->query( $dbh, $query, 1 );
+        if ( $sth->errstr ) {
+            print "oops, no spamassassin database.\n";
+            print "creating MySQL spamassassin database.\n";
+            $query = "CREATE DATABASE spamassassin";
+            $sth   = $mysql->query( $dbh, $query );
+            $query =
+"GRANT ALL PRIVILEGES ON spamassassin.* TO $user\@'localhost' IDENTIFIED BY '$pass'";
+            $sth = $mysql->query( $dbh, $query );
+            $sth = $mysql->query( $dbh, "flush privileges" );
+            $sth->finish;
+        }
+        else {
+            print "spamassassin: spamassassin database exists!\n";
+            $sth->finish;
+        }
+    }
+
+    my $mysqlbin = $util->find_bin( "mysql", fatal => 0 );
+    my $sqldir = "/usr/local/share/doc/p5-Mail-SpamAssassin/sql";
+    foreach my $f (qw/bayes_mysql.sql awl_mysql.sql userpref_mysql.sql/) {
+        if ( `grep MyISAM $f` ) {
+
+        };
+        $util->syscmd( "$mysqlbin spamassassin < $sqldir/$f" ) if -f "$sqldir/$f";
+    }
+
+    my $file = "/usr/local/etc/mail/spamassassin/sql.cf";
+    unless ( -f $file ) {
+        my @lines = <<EO_SQL_CF;
+loadplugin Mail::SpamAssassin::Plugin::AWL
+
+user_scores_dsn                 DBI:mysql:spamassassin:localhost
+user_scores_sql_username        $conf->{'install_spamassassin_dbuser'}
+user_scores_sql_password        $conf->{'install_spamassassin_dbpass'}
+#user_scores_sql_table           userpref
+
+bayes_store_module              Mail::SpamAssassin::BayesStore::SQL
+bayes_sql_dsn                   DBI:mysql:spamassassin:localhost
+bayes_sql_username              $conf->{'install_spamassassin_dbuser'}
+bayes_sql_password              $conf->{'install_spamassassin_dbpass'}
+#bayes_sql_override_username    someusername
+
+auto_whitelist_factory          Mail::SpamAssassin::SQLBasedAddrList
+user_awl_dsn                    DBI:mysql:spamassassin:localhost
+user_awl_sql_username           $conf->{'install_spamassassin_dbuser'}
+user_awl_sql_password           $conf->{'install_spamassassin_dbpass'}
+user_awl_sql_table              awl
+EO_SQL_CF
+        $util->file_write( $file, lines => \@lines );
     }
 }
 
