@@ -23,8 +23,7 @@ my $confdir = set_conf_dir();
 
 sub MY::postamble { 
 
-'TNPITOASTER	=	/Users/Shared/Sites/www.tnpi.biz/internet/mail/toaster
-TNPIMAILLOG =   /Users/Shared/Sites/www.tnpi.biz/internet/mail/maillogs
+'TNPITOASTER	=	html
 CONFDIR    =   ' . $confdir . '
 MODULES		=	doc/modules
 MT		=	Mail::Toaster
@@ -73,6 +72,13 @@ deps:
 	perl bin/install_deps.pl
 
 web:
+	install -d $(TNPITOASTER)
+	install -d $(TNPITOASTER)/watcher
+	install -d $(TNPITOASTER)/etc
+	install -d $(TNPITOASTER)/config
+	install -d $(TNPITOASTER)/modules
+	install -d $(TNPITOASTER)/src
+
 	install bin/toaster_setup.pl       $(TNPITOASTER)/
 	install bin/toaster-watcher.pl     $(TNPITOASTER)/watcher/
 	install toaster-watcher.conf-dist  $(TNPITOASTER)/watcher/toaster-watcher.conf
@@ -94,7 +100,9 @@ web:
 	install -m 0644 $(MODULES)/Utility.html   $(TNPITOASTER)/modules/
 
 	install -m 0644 Mail-Toaster-$(VERSION).tar.gz $(TNPITOASTER)/Mail-Toaster.tar.gz
-	mv Mail-Toaster-$(VERSION).tar.gz              $(TNPITOASTER)/src/
+	install -m 0644 Mail-Toaster-$(VERSION).tar.gz $(TNPITOASTER)/src/Mail-Toaster-$(VERSION).tar.gz
+	rm Mail-Toaster-$(VERSION).tar.gz
+	rsync -nav html/ www.tnpi.net:/home/tnpi/html/internet/mail/toaster/
 ';
 
 }
