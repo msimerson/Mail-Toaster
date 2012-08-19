@@ -5442,7 +5442,7 @@ sub spamassassin {
     $util->install_module( "Mail::SpamAssassin" );
     $self->maildrop( );
 
-    $self->spamassassin_sql() if ( $conf->{'install_spamassassin_sql'} );
+    $self->spamassassin_sql();
 }
 
 sub spamassassin_freebsd {
@@ -5517,7 +5517,7 @@ sub spamassassin_sql {
 
     return $p{test_ok} if defined $p{test_ok}; # for testing
 
-    if ( ! $conf->{'install_spamassassin_sql'} ) {
+    if ( ! $conf->{'install_mysql'} || ! $conf->{'install_spamassassin_sql'} ) {
         print "SpamAssasin MySQL integration not selected. skipping.\n";
         return 0;
     }
@@ -5731,7 +5731,7 @@ sub squirrelmail_freebsd {
     return if ! -d $sqdir;
 
     $self->squirrelmail_config();
-    $self->squirrelmail_mysql() if $conf->{'install_squirrelmail_sql'};
+    $self->squirrelmail_mysql();
 
     return 1;
 }
@@ -5739,6 +5739,7 @@ sub squirrelmail_freebsd {
 sub squirrelmail_mysql {
     my $self  = shift;
 
+    return if ! $conf->{'install_mysql'};
     return if ! $conf->{'install_squirrelmail_sql'};
 
     if ( $OSNAME eq "freebsd" ) {
