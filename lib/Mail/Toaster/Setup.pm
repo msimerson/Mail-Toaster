@@ -4341,7 +4341,7 @@ sub qmailadmin {
 
     my $package = "qmailadmin-$ver";
     my $site    = "http://" . $conf->{'toaster_sf_mirror'};
-    my $url     = "/qmailadmin";
+    my $url     = "/qmailadmin/qmailadmin-stable/$ver";
 
     my $toaster = "$conf->{'toaster_dl_site'}$conf->{'toaster_dl_url'}";
     $toaster ||= "http://mail-toaster.org";
