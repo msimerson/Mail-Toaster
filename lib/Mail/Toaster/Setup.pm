@@ -1710,7 +1710,7 @@ sub dovecot {
             return $self->dovecot_start();
         }
 
-    print "dovecot: installing...\n";
+        print "dovecot: installing...\n";
 
         if ( $OSNAME eq "freebsd" ) {
             $self->dovecot_install_freebsd() or return;
@@ -1861,6 +1861,7 @@ auth_username_format = %Lu",
             },
         ],
     );
+    return 1;
 };
 
 sub dovecot_2_conf {
@@ -2052,8 +2053,8 @@ sub dovecot_start {
         return;
     };
 
-    $self->dovecot_1_conf() or return;
-    $self->dovecot_2_conf() or return;
+    $self->dovecot_1_conf();
+    $self->dovecot_2_conf();
 
     # append dovecot_enable to /etc/rc.conf
     $freebsd->conf_check(
@@ -5617,13 +5618,26 @@ sub spamassassin_sql_freebsd {
         }
     }
 
-    my $mysqlbin = $util->find_bin( "mysql", fatal => 0 );
+    my $mysqlbin = $util->find_bin( 'mysql', fatal => 0 );
+    if ( ! -x $mysqlbin ) {
+        $mysqlbin = $util->find_bin( 'mysql5' );
+    };
     my $sqldir = "/usr/local/share/doc/p5-Mail-SpamAssassin/sql";
     foreach my $f (qw/bayes_mysql.sql awl_mysql.sql userpref_mysql.sql/) {
-        if ( `grep MyISAM $f` ) {
-
+        if ( ! -f "$sqldir/$f" ) {
+            warn "missing .sql file: $f\n";
+            next;
         };
-        $util->syscmd( "$mysqlbin spamassassin < $sqldir/$f" ) if -f "$sqldir/$f";
+        if ( `grep MyISAM "$sqldir/$f"` ) {
+            my @lines = $util->file_read( "$sqldir/$f" );
+            foreach my $line (@lines) {
+                if ( $line eq ') TYPE=MyISAM;' ) {
+                    $line = ');';
+                };
+            };
+            $util->file_write( "$sqldir/$f", lines=>\@lines );
+        };
+        $util->syscmd( "$mysqlbin spamassassin < $sqldir/$f" );
     }
 
     my $file = "/usr/local/etc/mail/spamassassin/sql.cf";
@@ -6780,7 +6794,7 @@ sub ucspi_test {
         $log->test("  $_", $util->find_bin( $_, fatal => 0, debug=>0 ) );
     }
 
-    if ( $conf->{'vpopmail_mysql'} ) {
+    if ( $conf->{install_mysql} && $conf->{'vpopmail_mysql'} ) {
         my $tcpserver = $util->find_bin( "tcpserver", fatal => 0, debug=>0 );
         $log->test( "  tcpserver mysql support",
             scalar `strings $tcpserver | grep sql`
