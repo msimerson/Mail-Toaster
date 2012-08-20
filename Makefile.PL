@@ -140,6 +140,7 @@ WriteMakefile(
     clean            => {
                             FILES => [  "t/trash",
                                         "pod2htm*",
+                                        'html',
                                     ],
                         },
 );
