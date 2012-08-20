@@ -77,7 +77,7 @@ toaster_pkg_site                   = ftp://ftp.freebsd.org
 # Extra options are noted after the # where available. Selecting 1 is the most reliable
 # and will install trying first via ports, then sources if the port install fails.
 
-install_squirrelmail               = 1.4.20  # 0, ver, port
+install_squirrelmail               = 1.4.22  # 0, ver, port
 install_squirrelmail_sql           = 0       # use MySQL for user prefs and address book?
 install_squirrelmail_sql_pass      = chAnge7his
 install_lighttpd                   = 1
