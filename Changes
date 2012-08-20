@@ -1,4 +1,14 @@
 Mail Toaster Changes
+  5.32 - Aug 19, 2012
+       fix for spamassassin mysql import on MySQL 5.5+
+       added qmail utmpx patch for compat. with FreeBSD 9
+       increase RAM for daemons (for 64-bit systems)
+       qmail: fixed chkuser build support for vpopmail extensions
+       dspam: added to mailfilter
+       dspam: only train on error
+       improved build support on Darwin (Mac OS X)
+       added support for dovecot 2
+
   5.30 - Sep 26, 2011
        Apache Config Changes
           shortened config file comments
