@@ -32,7 +32,7 @@ sub new {
 
     $log = $p{'log'};
     if ( ! $log ) {
-        my @bits = split '::', $class; pop @bits;
+        my @bits = split /::/, $class; pop @bits;
         my $parent_class = join '::', grep { defined $_ } @bits;
 ## no critic ( ProhibitStringyEval )
         eval "require $parent_class";
