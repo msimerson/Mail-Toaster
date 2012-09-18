@@ -310,11 +310,6 @@ rbl_bl.spamcop.net                 = 1       # http://www.spamcop.net/
 rbl_dnsbl-1.uceprotect.net         = 1       # http://www.uceprotect.net/en/index.php?m=3&s=3
 rbl_rbl-plus.mail-abuse.org        = 0       # Subscription only!
 rbl_korea.services.net             = 1       # Block all of Korea
-rbl_dsn.rfc-ignorant.org           = 1       # http://rfc-ignorant.org/
-rbl_whois.rfc-ignorant.org         = 1
-rbl_abuse.rfc-ignorant.org         = 1       # http://www.rfc-ignorant.org/policy-abuse.php
-rbl_postmaster.rfc-ignorant.org    = 1       # http://www.rfc-ignorant.org/policy-postmaster.php
-rbl_bogusmx.rfc-ignorant.org       = 1       # http://www.rfc-ignorant.org/policy-bogusmx.php
 rbl_opm.blitzed.org                = 0       # http://opm.blitzed.org/info (part of xbl)
 rbl_dnsbl.sorbs.net                = 1       # aggregate: includes all sorbs.net lists
 rbl_psbl.surriel.com               = 1       # http://psbl.surriel.com/
@@ -335,6 +330,11 @@ rbl_blackholes.mail-abuse.org      = 0       # Subscription only!
 rbl_relays.mail-abuse.org          = 0       # Subscription only!
 rbl_dialups.mail-abuse.org         = 0       # Subscription only!
 #            deprecated/defunct RBLs
+rbl_dsn.rfc-ignorant.org           = 0       # http://rfc-ignorant.org/
+rbl_whois.rfc-ignorant.org         = 0
+rbl_abuse.rfc-ignorant.org         = 0       # http://www.rfc-ignorant.org/policy-abuse.php
+rbl_postmaster.rfc-ignorant.org    = 0       # http://www.rfc-ignorant.org/policy-postmaster.php
+rbl_bogusmx.rfc-ignorant.org       = 0       # http://www.rfc-ignorant.org/policy-bogusmx.php
 rbl_list.dsbl.org                  = 0       # http://dsbl.org/
 rbl_sbl-xbl.spamhaus.org           = 0       # replaced by zen.spamhaus.org
 rbl_dynablock.njabl.org            = 0       # being dropped as of 2007.01.??
