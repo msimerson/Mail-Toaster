@@ -52,6 +52,7 @@ $toaster->log( "Building submit/run" );
 $qmail->build_submit_run( %args );
 
 $toaster->check( quiet => $quiet, %args );
+$setup->supervise( %args );
 $toaster->service_symlinks( %args );
 $toaster->clear_open_smtp( %args );
 $toaster->sqwebmail_clean_cache( %args );
