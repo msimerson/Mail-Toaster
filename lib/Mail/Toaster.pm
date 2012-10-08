@@ -3,11 +3,12 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.32';
+our $VERSION = '5.33';
 
 use Cwd;
 use English qw/ -no_match_vars /;
 use File::Basename;
+use File::Find;
 use File::stat;
 use Params::Validate qw/ :all /;
 use Sys::Hostname;
@@ -349,10 +350,9 @@ sub check {
     # check that we can't SMTP AUTH with random user names and passwords
 
     # make sure the supervised processes are configured correctly.
-    $self->supervised_dir_test( prot=>"smtp",  %targs );
-    $self->supervised_dir_test( prot=>"send",  %targs );
-    $self->supervised_dir_test( prot=>"pop3",  %targs );
-    $self->supervised_dir_test( prot=>"submit",%targs );
+    foreach my $svc ( qw/ smtp send pop3 submit vpopmaild qmail-deliverable / ) {
+        $self->supervised_dir_test( prot=>$svc, %targs );
+    };
 
     return 1;
 }
@@ -410,6 +410,7 @@ sub check_processes {
     push @processes, "sqwebmaild"         if $conf->{'install_sqwebmail'};
     push @processes, "imapd-ssl", "imapd", "pop3d-ssl"
       if $conf->{'install_courier-imap'};
+    push @processes, "vpopmaild"          if $conf->{'vpopmail_daemon'};
 
     push @processes, "authdaemond"
       if ( $conf->{'install_courier_imap'} eq "port"
@@ -1069,13 +1070,16 @@ sub get_maildir_folders {
 
 sub get_maildir_messages {
     my ($self, $dir, $age, $find) = @_;
-    $dir =~ s/"/\\"/g;   # escape any " characters
-    $find ||= $util->find_bin( 'find', debug=>0 );
-    my @messages = `$find "$dir" -type f -ctime -${age}s`;
-    #my @messages = `$find "$dir" -type f`;  # find all messages
-    #print "found " . @messages . " messages in $dir\n";
-    chomp @messages;
-    return @messages;
+
+    my @recents;
+    my $oldest = time - $age;
+
+    find( {wanted=> sub { -f && stat($_)->ctime > $oldest && push @recents, $File::Find::name; }, no_chdir=>1}, $dir);
+    #my @messages = `$find "$dir" -type f -ctime -${age}s`;
+
+    #print "found " . @recents . " messages in $dir\n";
+    chomp @recents;
+    return @recents;
 };
 
 sub get_std_args {
@@ -1256,12 +1260,12 @@ sub run_qmailscanner {
 
 sub service_dir_get {
     my $self = shift;
-    my %p = validate( @_, { prot => { type=>SCALAR,  }, },);
+    my %p = validate( @_, { prot => { type=>SCALAR } } );
 
     my $prot = $p{prot};
-       $prot = "smtp" if $prot eq "smtpd"; # catch and fix legacy usage.
+       $prot = 'smtp' if $prot eq 'smtpd'; # catch and fix legacy usage.
 
-    my @valid = qw/ send smtp pop3 submit /;
+    my @valid = qw/ send smtp pop3 submit qpsmtpd qmail-deliverable /;
     my %valid = map { $_=>1 } @valid;
     return $log->error( "invalid service: $prot",fatal=>0) if ! $valid{$prot};
 
@@ -1293,64 +1297,70 @@ sub service_symlinks {
     my $debug = $p{'debug'};
     my $fatal = $p{'fatal'};
 
-    my @active_services = ('send');
+    my @active_services = 'send';
 
-    if ( ! defined $conf->{'smtpd_daemon'} || $conf->{'smtpd_daemon'} eq 'qmail' ) {
-        push @active_services, 'smtp';
+    my $r = $self->service_symlinks_smtp();
+    push @active_services, $r if $r;
+
+    foreach my $prot ( qw/ pop3 submit / ) {
+        if ( $conf->{$prot . '_enable'} ) {
+            push @active_services, $prot;
+        }
+        else {
+            $self->service_symlinks_cleanup( $prot );
+        };
     };
-
-    if ( $conf->{'pop3_daemon'} eq 'qpop3d' ) {
-        push @active_services, 'pop3';
-    }
-    else {
-        my $pop_service_dir = $self->service_dir_get( prot => "pop3" );
-        my $pop_supervise_dir = $self->supervise_dir_get( prot => "pop3");
-
-        if ( -e $pop_service_dir ) {
-            $log->audit( "deleting $pop_service_dir because we aren't using qpop3d!");
-            unlink($pop_service_dir);
-        }
-        else {
-            $log->audit( "qpop3d not enabled due to configuration settings.");
-        }
-    }
-
-    if ( $conf->{'submit_enable'} ) {
-        push @active_services, "submit";
-    }
-    else {
-        my $serv_dir = $self->service_dir_get( prot => "submit" );
-        my $submit_supervise_dir = $self->supervise_dir_get( prot  => "submit" );
-        if ( -e $serv_dir ) {
-            $log->audit("deleting $serv_dir because submit isn't enabled!");
-            unlink($serv_dir);
-        }
-        else {
-            $log->audit("submit not enabled due to configuration settings.");
-        }
-    }
 
     foreach my $prot ( @active_services ) {
 
         my $svcdir = $self->service_dir_get( prot => $prot );
         my $supdir = $self->supervise_dir_get( prot => $prot );
 
-        if ( -d $supdir ) {
-            if ( -e $svcdir ) {
-                $log->audit( "service_symlinks: $svcdir already exists.");
-            }
-            else {
-                print
-                "service_symlinks: creating symlink from $supdir to $svcdir\n";
-                symlink( $supdir, $svcdir ) or die "couldn't symlink $supdir: $!";
-            }
-        }
-        else {
+        if ( ! -d $supdir ) {
             $log->audit( "skipping symlink to $svcdir because target $supdir doesn't exist.");
+            next;
         };
+
+        if ( -e $svcdir ) {
+            $log->audit( "service_symlinks: $svcdir already exists.");
+            next;
+        }
+
+        print "service_symlinks: creating symlink from $supdir to $svcdir\n";
+        symlink( $supdir, $svcdir ) or die "couldn't symlink $supdir: $!";
     }
 
     return 1;
+}
+
+sub service_symlinks_smtp {
+    my $self = shift;
+
+    return 'smtp' if !  $conf->{smtpd_daemon};
+
+    if ( $conf->{smtpd_daemon} eq 'qmail' ) {
+        $self->service_symlinks_cleanup( 'qpsmtpd' );
+        return 'smtp';
+    };
+
+    if ( $conf->{smtpd_daemon} eq 'qpsmtpd' ) {
+        $self->service_symlinks_cleanup( 'smtp' );
+        return 'qpsmtpd';
+    };
+}
+
+sub service_symlinks_cleanup {
+    my ($self, $prot ) = @_;
+
+    my $dir = $self->service_dir_get( prot => $prot );
+
+    if ( -e $dir ) {
+        $log->audit("deleting $dir because $prot isn't enabled!");
+        unlink($dir);
+    }
+    else {
+        $log->audit("$prot not enabled due to configuration settings.");
+    }
 }
 
 sub service_dir_create {
@@ -1422,16 +1432,7 @@ sub supervise_dir_get {
     $sdir = "/supervise" if ( !-d $sdir && -d '/supervise');
     $sdir ||= "/var/qmail/supervise";
 
-    my $dir = $prot eq 'smtp'   ? $conf->{'qmail_supervise_smtp'}
-            : $prot eq 'pop3'   ? $conf->{'qmail_supervise_pop3'}
-            : $prot eq 'send'   ? $conf->{'qmail_supervise_send'}
-            : $prot eq 'submit' ? $conf->{'qmail_supervise_submit'}
-            : 0;
-
-    if ( !$dir ) {
-        $log->error( "qmail_supervise_$prot is not set correctly in toaster-watcher.conf!", fatal => 0);
-        $dir = "$sdir/$prot";
-    }
+    my $dir = "$sdir/$prot";
 
     # expand the qmail_supervise shortcut
     $dir = "$sdir/$1" if $dir =~ /^qmail_supervise\/(.*)$/;
@@ -1459,7 +1460,14 @@ sub supervise_dirs_create {
 
     chdir $supervise;
 
-    foreach my $prot (qw/ smtp send pop3 submit /) {
+    my @sdirs = qw/ smtp send pop3 submit /;
+    push @sdirs, 'vpopmaild' if $conf->{vpopmail_daemon};
+    if ( 'qpsmtpd' eq $conf->{smtpd_daemon} ) {
+        push @sdirs, 'qmail-deliverable';
+        push @sdirs, 'qpsmtpd';
+    };
+
+    foreach my $prot ( @sdirs ) {
 
         my $dir = $self->supervise_dir_get( prot => $prot );
         if ( -d $dir ) {
@@ -1482,9 +1490,9 @@ sub supervise_dirs_create {
 sub supervised_dir_test {
     my $self = shift;
     my %p = validate( @_, {
-            'prot'    => { type=>SCALAR,  },
-            'dir'     => { type=>SCALAR,  optional=>1, },
-            'quiet'   => { type=>SCALAR,  optional=>1, },
+            'prot'    => { type=>SCALAR, },
+            'dir'     => { type=>SCALAR, optional=>1, },
+            'quiet'   => { type=>SCALAR, optional=>1, },
             %std_opts,
         },
     );

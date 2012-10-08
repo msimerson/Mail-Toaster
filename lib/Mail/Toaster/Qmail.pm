@@ -67,7 +67,7 @@ sub build_pop3_run {
     my @lines = $toaster->supervised_do_not_edit_notice( vdir => 1 );
 
     push @lines, $self->supervised_hostname_qmail( prot => "pop3" )
-        if $conf->{'pop3_hostname'} eq "qmail";
+        if $conf->{'pop3_hostname'} eq 'qmail';
 
 #qmail-popup mail.cadillac.net /usr/local/vpopmail/bin/vchkpw qmail-pop3d Maildir 2>&1
     my $exec = $toaster->supervised_tcpserver( prot => 'pop3' ) or return;
