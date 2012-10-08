@@ -170,10 +170,6 @@ filtering_debug                    = 1
 
 qmail_dir                          = /var/qmail
 qmail_supervise                    = /var/qmail/supervise
-qmail_supervise_smtp               = qmail_supervise/smtp
-qmail_supervise_send               = qmail_supervise/send
-qmail_supervise_pop3               = qmail_supervise/pop3
-qmail_supervise_submit             = qmail_supervise/submit
 qmail_service                      = /var/service
 qmail_service_smtp                 = qmail_service/smtp
 qmail_service_send                 = qmail_service/send
@@ -230,6 +226,7 @@ vpopmail_default_quota             = 100000000S,10000C  # deprecated in 5.4.0+
 vpopmail_disable_many_domains      = 0
 vpopmail_enable_netblocks          = 0
 vpopmail_maildrop                  = 0
+vpopmail_daemon                    = 1
 
 
 #######################################
