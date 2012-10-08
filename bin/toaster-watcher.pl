@@ -21,6 +21,7 @@ my $toaster = Mail::Toaster->new( debug => $opt_v );
 my $util   = $toaster->get_util;
 my $conf   = $toaster->get_config();
 my $qmail  = Mail::Toaster::Qmail->new( 'log' => $toaster );
+my $setup  = Mail::Toaster::Setup->new( 'log' => $toaster, conf => $conf );
 my $debug  = $conf->{'toaster_debug'} || $opt_v || 0;
 
 my $pidfile = "/var/run/toaster-watcher.pid";
