@@ -296,7 +296,7 @@ sub process_cgi {
             $self->subs_list( list=>$list, list_dir=>$list_dir, br=>$br, debug=>$debug );
         }
         elsif ( $action eq "add" ) {
-            my @reqs = split( "\n", param('addresses') );
+            my @reqs = split( /\n/, param('addresses') );
             print "reqs: @reqs<br>" if $debug;
             my $requested = \@reqs;
             $self->subs_add( list=>$list, list_dir=>$list_dir, requested=>$requested, br=>$br );

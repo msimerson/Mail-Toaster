@@ -748,7 +748,7 @@ sub get_domains_from_assign {
 
     foreach my $line (@lines) {
         chomp $line;
-        my @fields = split( ":", $line );
+        my @fields = split( /:/, $line );
         if ( $fields[0] ne "" && $fields[0] ne "." ) {
             my %domain = (
                 stat => $fields[0],

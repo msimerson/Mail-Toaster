@@ -800,7 +800,7 @@ sub fstab_list {
 
     #	foreach my $fstab (@fstabs)
     #	{}
-    #		my @fields = split(" ", $fstab);
+    #		my @fields = split(/ /, $fstab);
     #		#print "device: $fields[0]  mount: $fields[1]\n";
     #	{};
     #	print "\n\n END of fstabs\n\n";

@@ -1495,7 +1495,7 @@ sub counter_read {
     my %hash;
 
     foreach ( $util->file_read( $file, debug=>$debug ) ) {
-        my ($description, $count) = split( ":", $_ );
+        my ($description, $count) = split( /:/, $_ );
         $hash{ $description } = $count;
     }
 
