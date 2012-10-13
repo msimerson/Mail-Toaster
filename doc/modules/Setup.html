@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster::Setup</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@imac24.simerson.net" />
+<link rev="made" href="mailto:matt@mattbook.simerson.net" />
 </head>
 
 <body style="background-color: white">
@@ -47,8 +47,8 @@
 <p>All documented methods in this package (shown below) accept two optional arguments, debug and fatal. Setting debug to zero will supress nearly all informational and debugging output. If you want more output, simply pass along debug=&gt;1 and status messages will print out. Fatal allows you to override the default behaviour of these methods, which is to die upon error. Each sub returns 0 if the action failed and 1 for success.</p>
 <pre>
  arguments required:
-   varies (most require conf)
- 
+   varies (most require conf)</pre>
+<pre>
  arguments optional:
    debug - print status messages
    fatal - die on errors (default)</pre>
@@ -429,7 +429,7 @@
         $setup-&gt;startup_script( );</pre>
 <p>If they don't already exist, this sub will create:</p>
 <pre>
-        daemontools service directory (default /var/service) 
+        daemontools service directory (default /var/service)
         symlink to the services script</pre>
 <p>The services script allows you to run &quot;services stop&quot; or &quot;services start&quot; on your system to control the supervised daemons (qmail-smtpd, qmail-pop3, qmail-send, qmail-submit). It affects the following files:</p>
 <pre>
@@ -505,7 +505,7 @@
 <h1><a name="see_also">SEE ALSO</a></h1>
 <p>The following are all man/perldoc pages:</p>
 <pre>
- Mail::Toaster 
+ Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
  toaster-watcher.conf</pre>

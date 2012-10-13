@@ -1,6 +1,28 @@
 
 =head1 Mail Toaster Changes
 
+=head2 5.33 - Oct 26, 2011
+
+    updated path to maildir-deliverquota
+    updated path to freshclam.log
+    added more support for qpsmtpd future
+    added vpopmail_daemon setting to tw.conf
+    added supervise support for qpsmtpd, vpopmaild, and qmail-deliverable daemons.
+    get_maildir_messages now uses File::Find instead of `find …`
+    deprecated rfc-ignorant DNSBLs
+    replaced split '..' with split /../ syntax
+
+=head2 5.32 - Aug 19, 2012
+
+    fix for spamassassin mysql import on MySQL 5.5+
+    added qmail utmpx patch for compat. with FreeBSD 9
+    increase RAM for daemons (for 64-bit systems)
+    qmail: fixed chkuser build support for vpopmail extensions
+    dspam: added to mailfilter
+    dspam: only train on error
+    improved build support on Darwin (Mac OS X)
+    added support for dovecot 2
+
 =head2 5.30 - Sep 26, 2011
 
    Apache Config Changes

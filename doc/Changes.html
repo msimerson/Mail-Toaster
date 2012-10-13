@@ -4,7 +4,7 @@
 <head>
 <title>Mail Toaster Changes</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@imac24.simerson.net" />
+<link rev="made" href="mailto:matt@mattbook.simerson.net" />
 </head>
 
 <body style="background-color: white">
@@ -20,6 +20,8 @@
 	<li><a href="#mail_toaster_changes">Mail Toaster Changes</a></li>
 	<ul>
 
+		<li><a href="#5_33___oct_26__2011">5.33 - Oct 26, 2011</a></li>
+		<li><a href="#5_32___aug_19__2012">5.32 - Aug 19, 2012</a></li>
 		<li><a href="#5_30___sep_26__2011">5.30 - Sep 26, 2011</a></li>
 		<li><a href="#5_29___jun_12__2011">5.29 - Jun 12, 2011</a></li>
 		<li><a href="#5_28___jan_03__2011">5.28 - Jan 03, 2011</a></li>
@@ -57,6 +59,30 @@
 <p>
 </p>
 <h1><a name="mail_toaster_changes">Mail Toaster Changes</a></h1>
+<p>
+</p>
+<h2><a name="5_33___oct_26__2011">5.33 - Oct 26, 2011</a></h2>
+<pre>
+    updated path to maildir-deliverquota
+    updated path to freshclam.log
+    added more support for qpsmtpd future
+    added vpopmail_daemon setting to tw.conf
+    added supervise support for qpsmtpd, vpopmaild, and qmail-deliverable daemons.
+    get_maildir_messages now uses File::Find instead of `find …`
+    deprecated rfc-ignorant DNSBLs
+    replaced split '..' with split /../ syntax</pre>
+<p>
+</p>
+<h2><a name="5_32___aug_19__2012">5.32 - Aug 19, 2012</a></h2>
+<pre>
+    fix for spamassassin mysql import on MySQL 5.5+
+    added qmail utmpx patch for compat. with FreeBSD 9
+    increase RAM for daemons (for 64-bit systems)
+    qmail: fixed chkuser build support for vpopmail extensions
+    dspam: added to mailfilter
+    dspam: only train on error
+    improved build support on Darwin (Mac OS X)
+    added support for dovecot 2</pre>
 <p>
 </p>
 <h2><a name="5_30___sep_26__2011">5.30 - Sep 26, 2011</a></h2>

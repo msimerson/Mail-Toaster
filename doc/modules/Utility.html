@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster::Utility</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@imac24.simerson.net" />
+<link rev="made" href="mailto:matt@mattbook.simerson.net" />
 </head>
 
 <body style="background-color: white">
@@ -16,17 +16,13 @@
 
 <ul>
 
-	<li><a href="#name">NAME</a></li>
 	<li><a href="#synopsis">SYNOPSIS</a></li>
 	<li><a href="#description">DESCRIPTION</a></li>
 	<li><a href="#diagnostics">DIAGNOSTICS</a></li>
 	<li><a href="#dependencies">DEPENDENCIES</a></li>
 	<li><a href="#methods">METHODS</a></li>
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#bugs">BUGS</a></li>
 	<li><a href="#todo">TODO</a></li>
 	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#copyright">COPYRIGHT</a></li>
 </ul>
 
 <hr name="index" />
@@ -35,11 +31,6 @@
 
 <p>
 </p>
-<h1><a name="name">NAME</a></h1>
-<p>Mail::Toaster::Utility - utility subroutines for sysadmin tasks</p>
-<p>
-</p>
-<hr />
 <h1><a name="synopsis">SYNOPSIS</a></h1>
 <pre>
   use Mail::Toaster;
@@ -96,7 +87,7 @@
   ############################################
   # Usage      :  my $ask = $util-&gt;ask( &quot;Would you like fries with that&quot;,
   #                        default  =&gt; &quot;SuperSized!&quot;,
-  #                        timeout  =&gt; 30  
+  #                        timeout  =&gt; 30
   #               );
   # Purpose    : prompt the user for information
   #
@@ -172,7 +163,7 @@
   # Usage      : $util-&gt;clean_tmp_dir( dir=&gt;$dir );
   # Purpose    : clean up old build stuff before rebuilding
   # Returns    : 0 - failure,  1 - success
-  # Parameters : S - $dir - a directory or file. 
+  # Parameters : S - $dir - a directory or file.
   # Throws     : die on failure
   # Comments   : Running this will delete its contents. Be careful!</pre>
 </dd>
@@ -256,7 +247,7 @@
   # Usage      : $util-&gt;file_delete( file=&gt;$file );
   # Purpose    : Deletes a file.
   # Returns    : 0 - failure, 1 - success
-  # Parameters 
+  # Parameters
   #   Required : file - a file path
   # Comments   : none
   # See Also   :</pre>
@@ -293,7 +284,7 @@
 <pre>
  usage:
    my @lines = &quot;1&quot;, &quot;2&quot;, &quot;3&quot;;  # named array
-   $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;\@lines );   
+   $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;\@lines );
         or
    $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;['1','2','3'] );  # anon arrayref</pre>
 <pre>
@@ -334,7 +325,7 @@
 <pre>
  usage:
    my @lines = &quot;1&quot;, &quot;2&quot;, &quot;3&quot;;  # named array
-   $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;\@lines );   
+   $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;\@lines );
         or
    $util-&gt;file_write ( &quot;/tmp/foo&quot;, lines=&gt;['1','2','3'] );  # anon arrayref</pre>
 <pre>
@@ -511,14 +502,14 @@
 <pre>
  required arguments:
     conf    - hashref - mail-toaster.conf settings.
-    site    - 
-    url     - 
+    site    -
+    url     -
     package -</pre>
 <pre>
  optional arguments:
     targets - arrayref - defaults to [./configure, make, make install].
     patches - arrayref - patch(es) to apply to the sources before compiling
-    patch_args - 
+    patch_args -
     source_sub_dir - a subdirectory within the sources build directory
     bintest - check the usual places for an executable binary. If found, it will assume the software is already installed and require confirmation before re-installing.
     debug
@@ -606,8 +597,8 @@
 <p>Prints out a string with the regexp match bracketed. Credit to Damien Conway from Perl Best Practices.</p>
 <pre>
  Example:
-    $util-&gt;regexp_test( 
-                exp    =&gt; 'toast', 
+    $util-&gt;regexp_test(
+                exp    =&gt; 'toast',
                 string =&gt; 'mailtoaster rocks',
         );</pre>
 <pre>
@@ -627,8 +618,8 @@
 <pre>
    $util-&gt;source_warning(
                 package =&gt; &quot;Mail-Toaster-5.26&quot;,
-                clean   =&gt; 1, 
-                src     =&gt; &quot;/usr/local/src&quot; 
+                clean   =&gt; 1,
+                src     =&gt; &quot;/usr/local/src&quot;
    );</pre>
 <pre>
  arguments required:
@@ -649,8 +640,8 @@
 <p>Tries to download a set of sources files from the site and url provided. It will try first fetching a gzipped tarball and if that files, a bzipped tarball. As new formats are introduced, I will expand the support for them here.</p>
 <pre>
   usage:
-        $self-&gt;sources_get( 
-                package =&gt; 'simscan-1.07', 
+        $self-&gt;sources_get(
+                package =&gt; 'simscan-1.07',
                 site    =&gt; '<a href="http://www.inter7.com">http://www.inter7.com</a>',
                 path    =&gt; '/simscan/',
         )</pre>
@@ -712,7 +703,7 @@
 
 <dd>
 <pre>
-  my $r = $util-&gt;yes_or_no( 
+  my $r = $util-&gt;yes_or_no(
       &quot;Would you like fries with that?&quot;,
       timeout  =&gt; 30
   );</pre>
@@ -734,16 +725,6 @@
 <p>
 </p>
 <hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson (<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>)</p>
-<p>
-</p>
-<hr />
-<h1><a name="bugs">BUGS</a></h1>
-<p>None known. Report any to author.</p>
-<p>
-</p>
-<hr />
 <h1><a name="todo">TODO</a></h1>
 <pre>
   make all errors raise exceptions
@@ -756,16 +737,6 @@
 <p>The following are all man/perldoc pages:</p>
 <pre>
  Mail::Toaster</pre>
-<p>
-</p>
-<hr />
-<h1><a name="copyright">COPYRIGHT</a></h1>
-<p>Copyright (c) 2003-2009, The Network People, Inc. All Rights Reserved.</p>
-<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
-<p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
-<p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
-<p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
-<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
 
 </body>
 

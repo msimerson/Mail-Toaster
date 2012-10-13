@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@imac24.simerson.net" />
+<link rev="made" href="mailto:matt@mattbook.simerson.net" />
 </head>
 
 <body style="background-color: white">
@@ -38,7 +38,7 @@
 <p>
 </p>
 <h1><a name="name">NAME</a></h1>
-<p>Mail::Toaster - turns a computer into a secure, full-featured, high-performance mail server.</p>
+<p>Mail::Toaster - a fast, secure, full-featured mail server.</p>
 <p>
 </p>
 <hr />
@@ -55,17 +55,17 @@
 <h1><a name="usage">USAGE</a></h1>
 <pre>
     use Mail::Toaster;
-    my $toaster = Mail::Toaster-&gt;new;
-    
+    my $toaster = Mail::Toaster-&gt;new;</pre>
+<pre>
     # verify that processes are all running and complain if not
     $toaster-&gt;check();</pre>
 <pre>
     # get a list of all maildirs on the system
-    my @all_maildirs = $toaster-&gt;get_maildir_paths();
-    
+    my @all_maildirs = $toaster-&gt;get_maildir_paths();</pre>
+<pre>
     # clean up old messages over X days old
-    $toaster-&gt;clean_mailboxes();
-    
+    $toaster-&gt;clean_mailboxes();</pre>
+<pre>
     # clean up messages in Trash folders that exceed X days
     foreach my $maildir ( @all_maildirs ) {
         $toaster-&gt;maildir_clean_trash( path =&gt; $maildir );
@@ -82,15 +82,13 @@ examples in the aforementioned scripts or the t/Toaster.t file.</p>
 </p>
 <hr />
 <h1><a name="subroutines">SUBROUTINES</a></h1>
-<p>A separate section listing the public components of the module's interface. 
+<p>A separate section listing the public components of the module's interface.
 These normally consist of either subroutines that may be exported, or methods
 that may be called on objects belonging to the classes that the module provides.
 Name the section accordingly.</p>
-<pre>
-
-In an object-oriented module, this section should begin with a sentence of the 
+<p>In an object-oriented module, this section should begin with a sentence of the
 form &quot;An object of this class represents...&quot;, to give the reader a high-level
-context to help them understand the methods that are subsequently described.</pre>
+context to help them understand the methods that are subsequently described.</p>
 <dl>
 <dt><strong><a name="new" class="item">new</a></strong></dt>
 
@@ -114,9 +112,8 @@ context to help them understand the methods that are subsequently described.</pr
   # Returns    : prints out a series of test failures
   # Throws     : no exceptions
   # See Also   : toaster-watcher.pl
-  # Comments   : 
-  
-Performs the following tests:</pre>
+  # Comments   :</pre>
+<p>Performs the following tests:</p>
 <pre>
    • check for processes that should be running.
    • make sure watcher.log is less than 1MB
@@ -212,7 +209,7 @@ Performs the following tests:</pre>
 <p>Finally, if none of those work, then check the working directory for the named .conf file, or a .conf-dist.</p>
 <p>Example:
   my $twconf = $util-&gt;find_config (
-      file   =&gt; 'toaster-watcher.conf', 
+      file   =&gt; 'toaster-watcher.conf',
       etcdir =&gt; '/usr/local/etc',
     )</p>
 <pre>
@@ -253,7 +250,7 @@ Performs the following tests:</pre>
 <dd>
 <pre>
   ########### maildir_clean_spam #############
-  # Usage      : $toaster-&gt;maildir_clean_spam( 
+  # Usage      : $toaster-&gt;maildir_clean_spam(
   #                  path =&gt; '/home/domains/example.com/user',
   #              );
   # Purpose    : Removes spam that exceeds age as defined in t-w.conf.
@@ -272,29 +269,12 @@ Performs the following tests:</pre>
   # Throws     : exception on failure, or 0 if fatal=&gt;0</pre>
 <p>This sub creates a list of all the domains on a Mail::Toaster, and then creates a list of every email box (maildir) on every domain, thus generating a list of every mailbox on the system.</p>
 </dd>
-<dt><strong><a name="build_spam_list" class="item">build_spam_list</a></strong></dt>
-
-<dd>
-<pre>
-  ############################################
-  # Usage      : $toaster-&gt;build_spam_list( 
-  #                  path =&gt; '/home/domains/example.com/user',
-  #              );
-  # Purpose    : find spam messages newer than the last spam learning run
-  # Returns    : 0 - failure, 1 - success
-  # Results    : matching spam messages are appended to a tmpfile to be
-  #              fed to sa-learn via the caller.
-  # Parameters : path - path to a maildir
-  # Throws     : no exceptions
-  # See Also   : learn_mailboxes
-  # Comments   : this is for a single mailbox</pre>
-</dd>
 <dt><strong><a name="maildir_clean_trash" class="item">maildir_clean_trash</a></strong></dt>
 
 <dd>
 <pre>
   ############################################
-  # Usage      : $toaster-&gt;maildir_clean_trash( 
+  # Usage      : $toaster-&gt;maildir_clean_trash(
   #                 path =&gt; '/home/domains/example.com/user',
   #              );
   # Purpose    : expire old messages in Trash folders
@@ -346,23 +326,6 @@ Performs the following tests:</pre>
   # Results    : an INBOX minus read messages older than X days
   # Parameters : path - path to a maildir
   # Throws     : no exceptions</pre>
-</dd>
-<dt><strong><a name="build_ham_list" class="item">build_ham_list</a></strong></dt>
-
-<dd>
-<pre>
-  ############################################
-  # Usage      : $toaster-&gt;build_ham_list(
-  #                 path =&gt; '/home/domains/example.com/user',
-  #              );
-  # Purpose    : find ham messages newer than the last learning run
-  # Returns    : 0 - failure, 1 - success
-  # Results    : matching ham messages are appended to a tmpfile to be
-  #              fed to sa-learn via the caller.
-  # Parameters : path - path to a maildir
-  # Throws     : no exceptions
-  # See Also   : learn_mailboxes
-  # Comments   : this is for a single mailbox</pre>
 </dd>
 <dt><strong><a name="service_dir_create" class="item">service_dir_create</a></strong></dt>
 
@@ -479,9 +442,9 @@ that are a different than mine, like a LWQ install.</p>
 <h1><a name="see_also">SEE ALSO</a></h1>
 <p>The following man (perldoc) pages:</p>
 <pre>
-  Mail::Toaster 
+  Mail::Toaster
   Mail::Toaster::Conf
-  toaster.conf 
+  toaster.conf
   toaster-watcher.conf</pre>
 <pre>
   <a href="http://www.mail-toaster.org/">http://www.mail-toaster.org/</a></pre>
@@ -489,9 +452,7 @@ that are a different than mine, like a LWQ install.</p>
 </p>
 <hr />
 <h1><a name="diagnostics">DIAGNOSTICS</a></h1>
-<pre>
-
-Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the &quot;debug&quot; argument which is passed to each sub/function.</pre>
+<p>Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the &quot;debug&quot; argument which is passed to each sub/function.</p>
 <p>Status messages and verbose logging is enabled by default. toaster-watcher.pl and most of the automated tests (see t/toaster-watcher.t and t/Toaster.t) explicitely turns this off by setting debug=&gt;0.</p>
 <p>
 </p>
@@ -510,11 +471,9 @@ Since the functions in the module are primarily called by toaster-watcher.pl, th
 </p>
 <hr />
 <h1><a name="bugs_and_limitations">BUGS AND LIMITATIONS</a></h1>
-<pre>
-
-There are no known bugs in this module. 
+<p>There are no known bugs in this module.
 Please report problems to author
-Patches are welcome.</pre>
+Patches are welcome.</p>
 <p>
 </p>
 <hr />

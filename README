@@ -42,7 +42,7 @@ DESCRIPTION
   URLs
        http://mail-toaster.org/
        http://www.tnpi.net/internet/mail/toaster/
-   
+
 OPTIONS AND ARGUMENTS
       toaster_setup.pl -s <section> [-debug]
 
