@@ -19,7 +19,7 @@ use Scalar::Util qw( openhandle );
 use URI;
 
 use lib 'lib';
-use vars qw/ $log %std_opts /;
+use vars qw/ $log $toaster %std_opts /;
 
 sub new {
     my $class = shift;
@@ -30,7 +30,7 @@ sub new {
         }
     );
 
-    $log = $p{'log'};
+    $log = $toaster = $p{'log'};
     if ( ! $log ) {
         my @bits = split /::/, $class; pop @bits;
         my $parent_class = join '::', grep { defined $_ } @bits;
@@ -135,14 +135,14 @@ sub archive_file {
     my $self = shift;
     my $file = shift or return $log->error("missing filename in request");
     my %p = validate( @_,
-        {   %std_opts,
-            'sudo'  => { type => BOOLEAN, optional => 1, default => 1 },
+        {   'sudo'  => { type => BOOLEAN, optional => 1, default => 1 },
             'mode'  => { type => SCALAR,  optional => 1 },
             destdir => { type => SCALAR,  optional => 1 },
+            %std_opts,
         }
     );
 
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->error( "file ($file) is missing!", %args )
         if !-e $file;
@@ -202,14 +202,12 @@ sub chmod {
             'dir'         => { type => SCALAR,  optional => 1, },
             'mode'        => { type => SCALAR,  optional => 0, },
             'sudo'        => { type => BOOLEAN, optional => 1, default => 0 },
-            'fatal'       => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug'       => { type => BOOLEAN, optional => 1, default => 1 },
-            'test_ok'     => { type => BOOLEAN, optional => 1 },
+            %std_opts,
         }
     );
 
     my $mode = $p{mode};
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     my $file = $p{file} || $p{file_or_dir} || $p{dir}
         or return $log->error( "invalid params to chmod in ". ref $self  );
@@ -239,8 +237,8 @@ sub chown {
         }
     );
 
+    my %args = $toaster->get_std_args( %p );
     my ( $uid, $gid, $sudo ) = ( $p{uid}, $p{gid}, $p{sudo} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     $file or return $log->error( "missing file or dir", %args );
     return $log->error( "file $file does not exist!", %args ) if ! -e $file;
@@ -294,7 +292,7 @@ sub chown_system {
     );
 
     my ( $user, $group, $recurse ) = ( $p{user}, $p{group}, $p{recurse} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     $dir or return $log->error( "missing file or dir", %args );
     my $cmd = $self->find_bin( 'chown', %args );
@@ -319,21 +317,18 @@ sub chown_system {
 
 sub clean_tmp_dir {
     my $self = shift;
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   'dir'   => { type => SCALAR,  optional => 0, },
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
+            %std_opts
         }
     );
 
     my $dir = $p{dir};
-    my ($debug, $fatal) = ($p{debug}, $p{fatal});
+    my %args = $toaster->get_std_args( %p );
 
     my $before = cwd;   # remember where we started
 
-    return $log->error( "couldn't chdir to $dir: $!", fatal => $fatal )
-        if !chdir $dir;
+    return $log->error( "couldn't chdir to $dir: $!", %args) if !chdir $dir;
 
     foreach ( $self->get_dir_files( dir => $dir ) ) {
         next unless $_;
@@ -344,7 +339,7 @@ sub clean_tmp_dir {
 
         if ( -f $file ) {
             unlink $file or
-                $self->file_delete( file => $file, debug => $debug );
+                $self->file_delete( file => $file, %args );
         }
         elsif ( -d $file ) {
             use File::Path;
@@ -370,7 +365,7 @@ sub cwd_source_dir {
     );
 
     my ( $src, $sudo, ) = ( $p{src}, $p{sudo}, );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->error( "Something (other than a directory) is at $dir and " .
         "that's my build directory. Please remove it and try again!", %args )
@@ -408,8 +403,8 @@ sub extract_archive {
     my $self = shift;
     my $archive = shift or die "missing archive name";
     my %p = validate( @_, { %std_opts } );
+    my %args = $toaster->get_std_args( %p );
 
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
     my $r;
 
     if ( !-e $archive ) {
@@ -465,7 +460,7 @@ sub file_delete {
     );
 
     my $file = $p{file};
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->error( "$file does not exist", %args ) if !-e $file;
 
@@ -500,8 +495,7 @@ sub file_delete {
 
 sub file_is_newer {
     my $self = shift;
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   f1  => { type => SCALAR },
             f2  => { type => SCALAR },
             %std_opts,
@@ -538,13 +532,12 @@ sub file_read {
         @_,
         {   'max_lines'  => { type => SCALAR, optional => 1 },
             'max_length' => { type => SCALAR, optional => 1 },
-            'fatal'      => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug'      => { type => BOOLEAN, optional => 1, default => 1 },
+            %std_opts
         }
     );
 
     my ( $max_lines, $max_length ) = ( $p{max_lines}, $p{max_length} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->error( "$file does not exist!", %args) if !-e $file;
     return $log->error( "$file is not readable", %args ) if !-r $file;
@@ -578,16 +571,14 @@ sub file_read {
 
 sub file_mode {
     my $self = shift;
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   'file'  => { type => SCALAR },
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 0 },
+            %std_opts
         }
     );
 
     my $file = $p{file};
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->error( "file '$file' does not exist!", %args)
         if !-e $file;
@@ -613,14 +604,13 @@ sub file_write {
         {   'lines'  => { type => ARRAYREF },
             'append' => { type => BOOLEAN, optional => 1, default => 0 },
             'mode'  => { type => SCALAR,  optional => 1 },
-            'fatal' => { type => BOOLEAN, optional => 1, default => $self->{fatal} },
-            'debug' => { type => BOOLEAN, optional => 1, default => $self->{debug} },
+            %std_opts
         }
     );
 
     my $append = $p{append};
     my $lines  = $p{lines};
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->error( "oops, $file is a directory", %args) if -d $file;
     return $log->error( "oops, $file is not writable", %args )
@@ -664,13 +654,12 @@ sub files_diff {
         {   f1    => { type => SCALAR },
             f2    => { type => SCALAR },
             type  => { type => SCALAR,  optional => 1, default => 'text' },
-            fatal => { type => BOOLEAN, optional => 1, default => $self->{fatal} },
-            debug => { type => BOOLEAN, optional => 1, default => $self->{debug} },
+            %std_opts,
         }
     );
 
-    my ( $f1, $f2, $type, $debug ) = ( $p{f1}, $p{f2}, $p{type}, $p{debug} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my ( $f1, $f2, $type ) = ( $p{f1}, $p{f2}, $p{type} );
+    my %args = $log->get_std_args(%p);
 
     if ( !-e $f1 || !-e $f2 ) {
         $log->error( "$f1 or $f2 does not exist!", %args );
@@ -739,8 +728,7 @@ sub files_diff_md5 {
 sub find_bin {
     my $self = shift;
     my $bin  = shift or die "missing argument to find_bin\n";
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   'dir'   => { type => SCALAR, optional => 1, },
             %std_opts,
         },
@@ -779,12 +767,7 @@ sub find_bin {
 
 sub fstab_list {
     my $self = shift;
-    my %p = validate(
-        @_,
-        {   'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
-        }
-    );
+    my %p = validate( @_, {   %std_opts, } );
 
     if ( $OSNAME eq "darwin" ) {
         return ['fstab not used on Darwin!'];
@@ -859,16 +842,14 @@ sub get_cpan_config {
 
 sub get_dir_files {
     my $self = shift;
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   'dir'   => { type => SCALAR,  optional => 0, },
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
+            %std_opts,
         }
     );
 
-    my ( $dir, $fatal, $debug ) = ( $p{dir}, $p{fatal}, $p{debug} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my $dir = $p{dir};
+    my %args = $toaster->get_std_args( %p );
 
     my @files;
 
@@ -910,8 +891,7 @@ sub get_my_ips {
                 { type => BOOLEAN, optional => 1, default => 1 },
             'exclude_ipv6' =>
                 { type => BOOLEAN, optional => 1, default => 1 },
-            'fatal' => { type => BOOLEAN, optional => 1, default => 1 },
-            'debug' => { type => BOOLEAN, optional => 1, default => 1 },
+            %std_opts,
         }
     );
 
@@ -949,13 +929,12 @@ sub get_the_date {
     my %p = validate(
         @_,
         {   'bump'  => { type => SCALAR,  optional => 1, },
-            'fatal' => { type => BOOLEAN, optional => 1, default => $self->{fatal} },
-            'debug' => { type => BOOLEAN, optional => 1, default => $self->{debug} },
+            %std_opts
         }
     );
 
     my $bump  = $p{bump} || 0;
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     my $time = time;
     my $mess = "get_the_date time: " . time;
@@ -1035,7 +1014,7 @@ sub get_url {
     );
 
     my $dir = $p{dir};
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $log->get_std_args( %p );
 
     my ($ua, $response);
     ## no critic ( ProhibitStringyEval )
@@ -1084,7 +1063,7 @@ sub get_url_system {
 
     my $dir      = $p{dir};
     my $debug    = $p{debug};
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $log->get_std_args( %p );
 
     my ($fetchbin, $found);
     if ( $OSNAME eq "freebsd" ) {
@@ -1156,15 +1135,14 @@ sub install_if_changed {
             email   => { type => SCALAR, optional => 1, default => 'postmaster' },
             clean   => { type => BOOLEAN, optional => 1, default => 1 },
             archive => { type => BOOLEAN, optional => 1, default => 0 },
-            fatal   => { type => BOOLEAN, optional => 1, default => $self->{fatal} },
-            debug   => { type => BOOLEAN, optional => 1, default => $self->{debug} },
+            %std_opts,
         },
     );
 
     my ( $newfile, $existing, $mode, $uid, $gid, $email) = (
         $p{newfile}, $p{existing}, $p{mode}, $p{uid}, $p{gid}, $p{email} );
-    my ($debug, $sudo, $notify ) = ($p{debug}, $p{sudo}, $p{notify} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my ($sudo, $notify ) = ($p{sudo}, $p{notify} );
+    my %args = $toaster->get_std_args( %p );
 
     if ( $newfile !~ /\// ) {
         # relative filename given
@@ -1327,11 +1305,11 @@ sub install_from_source {
     );
 
     return $p{test_ok} if defined $p{test_ok};
+    my %args = $toaster->get_std_args( %p );
 
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
-    my ( $site, $url, $package, $targets, $patches, $debug, $bintest ) =
+    my ( $site, $url, $package, $targets, $patches, $bintest ) =
         ( $p{site},    $p{url}, $p{package},
-          $p{targets}, $p{patches}, $p{debug}, $p{bintest} );
+          $p{targets}, $p{patches}, $p{bintest} );
 
     my $patch_args = $p{patch_args} || '';
     my $src = $p{source_dir} || "/usr/local/src";
@@ -1385,7 +1363,7 @@ sub install_from_source {
 
     my $msg = "install_from_source: using targets\n";
     foreach (@$targets) { $msg .= "\t$_\n" };
-    $log->audit( $msg ) if $debug;
+    $log->audit( $msg ) if $p{debug};
 
     # build the program
     foreach my $target (@$targets) {
@@ -1396,13 +1374,13 @@ sub install_from_source {
             next;
         }
 
-        $self->syscmd( $target, debug => $debug ) or
+        $self->syscmd( $target, %args ) or
             return $log->error( "pwd: " . cwd .  "\n$target failed: $!", %args );
     }
 
     # clean up the build sources
     chdir $src;
-    $self->syscmd( "rm -rf $package", debug => $debug ) if -d $package;
+    $self->syscmd( "rm -rf $package", %args ) if -d $package;
 
     $self->syscmd( "rm -rf $package/$sub_path", %args )
         if defined $sub_path && -d "$package/$sub_path";
@@ -1616,7 +1594,7 @@ sub install_module_from_src {
 
     my ( $module, $site, $url, $src, $targets )
         = ( $p{module}, $p{site}, $p{url}, $p{src}, $p{targets} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     $self->cwd_source_dir( $src, %args );
 
@@ -1758,7 +1736,7 @@ sub is_writable {
     my $file = shift or die "missing file or dir name\n";
 
     my %p = validate( @_, { %std_opts } );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     my $nl = "\n";
     $nl = "<br>" if ( $ENV{GATEWAY_INTERFACE} );
@@ -1791,7 +1769,7 @@ sub logfile_append {
     );
 
     my ( $file, $lines ) = ( $p{file}, $p{lines} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     my ( $dd, $mm, $yy, $lm, $hh, $mn, $ss ) = $self->get_the_date( %args );
 
@@ -1827,7 +1805,7 @@ sub mkdir_system {
     );
 
     my ( $dir, $mode ) = ( $p{dir}, $p{mode} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->audit( "mkdir_system: $dir already exists.") if -d $dir;
 
@@ -1893,8 +1871,7 @@ sub check_pidfile {
     my $self = shift;
     my $file = shift;
     my %p = validate( @_, { %std_opts } );
-
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->error( "missing filename", %args) if ! $file;
     return $log->error( "$file is not a regular file", %args)
@@ -1945,7 +1922,7 @@ sub regexp_test {
         {   'exp'    => { type => SCALAR },
             'string' => { type => SCALAR },
             'pbp'    => { type => BOOLEAN, optional => 1, default => 0 },
-            'debug'  => { type => BOOLEAN, optional => 1, default => $self->{debug} },
+            %std_opts,
         },
     );
 
@@ -1984,7 +1961,7 @@ sub sources_get {
     );
 
     my ( $package, $site, $path ) = ( $p{package}, $p{site}, $p{path} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     $log->audit( "sources_get: fetching $package from site $site\n\t path: $path");
 
@@ -2048,7 +2025,7 @@ sub source_warning {
     );
 
     my ( $package, $src ) = ( $p{package}, $p{src} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $log->audit( "$package sources not present.", %args ) if !-d $package;
 
@@ -2236,8 +2213,8 @@ sub yes_or_no {
     my %p = validate(
         @_,
         {   'timeout'  => { type => SCALAR,  optional => 1 },
-            'debug'    => { type => BOOLEAN, optional => 1, default => 1 },
             'force'    => { type => BOOLEAN, optional => 1, default => 0 },
+            %std_opts
         },
     );
 
