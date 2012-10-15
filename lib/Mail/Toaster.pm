@@ -6,6 +6,7 @@ use warnings;
 our $VERSION = '5.33';
 
 use Cwd;
+#use Data::Dumper;
 use English qw/ -no_match_vars /;
 use File::Basename;
 use File::Find;
@@ -34,6 +35,7 @@ sub new {
         util   => undef,
         debug  => $p{debug},
         fatal  => $p{fatal},
+        quiet  => undef,
     };
     bless( $self, $class );
 
@@ -44,6 +46,7 @@ sub new {
         test_ok => { type => BOOLEAN, optional => 1 },
         debug   => { type => BOOLEAN, optional => 1, default => $self->{debug} },
         fatal   => { type => BOOLEAN, optional => 1, default => $self->{fatal} },
+        quiet   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     my @caller = caller;
@@ -56,7 +59,7 @@ sub audit {
     my $self = shift;
     my $mess = shift;
 
-    my %p = validate( @_, { %std_opts, }, );
+    my %p = validate( @_, { %std_opts } );
 
     if ($mess) {
         push @{ $self->{audit} }, $mess;
@@ -69,8 +72,7 @@ sub audit {
 sub error {
     my $self = shift;
     my $message = shift;
-    my %p = validate(
-        @_,
+    my %p = validate( @_,
         {   location => { type => SCALAR,  optional => 1, },
             %std_opts,
         },
@@ -105,9 +107,7 @@ sub error {
 
 sub dump_audit {
     my $self = shift;
-    my %p = validate( @_, {
-        quiet => { type => SCALAR, optional=> 1, default => 0 },
-    } );
+    my %p = validate( @_, { %std_opts } );
 
     my $audit = $self->{audit};
     return if $self->{last_audit} == scalar @$audit; # nothing new
@@ -167,15 +167,15 @@ sub test {
     my $mess = shift or return;
     my $result = shift;
 
-    my %p = validate(@_, { %std_opts,
-            quiet => { type => SCALAR|UNDEF, optional => 1 },
-        } );
+    my %p = validate(@_, { %std_opts } );
+    my $quiet = $p{quiet};
     return if ( defined $p{test_ok} && ! $p{debug} );
-    return if ( $p{quiet} && ! $p{debug} );
+    return if ( $quiet && ! $p{debug} );
 
-    print $mess;
-    defined $result or do { print "\n"; return; };
-    for ( my $i = length($mess); $i <=  65; $i++ ) { print '.'; };
+    print $mess if ! $quiet;
+    defined $result or do { print "\n" if ! $quiet; return; };
+    for ( my $i = length($mess); $i <=  65; $i++ ) { print '.' if ! $quiet; };
+    return if $quiet;
     print $result ? 'ok' : 'FAILED', "\n";
 };
 
@@ -267,13 +267,10 @@ sub parse_config {
         },
     );
 
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
-    my $file  = $p{file};
-    my $etc   = $p{etcdir};
+    my %args = $self->get_std_args( %p );
+    my $file = $p{file};
 
-    if ( ! -f $file ) {
-        $file = $self->find_config( file => $file, etcdir => $etc, %args );
-    };
+    if ( ! -f $file ) { $file = $self->find_config( %p ); };
 
     if ( ! $file || ! -r $file ) {
         return $self->error( "could not find config file!", %args);
@@ -335,23 +332,20 @@ sub parse_line {
 
 sub check {
     my $self = shift;
-    my %p = validate( @_, { %std_opts,
-        quiet => { type => SCALAR, optional => 1, default=>0 },
-    } );
+    my %p = validate( @_, { %std_opts } );
     my %args = $self->get_std_args( %p );
-    my %targs = ( %args, quiet => $p{quiet} );
 
     $conf ||= $self->get_config();
 
     $self->check_permissions( %args );
-    $self->check_processes( %targs );
+    $self->check_processes( %args );
     $self->check_watcher_log_size( %args );
 
     # check that we can't SMTP AUTH with random user names and passwords
 
     # make sure the supervised processes are configured correctly.
     foreach my $svc ( qw/ smtp send pop3 submit vpopmaild qmail-deliverable / ) {
-        $self->supervised_dir_test( prot=>$svc, %targs );
+        $self->supervised_dir_test( prot => $svc, %args );
     };
 
     return 1;
@@ -359,7 +353,7 @@ sub check {
 
 sub check_permissions {
     my $self = shift;
-    my %p = validate( @_, { %std_opts, },);
+    my %p = validate( @_, { %std_opts } );
 
     $conf ||= $self->get_config();
 
@@ -391,11 +385,8 @@ sub check_permissions {
 
 sub check_processes {
     my $self = shift;
-    my %p = validate( @_, { %std_opts,
-        quiet => { type => SCALAR, optional => 1 },
-    } );
+    my %p = validate( @_, { %std_opts } );
     my %args = $self->get_std_args( %p );
-    my %targs = ( %args, quiet => $p{quiet} );
 
     $conf ||= $self->get_config();
 
@@ -425,7 +416,7 @@ sub check_processes {
         && $conf->{'smtpd_log_postprocessor'} eq "maillogs" );
 
     foreach (@processes) {
-        $self->test( "  $_", $util->is_process_running($_), %targs );
+        $self->test( "  $_", $util->is_process_running($_), %args );
     }
 
     return 1;
@@ -485,9 +476,7 @@ sub check_watcher_log_size {
 sub learn_mailboxes {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-
-    my ( $fatal, $debug ) = ( $p{fatal}, $p{debug} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $self->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -536,9 +525,8 @@ sub learn_mailboxes {
 
 sub learn_mailboxes_setup {
     my $self = shift;
-    my %p = validate( @_, { %std_opts } );
-    my ( $fatal, $debug ) = ( $p{fatal}, $p{debug} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %p    = validate( @_, { %std_opts } );
+    #my %args = $self->get_std_args( %p );
 
     my $log_base = $conf->{'qmail_log_base'} || '/var/log/mail';
     my $learn_log = "$log_base/learn.log";
@@ -600,8 +588,7 @@ sub train_dspam {
 sub clean_mailboxes {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $self->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -762,15 +749,9 @@ sub maildir_clean_ham {
 
 sub email_send {
     my $self = shift;
-    my %p = validate( @_, {
-            'type'    => { type=>SCALAR,  },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
+    my %p = validate( @_, { 'type' => { type=>SCALAR }, %std_opts } );
 
-    my ( $type, $fatal, $debug )
-        = ( $p{'type'}, $p{'fatal'}, $p{'debug'} );
+    my $type = $p{'type'};
 
     my $email = $conf->{'toaster_admin_email'} || "root";
 
@@ -1086,7 +1067,7 @@ sub get_std_args {
     my $self = shift;
     my %p = @_;
     my %args;
-    foreach ( qw/ debug fatal test_ok / ) {
+    foreach ( qw/ debug fatal test_ok quiet / ) {
         next if ! defined $p{$_};
         $args{$_} = $p{$_};
     };
@@ -1120,17 +1101,8 @@ sub get_toaster_htdocs {
 }
 
 sub get_toaster_cgibin {
-
     my $self = shift;
-
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
-
-    my ( $fatal, $debug, $test_ok )
-        = ( $p{'fatal'}, $p{'debug'}, $p{'test_ok'} );
+    my %p = validate( @_, { %std_opts } );
 
     # if it is set, then use it.
     if ( defined $conf && defined $conf->{'toaster_cgi_bin'} ) {
@@ -1179,7 +1151,6 @@ sub get_toaster_logs {
 }
 
 sub get_toaster_conf {
-
     my $self = shift;
 
     # if it is set, then use it.
@@ -1272,30 +1243,17 @@ sub service_dir_get {
     my $svcdir = $conf->{'qmail_service'} || '/var/service';
        $svcdir = "/service" if ( !-d $svcdir && -d '/service' ); # legacy
 
-    my $dir = $conf->{ "qmail_service_" . $prot } || "$svcdir/$prot";
+    my $dir = "$svcdir/$prot";
 
     $log->audit("service dir for $prot is $dir");
-
-    # expand qmail_service aliases
-    if ( $dir =~ /^qmail_service\/(.*)$/ ) {
-        $dir = "$svcdir/$1";
-        $log->audit( "\t $prot dir expanded to: $dir, ok" );
-    }
 
     return $dir;
 }
 
 sub service_symlinks {
     my $self = shift;
-
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
-
-    my $debug = $p{'debug'};
-    my $fatal = $p{'fatal'};
+    my %p = validate( @_, { %std_opts } );
+    my %args = $self->get_std_args( %p );
 
     my @active_services = 'send';
 
@@ -1367,8 +1325,6 @@ sub service_dir_create {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
 
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
-
     return $p{test_ok} if defined $p{test_ok};
 
     my $service = $conf->{'qmail_service'} || "/var/service";
@@ -1390,11 +1346,6 @@ sub service_dir_create {
 
 sub service_dir_test {
     my $self = shift;
-
-    my %p = validate( @_, {
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-        },
-    );
 
     my $service = $conf->{'qmail_service'} || "/var/service";
 
@@ -1423,7 +1374,7 @@ sub sqwebmail_clean_cache {
 
 sub supervise_dir_get {
     my $self = shift;
-    my %p = validate( @_, { prot => { type=>SCALAR,  }, },);
+    my %p = validate( @_, { prot => { type=>SCALAR } } );
 
     my $prot = $p{prot};
 
@@ -1492,14 +1443,12 @@ sub supervised_dir_test {
     my %p = validate( @_, {
             'prot'    => { type=>SCALAR, },
             'dir'     => { type=>SCALAR, optional=>1, },
-            'quiet'   => { type=>SCALAR, optional=>1, },
             %std_opts,
         },
     );
 
     my ($prot, $dir ) = ( $p{'prot'}, $p{'dir'} );
     my %args = $self->get_std_args( %p );
-    my %targs = ( %args, quiet => $p{quiet} );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -1509,16 +1458,16 @@ sub supervised_dir_test {
 
     return $log->error("directory $dir does not exist", %args )
         unless ( -d $dir || -l $dir );
-    $log->test( "exists, $dir", -d $dir, %targs );
+    $log->test( "exists, $dir", -d $dir, %args );
 
     return $log->error("$dir/run does not exist!", %args ) if ! -f "$dir/run";
-    $log->test( "exists, $dir/run", -f "$dir/run", %targs);
+    $log->test( "exists, $dir/run", -f "$dir/run", %args);
 
     return $log->error("$dir/run is not executable", %args ) if ! -x "$dir/run";
-    $log->test( "perms,  $dir/run", -x "$dir/run", %targs );
+    $log->test( "perms,  $dir/run", -x "$dir/run", %args );
 
     return $log->error("$dir/down is present", %args ) if -f "$dir/down";
-    $log->test( "!exist, $dir/down", !-f "$dir/down", %targs );
+    $log->test( "!exist, $dir/down", !-f "$dir/down", %args );
 
     my $log_method = $conf->{ $prot . '_log_method' }
       || $conf->{ $prot . 'd_log_method' }
@@ -1528,19 +1477,19 @@ sub supervised_dir_test {
 
     # make sure the log directory exists
     return $log->error( "$dir/log does not exist", %args ) if ! -d "$dir/log";
-    $log->test( "exists, $dir/log", -d "$dir/log", %targs );
+    $log->test( "exists, $dir/log", -d "$dir/log", %args );
 
     # make sure the supervise/log/run file exists
     return $log->error( "$dir/log/run does not exist", %args ) if ! -f "$dir/log/run";
-    $log->test( "exists, $dir/log/run", -f "$dir/log/run", %targs );
+    $log->test( "exists, $dir/log/run", -f "$dir/log/run", %args );
 
     # check the log/run file permissions
     return $log->error( "perms, $dir/log/run", %args) if ! -x "$dir/log/run";
-    $log->test( "perms,  $dir/log/run", -x "$dir/log/run", %targs );
+    $log->test( "perms,  $dir/log/run", -x "$dir/log/run", %args );
 
     # make sure the supervise/down file does not exist
     return $log->error( "$dir/log/down exists", %args) if -f "$dir/log/down";
-    $log->test( "!exist, $dir/log/down", "$dir/log/down", %targs );
+    $log->test( "!exist, $dir/log/down", "$dir/log/down", %args );
     return 1;
 }
 
@@ -1604,13 +1553,13 @@ sub supervised_hostname {
 sub supervised_multilog {
     my $self = shift;
     my %p = validate( @_, { 'prot' => SCALAR, %std_opts, },);
-
-    my ( $prot, $fatal ) = ( $p{'prot'}, $p{'fatal'} );
+    my %args = $self->get_std_args( %p );
+    my $prot = $p{prot};
 
     my $setuidgid = $util->find_bin( 'setuidgid', fatal=>0 );
     my $multilog  = $util->find_bin( 'multilog', fatal=>0);
 
-    return $log->error( "supervised_multilog: missing daemontools components!",fatal=>$fatal)
+    return $log->error( "supervised_multilog: missing daemontools components!", %args)
         unless ( -x $setuidgid && -x $multilog );
 
     my $loguser  = $conf->{'qmail_log_user'} || "qmaill";

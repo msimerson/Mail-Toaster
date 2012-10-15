@@ -3,7 +3,7 @@ package Mail::Toaster::Mysql;
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.33';
 
 use Carp;
 use Params::Validate qw( :all );
@@ -14,7 +14,7 @@ use lib 'lib';
 
 use vars qw($darwin $freebsd $toaster $log $util);
 
-use Mail::Toaster 5.25;
+use Mail::Toaster 5.33;
 
 sub new {
     my $class = shift;
@@ -52,7 +52,6 @@ sub autocommit {
 }
 
 sub backup {
-
     my ( $self, $dot ) = @_;
 
     unless ( ref $dot eq 'HASH' ) {
@@ -117,7 +116,6 @@ EOBINLOG
 }
 
 sub connect {
-
     my ( $self, $dot, $warn, $debug ) = @_;
     my $dbh;
 
@@ -126,7 +124,7 @@ sub connect {
 
     my $ac  = $self->autocommit($dot);
     my $dbv = $self->db_vars($dot);
-    my $dsn = "DBI:$dbv->{'driver'}:database=$dbv->{'db'};" 
+    my $dsn = "DBI:$dbv->{'driver'}:database=$dbv->{'db'};"
         . "host=$dbv->{'host'};port=$dbv->{'port'}";
 
     $dbh = DBI->connect( $dsn, $dbv->{'user'}, $dbv->{'pass'},
@@ -144,7 +142,6 @@ sub connect {
 }
 
 sub db_vars {
-
     my ( $self, $val ) = @_;
     my ( $driver, $db, $host, $port, $user, $pass, $dir );
 
@@ -168,7 +165,6 @@ sub db_vars {
 }
 
 sub dbs_list {
-
     my ( $self, $dbh ) = @_;
 
     if ( my $sth = $self->query( $dbh, "SHOW DATABASES" ) ) {
@@ -187,7 +183,6 @@ sub dbs_list {
 }
 
 sub defaults {
-
     my $self = shift;
 
     if ( -e "/etc/my.cnf" ) {
@@ -214,7 +209,6 @@ sub defaults {
 }
 
 sub flush_logs {
-
     my ( $self, $dbh, $debug ) = @_;
 
     my $query = "FLUSH LOGS";
@@ -225,7 +219,6 @@ sub flush_logs {
 }
 
 sub get_hashes {
-
     my ( $self, $dbh, $sql ) = @_;
     my @records;
 
@@ -261,7 +254,7 @@ sub install {
     };
 
     if ( lc($OSNAME) eq "freebsd" ) {
-        return $self->install_freebsd( $conf, $debug ) 
+        return $self->install_freebsd( $conf, $debug )
     };
 
     print "\nskipping MySQL, build support on $OSNAME is not available."
@@ -270,7 +263,6 @@ sub install {
 };
 
 sub install_darwin {
-
     my $self = shift;
     my $debug = shift;
 
@@ -287,23 +279,22 @@ sub install_darwin {
 }
 
 sub install_extras {
-
     my $self = shift;
     my ($conf, $debug) = @_;
 
     if ( $conf->{install_mysqld} ) {
 
-        $freebsd->conf_check( 
+        $freebsd->conf_check(
                 check=>"mysql_enable",
-                line=>"mysql_enable=\"YES\"", 
-                debug=>$debug, 
+                line=>"mysql_enable=\"YES\"",
+                debug=>$debug,
                 );
 
         $self->defaults();
-        $self->startup( conf=>$conf, debug=>$debug ) 
+        $self->startup( conf=>$conf, debug=>$debug )
     };
 
-    $freebsd->install_port( "p5-DBI" ); 
+    $freebsd->install_port( "p5-DBI" );
     $freebsd->install_port( "p5-DBD-mysql" );
 
     return 1;
@@ -433,7 +424,6 @@ sub parse_dot_file {
 }
 
 sub phpmyadmin_install {
-
     my ( $self, $conf ) = @_;
 
     if ( ! $conf->{'install_phpmyadmin'} ) {
@@ -643,7 +633,7 @@ sub shutdown_mysqld {
 sub startup {
 
     my $self = shift;
-    my %p = validate(@_, { 
+    my %p = validate(@_, {
             'conf'=> {type=>HASHREF, optional=>1},
             'debug'=> {type=>BOOLEAN, optional=>1, default=>1},
         }
@@ -765,7 +755,7 @@ I find myself using MySQL for a lot of things. Geographically distributed dns sy
   uron.net user_*.pl
   polls.pl
   nt_export_djb_update.pl
-  toaster_setup.pl 
+  toaster_setup.pl
 
 
 =head1 SUBROUTINES
@@ -801,14 +791,14 @@ You will need to have cronolog, gzip, and mysqldump installed in a "normal" loca
 
 $dot is a hashref of key/value pairs in the same format you'd find in ~/.my.cnf. Not coincidentally, that's where it expects you'll be getting them from.
 
-$warn allows you to determine whether to die or warn on failure or error. To warn, set $warn to a non-zero value. 
+$warn allows you to determine whether to die or warn on failure or error. To warn, set $warn to a non-zero value.
 
 $debug will print out helpful debugging messages should you be having problems.
 
 
 =item db_vars
 
-This sub is called internally by $mysql->connect and is used principally to set some reasonable defaults should you not pass along enough connection parameters in $dot. 
+This sub is called internally by $mysql->connect and is used principally to set some reasonable defaults should you not pass along enough connection parameters in $dot.
 
 
 =item flush_logs
@@ -848,7 +838,7 @@ As you can see, is_newer can be very useful, especially when you need to execute
 
  $mysql->parse_dot_file ($file, $start, $debug)
 
-Example: 
+Example:
 
  my $dot = $mysql->parse_dot_file(".my.cnf", "[mysql_replicate_manager]", 0);
 
@@ -956,9 +946,9 @@ None known. Report any to author.
 
 =head1 SEE ALSO
 
-The following are all man/perldoc pages: 
+The following are all man/perldoc pages:
 
- Mail::Toaster 
+ Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
  toaster-watcher.conf
@@ -969,7 +959,7 @@ The following are all man/perldoc pages:
 =head1 COPYRIGHT
 
 
-Copyright (c) 2003-2008, The Network People, Inc. All Rights Reserved.
+Copyright (c) 2003-2012, The Network People, Inc. All Rights Reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

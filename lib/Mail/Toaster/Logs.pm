@@ -3,7 +3,7 @@ package Mail::Toaster::Logs;
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.33';
 
 # the output of warnings and diagnostics should not be enabled in production.
 # the SNMP daemon depends on the output of maillogs, so we need to return
@@ -19,18 +19,18 @@ use Pod::Usage;
 use vars qw( $spam_ref $count_ref );
 
 use lib 'lib';
-use Mail::Toaster 5.25; 
+use Mail::Toaster 5.33;
 my ( $log, $util, $conf, %std_opts );
 
 sub new {
     my $class = shift;
-    my %p = validate(@_, { 
-            'conf'  => HASHREF, 
+    my %p = validate(@_, {
+            'conf'  => HASHREF,
             'log'   => OBJECT,
             test_ok => { type => BOOLEAN, optional => 1 },
             fatal   => { type => BOOLEAN, optional => 1, default => 1 },
             debug   => { type => BOOLEAN, optional => 1, default => 1 },
-        }, 
+        },
     );
 
     $conf = $p{conf};
@@ -39,8 +39,8 @@ sub new {
     my $debug = $log->get_debug;
     $debug = $conf->{'logs_debug'} if defined $conf->{'logs_debug'};
 
-    my $self = { 
-        conf  => $conf, 
+    my $self = {
+        conf  => $conf,
         debug => $debug,
         util  => $util,
     };
@@ -50,6 +50,7 @@ sub new {
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $p{fatal} },
         'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     return $self;
@@ -107,15 +108,15 @@ To: $email
 From: postmaster
 Subject: Daily Mail Toaster Report for $date
 
- ==================================================================== 
-               OVERALL MESSAGE DELIVERY STATISTICS                  
+ ====================================================================
+               OVERALL MESSAGE DELIVERY STATISTICS                 
  ____________________________________________________________________
 \n$cmds{'overall'}{out}\n\n
- ==================================================================== 
-                        MESSAGE FAILURE REPORT                         
+ ====================================================================
+                        MESSAGE FAILURE REPORT                       
  ____________________________________________________________________
 $cmds{'failure'}{out}\n\n
- ==================================================================== 
+ ====================================================================
                       MESSAGE DEFERRAL REPORT                       
  ____________________________________________________________________
 $cmds{'deferral'}{out}
@@ -127,18 +128,17 @@ EO_EMAIL
 }
 
 sub find_qmailanalog {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
     my $qmailanalog_dir = $conf->{'qmailanalog_bin'} || "/var/qmail/qmailanalog/bin";
 
-    # the port location changed, if toaster.conf hasn't been updated, this 
+    # the port location changed, if toaster.conf hasn't been updated, this
     # will catch it.
     if ( ! -d $qmailanalog_dir ) {
         carp <<"EO_QMADIR_MISSING";
   ERROR: the location of qmailanalog programs is missing! Make sure you have
-  qmailanalog installed and the path to the binaries is set correctly in 
+  qmailanalog installed and the path to the binaries is set correctly in
   toaster.conf. The current setting is $qmailanalog_dir
 EO_QMADIR_MISSING
 
@@ -148,7 +148,7 @@ EO_QMADIR_MISSING
 
             carp <<"EO_QMADIR_FOUND";
 
-  YAY!  I found your qmailanalog programs in /usr/local/qmailanalog/bin. You 
+  YAY!  I found your qmailanalog programs in /usr/local/qmailanalog/bin. You
   should update toaster.conf so you stop getting this error message.
 EO_QMADIR_FOUND
         };
@@ -158,8 +158,8 @@ EO_QMADIR_FOUND
     unless ( -x "$qmailanalog_dir/matchup" ) {
         carp <<"EO_NO_MATCHUP";
 
-   report_yesterdays_activity: ERROR! The 'maillogs yesterday' feature only 
-   works if qmailanalog is installed. I am unable to find the binaries for 
+   report_yesterdays_activity: ERROR! The 'maillogs yesterday' feature only
+   works if qmailanalog is installed. I am unable to find the binaries for
    it. Please make sure it is installed and the qmailanalog_bin setting in
    toaster.conf is configured correctly.
 EO_NO_MATCHUP
@@ -171,7 +171,6 @@ EO_NO_MATCHUP
 };
 
 sub get_yesterdays_send_log {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -210,23 +209,22 @@ sub get_yesterdays_send_log_syslog {
         my $file = "/var/log/maillog.0";
 
         return -e "$file.bz2" ? "$file.bz2"
-            : -e "$file.gz" ? "$file.gz" 
+            : -e "$file.gz" ? "$file.gz"
             : croak "could not find yesterdays qmail-send logs! ";
-    } 
+    }
 
     if ( $OSNAME eq "darwin" ) {
         return "/var/log/mail.log"; # logs are rotated weekly.
     }
-    
+
     my $file = "/var/log/mail.log.0";
 
     return -e "$file.gz" ? "$file.gz"
-         : -e "$file.bz2" ? "$file.bz2" 
+         : -e "$file.bz2" ? "$file.bz2"
          : croak "could not find your mail logs from yesterday!\n";
 };
 
 sub get_yesterdays_smtp_log {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -327,7 +325,6 @@ sub parse_cmdline_flags {
 }
 
 sub what_am_i {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -338,7 +335,6 @@ sub what_am_i {
 }
 
 sub rbl_count {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -346,7 +342,7 @@ sub rbl_count {
     $spam_ref     = $self->counter_read( file=>$countfile );
     my $logbase   = $conf->{'logs_base'} || "/var/log/mail";
 
-    $self->process_rbl_logs( 
+    $self->process_rbl_logs(
         files => $self->check_log_files( "$logbase/smtp/current" ),
     );
 
@@ -438,7 +434,6 @@ sub smtp_auth_count {
 }
 
 sub send_count {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -578,7 +573,6 @@ sub imap_count {
 }
 
 sub pop3_count {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -731,7 +725,6 @@ sub pop3_report {
 };
 
 sub webmail_count {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -818,7 +811,6 @@ sub webmail_count {
 }
 
 sub spama_count {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -939,7 +931,6 @@ sub spama_count {
 }
 
 sub qms_count {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -998,7 +989,6 @@ sub qms_count {
 }
 
 sub roll_send_logs {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -1008,7 +998,7 @@ sub roll_send_logs {
     my $countfile = $self->set_countfile(prot=>"send");
        $count_ref = $self->counter_read( file=>$countfile );
 
-    $self->process_send_logs( 
+    $self->process_send_logs(
         roll  => 1,
         files => $self->check_log_files( "$logbase/send/current" ),
     );
@@ -1017,7 +1007,6 @@ sub roll_send_logs {
 }
 
 sub roll_rbl_logs {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -1031,7 +1020,7 @@ sub roll_rbl_logs {
 
     $spam_ref = $self->counter_read( file=>$countfile );
 
-    $self->process_rbl_logs( 
+    $self->process_rbl_logs(
         roll  => 1,
         files => $self->check_log_files( "$logbase/smtp/current" ),
     );
@@ -1040,7 +1029,6 @@ sub roll_rbl_logs {
 }
 
 sub roll_pop3_logs {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -1049,8 +1037,8 @@ sub roll_pop3_logs {
 
     my $logbase = $conf->{'logs_base'} || "/var/log/mail";
 
-    $self->process_pop3_logs( 
-        roll  => 1, 
+    $self->process_pop3_logs(
+        roll  => 1,
         files => $self->check_log_files( "$logbase/pop3/current" ),
     );
 
@@ -1068,14 +1056,14 @@ sub compress_yesterdays_logs {
 
     my $logbase = $conf->{'logs_base'} || "/var/log/mail";
     $file    = "$logbase/$yy/$mm/$dd/$file";
-    
+
     return $log->audit( "  $file is already compressed") if -e "$file.gz";
     return $log->audit( "  $file does not exist.") if ! -e $file;
     return $log->error( "insufficient permissions to compress $file",fatal=>0)
         if ! $util->is_writable( "$file.gz",fatal=>0 );
 
     my $gzip = $util->find_bin('gzip',fatal=>0) or return;
-    $util->syscmd( "$gzip $file", fatal=>0 ) 
+    $util->syscmd( "$gzip $file", fatal=>0 )
         or return $log->error( "compressing the logfile $file: $!", fatal=>0);
 
     $log->audit("compressed $file");
@@ -1106,7 +1094,7 @@ sub purge_last_months_logs {
         print "purge_last_months_logs: log dir $last_m_log doesn't exist. I'm done.\n" if $debug;
         return 1;
     };
-    
+
     print "\nI'm about to delete $last_m_log...." if $debug;
     if ( rmtree($last_m_log) ) {
         print "done.\n\n" if $debug;
@@ -1130,8 +1118,7 @@ sub check_log_files_2 {
   # this will be for logcheck based counters - someday
     my $self  = shift;
     my @exists;
-    foreach my $file ( @_ ) {
-    };
+    foreach my $file ( @_ ) { };
     return \@exists;
 };
 
@@ -1201,7 +1188,7 @@ sub process_rbl_logs {
     my $files_ref = $p{'files'};
 
     my $skip_archive = 0;
-       $skip_archive++ if ! $files_ref || !$files_ref->[0];  # no log file(s)! 
+       $skip_archive++ if ! $files_ref || !$files_ref->[0];  # no log file(s)!
 
     if ( $p{'roll'} ) {
         my $PIPE_TO_CRONOLOG;
@@ -1238,7 +1225,6 @@ sub process_rbl_logs {
 }
 
 sub count_rbl_line {
-
     my $self = shift;
     my $line = shift or return;
 
@@ -1259,7 +1245,7 @@ sub count_rbl_line {
         elsif ( $line =~ /monkeys/      ) { $spam_ref->{'monkeys'}++  }
         elsif ( $line =~ /visi/         ) { $spam_ref->{'visi'}++     }
         else {
-            #print $line; 
+            #print $line;
             $spam_ref->{'other'}++;
         }
     }
@@ -1275,8 +1261,8 @@ sub count_rbl_line {
            if ( $line =~ /clean/i    ) { $spam_ref->{'ham'}++          }
         elsif ( $line =~ /virus:/i   ) { $spam_ref->{'virus'}++        }
         elsif ( $line =~ /spam rej/i ) { $spam_ref->{'spamassassin'}++ }
-        else {  
-            #print $line;    
+        else {
+            #print $line;
             $spam_ref->{'other'}++;
         };
     }
@@ -1285,7 +1271,7 @@ sub count_rbl_line {
         elsif ( $line =~ /badmailfrom:/ ) { $spam_ref->{'badmailfrom'}++ }
         elsif ( $line =~ /badmailto:/   ) { $spam_ref->{'badmailto'}++   }
         elsif ( $line =~ /Reverse/      ) { $spam_ref->{'dns'}++         }
-        else { 
+        else {
             #print $line;
             $spam_ref->{'other'}++;
         };
@@ -1296,7 +1282,6 @@ sub count_rbl_line {
 }
 
 sub process_send_logs {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
 
@@ -1333,9 +1318,9 @@ sub process_send_logs {
     print "process_send_logs: log rolling is disabled.\n" if $debug;
 
     foreach my $file ( @$files_ref ) {
-        
+
         print "process_send_logs: reading file $file.\n" if $debug;
- 
+
         my $INFILE;
         open( $INFILE, "<", $file ) or do {
             carp "process_send_logs couldn't read $file: $!";
@@ -1354,11 +1339,10 @@ sub process_send_logs {
 }
 
 sub count_send_line {
-
     my $self = shift;
     my $line = shift or do {
         $count_ref->{'message_other'}++;
-        return; 
+        return;
     };
 
 ########## $line will have a log entry in this format ########
@@ -1379,13 +1363,13 @@ sub count_send_line {
 
     unless ($activity) {
         $count_ref->{'message_other'}++;
-        return; 
+        return;
     };
 
     if    ( $activity =~ /^new msg/ ) {
         # new msg 71512
-        # the complete line match: /^new msg ([0-9]*)/ 
-        $count_ref->{'message_new'}++; 
+        # the complete line match: /^new msg ([0-9]*)/
+        $count_ref->{'message_new'}++;
     }
     elsif ( $activity =~ /^info msg / ) {
         # info msg 71766: bytes 28420 from <elfer@club-internet.fr> qp 5419 uid 89
@@ -1398,14 +1382,14 @@ sub count_send_line {
         $count_ref->{'message_info'}++;
     }
     elsif ( $activity =~ /^starting delivery/ ) {
-        
+
         # starting delivery 136986: msg 71766 to remote bbarnes@example.com
-        
+
         # a more complete line match
         # /^starting delivery ([0-9]*): msg ([0-9]*) to ([a-z]*) ([a-zA-Z\@\._-])$/
-        
+
         $activity =~ /^starting delivery ([0-9]*): msg ([0-9]*) to ([a-z]*) /;
-        
+
            if ( $3 eq "remote" ) { $count_ref->{'start_delivery_remote'}++ }
         elsif ( $3 eq "local"  ) { $count_ref->{'start_delivery_local'}++  }
         else { print "count_send_line: unknown delivery line format\n"; };
@@ -1415,16 +1399,16 @@ sub count_send_line {
     elsif ( $activity =~ /^status: local/ ) {
         # status: local 0/10 remote 3/100
         $activity =~ /^status: local ([0-9]*)\/([0-9]*) remote ([0-9]*)\/([0-9]*)/;
-        
+
         $count_ref->{'status_localp'}  += ( $1 / $2 );
         $count_ref->{'status_remotep'} += ( $3 / $4 );
-        
+
         $count_ref->{'status'}++;
     }
     elsif ( $activity =~ /^end msg/ ) {
         # end msg 71766
         # /^end msg ([0-9]*)$/
-        
+
         # this line is useless, why was it here?
         #$count_ref->{'local'}++ if ( $3 && $3 eq "local" );
 
@@ -1433,9 +1417,9 @@ sub count_send_line {
     elsif ( $activity =~ /^delivery/ ) {
         # delivery 136986: success: 67.109.54.82_accepted_message./Remote_host_said:
         #   _250_2.6.0__<000c01c6c92a$97f4a580$8a46c3d4@p3>_Queued_mail_for_delivery/
-        
+
         $activity =~ /^delivery ([0-9]*): ([a-z]*): /;
-        
+
            if ( $2 eq "success"  ) { $count_ref->{'delivery_success'}++  }
         elsif ( $2 eq "deferral" ) { $count_ref->{'delivery_deferral'}++ }
         elsif ( $2 eq "failure"  ) { $count_ref->{'delivery_failure'}++  }
@@ -1491,7 +1475,7 @@ sub counter_read {
     if ( ! -e $file ) {
         $self->counter_create( $file ) or return;
     }
-    
+
     my %hash;
 
     foreach ( $util->file_read( $file, debug=>$debug ) ) {
@@ -1516,8 +1500,8 @@ sub counter_write {
 
     my ( $logfile, $values_ref ) = ( $p{'log'}, $p{'values'} );
 
-    if ( -d $logfile ) { 
-        print "FAILURE: counter_write $logfile is a directory!\n"; 
+    if ( -d $logfile ) {
+        print "FAILURE: counter_write $logfile is a directory!\n";
     }
 
     return $log->error( "counter_write: $logfile is not writable",fatal=>0 )
@@ -1548,10 +1532,9 @@ sub counter_write {
 }
 
 sub get_cronolog_handle {
-
     my $self  = shift;
     my $debug = $self->{'debug'};
-    
+
     my %p = validate(@_, { 'file' => SCALAR, },);
 
     my $file = $p{'file'};
@@ -1560,7 +1543,7 @@ sub get_cronolog_handle {
 
     # archives disabled in toaster.conf
     if ( ! $conf->{'logs_archive'} ) {
-        print "get_cronolog_handle: archives disabled, skipping cronolog handle.\n" if $debug; 
+        print "get_cronolog_handle: archives disabled, skipping cronolog handle.\n" if $debug;
         return;
     };
 
@@ -1585,7 +1568,7 @@ sub get_cronolog_handle {
             carp "tai64nlocal is selected in toaster.conf but cannot be found!";
         };
 
-        if ( $taibin && ! -x $taibin ) { 
+        if ( $taibin && ! -x $taibin ) {
             carp "tai64nlocal is not executable by you! ERROR!";
         }
 
@@ -1605,7 +1588,6 @@ sub get_cronolog_handle {
 };
 
 sub syslog_locate {
-
     my ( $self, $debug ) = @_;
 
     my $log = "/var/log/maillog";
@@ -1636,7 +1618,6 @@ sub syslog_locate {
 }
 
 sub set_countfile {
-
     my $self = shift;
     my $debug = $self->{'debug'};
 
@@ -1688,7 +1669,7 @@ Does some checks to make sure things are set up correctly.
 
     $logs->verify_settings();
 
-tests: 
+tests:
 
   logs base directory exists
   logs based owned by qmaill
@@ -1704,7 +1685,7 @@ Do the appropriate things based on what argument is passed on the command line.
 
 $conf is a hashref of configuration values, assumed to be pulled from toaster-watcher.conf.
 
-$prot is the protocol we're supposed to work on. 
+$prot is the protocol we're supposed to work on.
 
 
 =item check_log_files
@@ -1715,13 +1696,10 @@ $prot is the protocol we're supposed to work on.
 =item compress_yesterdays_logs
 
 	$logs->compress_yesterdays_logs(
-	    file  => $file, 
+	    file  => $file,
 	);
 
-You'll have to guess what this does. ;)
 
-
- 
 =item count_rbl_line
 
     $logs->count_rbl_line($line);
@@ -1731,7 +1709,7 @@ You'll have to guess what this does. ;)
 
  usage:
      $logs->count_send_line( $count, $line );
-     
+
  arguments required:
       count - a hashref of counter values
       line  - an entry from qmail's send logs
@@ -1890,10 +1868,10 @@ Patches welcome.
 
 =head1 SEE ALSO
 
-The following are relevant man/perldoc pages: 
+The following are relevant man/perldoc pages:
 
  maillogs
- Mail::Toaster 
+ Mail::Toaster
  toaster.conf
 
  http://mail-toaster.org/

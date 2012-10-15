@@ -234,10 +234,6 @@ The location of qmail. Think twice about changing this, as you'll be creating a 
   qmail_supervise_pop3           = /var/qmail/supervise/pop3
   qmail_supervise_submit         = /var/qmail/supervise/submit
   qmail_service                  = /var/service
-  qmail_service_smtp             = /var/service/smtp
-  qmail_service_send             = /var/service/send
-  qmail_service_pop3             = /var/service/pop3
-  qmail_service_submit           = /var/service/submit
 
 These are your supervise and service directories. Only change if you have already created these directories elsewhere. For example Dan Bernstein has convinced some people to create /service instead of /var/service. Life-with-Qmail based servers will have /var/service/qmail-smtpd and /var/service/qmail-send. (qmail_supervise should match the logs_supervise in toaster.conf).
 

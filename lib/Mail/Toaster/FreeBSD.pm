@@ -3,7 +3,7 @@ package Mail::Toaster::FreeBSD;
 use strict;
 use warnings;
 
-our $VERSION = '5.31';
+our $VERSION = '5.33';
 
 #use Cwd; # included with POSIX
 use Carp;
@@ -14,7 +14,7 @@ use POSIX;
 use vars qw($err);
 
 use lib 'lib';
-use Mail::Toaster 5.26;
+use Mail::Toaster 5.33;
 my ($toaster, $log, $util, %std_opts );
 
 sub new {
@@ -46,6 +46,7 @@ sub new {
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
         'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     return $self;
@@ -54,15 +55,15 @@ sub new {
 sub drive_spin_down {
     my $self = shift;
     my %p = validate( @_, { 'drive' => SCALAR, %std_opts } );
+    my %args = $toaster->get_std_args( %p );
 
     my $drive = $p{'drive'};
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     #TODO: see if the drive exists!
 
-    my $camcontrol = $util->find_bin( "camcontrol", %args) 
+    my $camcontrol = $util->find_bin( "camcontrol", %args)
         or return $log->error( "couldn't find camcontrol", %args );
 
     print "spinning down backup drive $drive...";
@@ -125,7 +126,7 @@ sub install_port {
     $port_dir =~ s/::/-/g if $port_dir =~ /::/;
 
     my $start_directory = Cwd::getcwd();
-		my $category = $p{category} || $self->get_port_category($portname) 
+		my $category = $p{category} || $self->get_port_category($portname)
             or die "unable to find port directory for port $portname\n";
 
 		my $path = "/usr/ports/$category/$port_dir";
@@ -140,7 +141,7 @@ sub install_port {
             if ( $def =~ /=/ ) {             # DEFINE=VALUE format, use as is
                 $make_defines .= " $def ";
             }
-            else { 
+            else {
                 $make_defines .= " -D$def "; # otherwise, prepend the -D flag
             }
         }
@@ -190,8 +191,7 @@ EO_PERL_MODULE_MANUAL
 sub is_port_installed {
     my $self = shift;
     my $port = shift or return $log->error("missing port/package name", fatal=>0);
-    my %p    = validate(
-        @_,
+    my %p    = validate( @_,
         {   'alt' => { type => SCALAR | UNDEF, optional => 1 },
             %std_opts,
         },
@@ -264,7 +264,7 @@ sub install_package {
     );
 
     my ( $alt, $pkg_url ) = ( $p{'alt'}, $p{'url'} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $util->error("sorry, but I really need a package name!") if !$package;
 
@@ -351,7 +351,7 @@ sub port_options {
     );
 
     my ( $port, $opts ) = ( $p{port}, $p{opts} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -383,7 +383,7 @@ sub portsnap {
     my $self = shift;
     my %p    = validate( @_, { %std_opts, },);
 
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
@@ -422,7 +422,7 @@ sub portsnap {
         print "\a
     COFFEE BREAK TIME: this step will take a while, dependent on how fast your
     disks are. After this initial extract, portsnap updates are much quicker than
-    doing a cvsup and require less bandwidth (good for you, and the FreeBSD 
+    doing a cvsup and require less bandwidth (good for you, and the FreeBSD
     servers). Please be patient.\n\n";
         sleep 2;
         system $portsnap, "extract";
@@ -500,7 +500,7 @@ Usage examples for each subroutine are included.
 
 =item is_port_installed
 
-Checks to see if a port is installed. 
+Checks to see if a port is installed.
 
     $fbsd->is_port_installed( "p5-CGI" );
 
@@ -512,7 +512,7 @@ Checks to see if a port is installed.
 
  result:
    0 - not installed
-   1 - if installed 
+   1 - if installed
 
 
 =item jail_create
@@ -521,7 +521,7 @@ Checks to see if a port is installed.
 
  arguments required:
     ip        - 10.0.1.1
-    
+
  arguments optional:
     hostname  - jail36.example.com,
     jail_home - /home/jail,
@@ -536,16 +536,16 @@ Here's an example of how I use it:
 
     ifconfig fxp0 inet alias 10.0.1.175/32
 
-    perl -e 'use Mail::Toaster::FreeBSD;  
-         my $fbsd = Mail::Toaster::FreeBSD->new; 
+    perl -e 'use Mail::Toaster::FreeBSD;
+         my $fbsd = Mail::Toaster::FreeBSD->new;
          $fbsd->jail_create( ip=>"10.0.1.175" )';
 
-After running $fbsd->jail_create, you need to set up the jail. 
+After running $fbsd->jail_create, you need to set up the jail.
 At the very least, you need to:
 
     1. set root password
     2. create a user account
-    3. get remote root 
+    3. get remote root
         a) use sudo (pkg_add -r sudo; visudo)
         b) add user to wheel group (vi /etc/group)
         c) modify /etc/ssh/sshd_config to permit root login
@@ -559,8 +559,8 @@ Here's how I set up my jails:
     rehash; visudo
     sh /etc/rc
 
-Ssh into the jail from another terminal. Once successfully 
-logged in with root privs, you can drop the initial shell 
+Ssh into the jail from another terminal. Once successfully
+logged in with root privs, you can drop the initial shell
 and access the jail directly.
 
 Read the jail man pages for more details. Read the perl code
@@ -600,17 +600,17 @@ jail_home defaults to "/home/jail".
 
 Here's an example of how I use it:
 
-    perl -e 'use Mail::Toaster::FreeBSD; 
+    perl -e 'use Mail::Toaster::FreeBSD;
       $fbsd = Mail::Toaster::FreeBSD->new;
       $fbsd->jail_start( ip=>"10.0.1.175" )';
 
 
-    
+
 =item install_port
 
     $fbsd->install_port( "openldap" );
 
-That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap. 
+That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap.
 
 If you want to install OpenLDAP 2, then you can install from any of:
 
@@ -620,11 +620,11 @@ If you want to install OpenLDAP 2, then you can install from any of:
 		/usr/ports/net/openldap24-client
 
 So, a full complement of settings could look like:
-  
+
     $freebsd->install_port( "openldap-client",
 		dir   => "openldap24-server",
 		check => "openldap-client-2.4",
-		flags => "NOPORTDOCS=true", 
+		flags => "NOPORTDOCS=true",
 		fatal => 0,
 	);
 
@@ -638,7 +638,7 @@ So, a full complement of settings could look like:
    fatal
    debug
 
- NOTES:   
+ NOTES:
 
 #1 - On rare occasion, a port will get installed as a name other than the ports name. Of course, that wreaks all sorts of havoc so when one of them nasties is found, you can optionally pass along a fourth parameter which can be used as the port installation name to check with.
 
@@ -647,7 +647,7 @@ So, a full complement of settings could look like:
 
 	$fbsd->install_package( "ispell" );
 
-Suggested usage: 
+Suggested usage:
 
 	unless ( $fbsd->install_package( "ispell" ) ) {
 		$fbsd->install_port( "ispell" );
@@ -675,7 +675,7 @@ Updates the FreeBSD ports tree (/usr/ports/).
 
  arguments required:
    conf - a hashref
- 
+
 See the docs for toaster-watcher.conf for complete details.
 
 
@@ -702,9 +702,9 @@ Needs more documentation.
 
 =head1 SEE ALSO
 
-The following are all man/perldoc pages: 
+The following are all man/perldoc pages:
 
- Mail::Toaster 
+ Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
  toaster-watcher.conf
@@ -715,7 +715,7 @@ The following are all man/perldoc pages:
 
 =head1 COPYRIGHT
 
-Copyright 2003-2009, The Network People, Inc. All Rights Reserved.
+Copyright 2003-2012, The Network People, Inc. All Rights Reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

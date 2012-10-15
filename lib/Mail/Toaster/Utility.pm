@@ -4,7 +4,7 @@ package Mail::Toaster::Utility;
 use strict;
 use warnings;
 
-our $VERSION = '5.32';
+our $VERSION = '5.33';
 
 use Cwd;
 use Carp;
@@ -57,6 +57,7 @@ sub new {
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
         'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     $log->audit( $class . sprintf( " loaded by %s, %s, %s", caller ) );

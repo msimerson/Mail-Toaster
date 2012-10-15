@@ -3,7 +3,7 @@ package Mail::Toaster::Apache;
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.33';
 
 use Carp;
 use English qw( -no_match_vars );
@@ -15,11 +15,11 @@ my ( $log, $util, %std_opts );
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, 
+    my %p = validate( @_,
         {   'log' => { type=>OBJECT },
             fatal => { type => BOOLEAN, optional => 1, default => 1 },
             debug => { type => BOOLEAN, optional => 1 },
-        } 
+        }
     );
 
     $log  = $p{'log'};
@@ -33,15 +33,16 @@ sub new {
     my $self = {
         'log' => $log,
         debug => $debug,
-        fatal => $fatal,    
-    };    
+        fatal => $fatal,
+    };
     bless $self, $class;
 
 # globally scoped hash, populated with defaults requested by the caller
     %std_opts = (
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
-        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },    
+        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     return $self;
@@ -102,19 +103,19 @@ sub install_1_source {
         $util->syscmd( "./configure --with-apache=../$apache" );
     }
     else {
-        $util->syscmd( 
+        $util->syscmd(
 "./configure --with-apache=../$apache --with-ssl=/usr --enable-shared=ssl --with-mm=/usr/local"
         );
     };
 
     chdir("../$mod_perl");
     if ( $OSNAME eq "darwin" ) {
-        $util->syscmd( 
+        $util->syscmd(
 "perl Makefile.PL APACHE_SRC=../$apache NO_HTTPD=1 USE_APACI=1 PREP_HTTPD=1 EVERYTHING=1"
         );
     }
     else {
-        $util->syscmd( 
+        $util->syscmd(
 "perl Makefile.PL DO_HTTPD=1 USE_APACI=1 APACHE_PREFIX=/usr/local EVERYTHING=1 APACI_ARGS='--server-uid=www, --server-gid=www, --enable-module=so --enable-module=most, --enable-shared=max --disable-shared=perl, --enable-module=perl, --with-layout=../$layout:FreeBSD, --without-confadjust'"
         );
     }
@@ -217,9 +218,7 @@ sub install_2 {
         print "\nInstalling Apache 2 on Darwin (MacOS X)?\n\n";
 
         if ( ! -d "/usr/dports/dports" ) {
-            print
-"I can't find DarwinPorts! Try following the instructions here:  
-http://www.tnpi.net/internet/mail/toaster/darwin.shtml.\n";
+            print "I can't find MacPorts! Try installing it.\n";
             return;
         }
 
@@ -351,12 +350,7 @@ sub install_2_freebsd_flags {
 
 sub startup {
     my $self = shift;
-
-    my %p = validate( @_, {
-            'conf'    => { type=>HASHREF, },
-            %std_opts,
-        },
-    );
+    my %p = validate( @_, { 'conf' => { type=>HASHREF }, %std_opts } );
 
     my ( $conf, $fatal, $debug ) = ( $p{'conf'}, $p{'fatal'}, $p{'debug'} );
 
@@ -389,7 +383,7 @@ sub startup_freebsd {
 
     $freebsd->conf_check( check=>"apache2_enable", line=>'apache2_enable="YES"' );
     $freebsd->conf_check( check=>"apache22_enable", line=>'apache22_enable="YES"' );
-    $freebsd->conf_check( 
+    $freebsd->conf_check(
         check=>"apache2ssl_enable", line=>'apache2ssl_enable="YES"' );
 
     my $etcdir = $conf->{'system_config_dir'} || "/usr/local/etc";
@@ -400,7 +394,6 @@ sub startup_freebsd {
 }
 
 sub apache2_fixups {
-
     my ( $self, $conf, $ports_dir ) = @_;
 
     my $prefix = $conf->{'toaster_prefix'}    || "/usr/local";
@@ -442,11 +435,11 @@ sub apache2_install_vhost {
 
     if ( -d "$apache_conf_dir/Includes" ) {
         $full_path = "$apache_conf_dir/Includes/$file_to_write";
-    } 
+    }
     else {
         $full_path = "$apache_conf_dir/$file_to_write";
     };
-    
+
     my $ssl_key = "etc/apache2/ssl.key/server.key";
     my $ssl_crt = "etc/apache2/ssl.crt/server.crt";
 
@@ -471,8 +464,8 @@ sub apache2_install_vhost {
 
     print $MT_CONF <<"EO_MAIL_TOASTER_CONF";
 #
-# Mail-Toaster specific Apache configuration file additions. 
-#   These additions must be made to get Squirrelmail, Isoqlog, 
+# Mail-Toaster specific Apache configuration file additions.
+#   These additions must be made to get Squirrelmail, Isoqlog,
 #   and other toaster features to work.
 #
 # This file is auto generated, based upon toaster-watcher.conf
@@ -489,7 +482,7 @@ NameVirtualHost *:80
 
     Redirect / https://$redirect_host/
 
-# these settings are ignored while the  redirect is in force. 
+# these settings are ignored while the  redirect is in force.
     DocumentRoot $htdocs
     DirectoryIndex index.html
     ScriptAlias /cgi-bin/ "$cgibin/"
@@ -671,14 +664,13 @@ EO_MAIL_TOASTER_CONF
 }
 
 sub freebsd_extras {
-
     my ( $self, $conf, $freebsd ) = @_;
 
     $freebsd->install_port( "cronolog" );
 
     # libwww requires this, so we preemptively install it to supress
     # the dialog box it opens
-    $freebsd->install_port( "p5-Authen-SASL", 
+    $freebsd->install_port( "p5-Authen-SASL",
         options => "#
 # This file was generated by mail-toaster
 # Options for p5-Authen-SASL-2.10_1
@@ -866,7 +858,7 @@ sub restart {
     }
 
     if ( ! $restarted ) {
-        my $apachectl = $util->find_bin( "apachectl" ) 
+        my $apachectl = $util->find_bin( "apachectl" )
             or return $log->error( "couldn't restart Apache!");
 
         $util->syscmd( "$sudo $apachectl graceful" );
@@ -891,18 +883,18 @@ sub openssl_config_note {
 
     print "\n\t\tATTENTION! ATTENTION!
 
-If you don't like the default values being offered to you, or you 
-get tired of typing them in every time you generate a SSL cert, 
+If you don't like the default values being offered to you, or you
+get tired of typing them in every time you generate a SSL cert,
 edit your openssl.cnf file. ";
 
     if ( $OSNAME eq "darwin" ) {
         print "On Darwin, it lives at /System/Library/OpenSSL/openssl.cnf.\n";
-    } 
+    }
     elsif ( $OSNAME eq "freebsd" ) {
         print "On FreeBSD, it lives at /etc/ssl/openssl.cnf and /usr/local/openssl/openssl.cnf\n";
     }
     else {
-        print "On most platforms, it lives in 
+        print "On most platforms, it lives in
 /etc/ssl/openssl.cnf.\n";
     };
 
@@ -944,14 +936,12 @@ sub install_dsa_cert {
 }
 
 sub install_rsa_cert {
-
     my $self = shift;
 
     my %p = validate (@_, {
             'crtdir' => { type=>SCALAR },
             'keydir' => { type=>SCALAR },
-            'debug'  => { type=>SCALAR, optional=>1, default=>1, },
-            'test_ok'=> { type=>SCALAR, optional=>1, },
+            %std_opts
         },
     );
 
@@ -1006,7 +996,7 @@ Mail::Toaster::Apache - modules for installing, configuring and managing Apache
 Modules for working with Apache. Some are specific to Mail Toaster while most are generic, such as provisioning vhosts for an Apache 2 server. Using just these subs, Apache will be installed, SSL certs generated, and serving.
 
 
-=head1 DESCRIPTION 
+=head1 DESCRIPTION
 
 Perl methods for working with Apache. See METHODS.
 
@@ -1052,7 +1042,7 @@ Builds Apache from sources with DSO for all modules. Also installs mod_perl2 and
 
 Currently tested on FreeBSD and Mac OS X. On FreeBSD, the chosen version of php is installed. It installs both the PHP cli and mod_php Apache module. This is done because the SpamAssassin + SQL module requires pear-DB and the pear-DB port thinks it needs the lang/php port installed. There are other ports which also have this requirement so it's best to just have it installed.
 
-This script also builds default SSL certificates, based on your preferences in openssl.cnf (usually in /etc/ssl) and makes a few tweaks to your httpd.conf (for using PHP & perl scripts). 
+This script also builds default SSL certificates, based on your preferences in openssl.cnf (usually in /etc/ssl) and makes a few tweaks to your httpd.conf (for using PHP & perl scripts).
 
 Values in $conf are set in toaster-watcher.conf. Please refer to that file to see how you can influence your Apache build.
 
@@ -1078,7 +1068,7 @@ Builds and installs a RSA certificate.
 
 =item restart
 
-Restarts Apache. 
+Restarts Apache.
 
 On FreeBSD, we use the rc.d script if it's available because it's smarter than apachectl. Under some instances, sending apache a restart signal will cause it to crash and not restart. The control script sends it a TERM, waits until it has done so, then starts it back up.
 
@@ -1119,9 +1109,9 @@ None known. Report any to author.
 
 =head1 SEE ALSO
 
-The following are all man/perldoc pages: 
+The following are all man/perldoc pages:
 
- Mail::Toaster 
+ Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
  toaster-watcher.conf
@@ -1130,7 +1120,7 @@ The following are all man/perldoc pages:
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2003-2008, The Network People, Inc. All Rights Reserved.
+Copyright (c) 2003-2012, The Network People, Inc. All Rights Reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

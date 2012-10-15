@@ -78,28 +78,16 @@ $toaster->dump_audit( quiet => 1 );
 
 # service_dir_get
 	# a normal smtp invocation
-    $qmail->set_config( {qmail_service_smtp=>'/var/service/smtp'} );
 	ok ( $toaster->service_dir_get( prot=>"smtp" ) eq "/var/service/smtp", 'service_dir_get smtp');
 
 	# a normal invocation with a conf file shortcut
-    $qmail->set_config( {qmail_service_smtp=>'qmail_service/smtp'} );
 	ok ( $toaster->service_dir_get( prot=>"smtp" ) eq "/var/service/smtp", 'service_dir_get smtp');
 
-	# a deprecated invocation
-    $qmail->set_config( {qmail_service_smtp=>'qmail_service/smtp'} );
-	ok ( $toaster->service_dir_get( prot=>"smtpd" ) eq "/var/service/smtp", 'service_dir_get smtp');
-
 	# a normal send invocation
-    $qmail->set_config( {qmail_service_send=>'/var/service/send'} );
 	ok ( $toaster->service_dir_get( prot=>'send' ) eq "/var/service/send", 'service_dir_get send');
 
 	# a normal pop3 invocation
-    $qmail->set_config( {qmail_service_pop3=>'/var/service/pop3'} );
 	ok ( $toaster->service_dir_get( prot=>"pop3" ) eq "/var/service/pop3", 'service_dir_get pop3');
-
-	# an invalid protocol
-    $qmail->set_config( {qmail_service_pop3=>'/var/service/invalid'} );
-	ok ( ! $toaster->service_dir_get( prot=>"invalid" ), 'service_dir_get invalid');
 
 $qmail->set_config( $conf );
 $toaster->dump_audit( quiet => 1 );

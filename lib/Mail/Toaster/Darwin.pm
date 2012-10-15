@@ -2,13 +2,13 @@ package Mail::Toaster::Darwin;
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.33';
 
 use Carp;
 use Params::Validate qw(:all);
 
 use lib 'lib';
-use Mail::Toaster 5.25;
+use Mail::Toaster 5.33;
 
 my ($toaster, $log, $util, %std_opts );
 
@@ -41,6 +41,7 @@ sub new {
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
         'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     return $self;
@@ -57,7 +58,7 @@ sub install_port {
     );
 
     my ( $opts ) = ( $p{'opts'} );
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = $toaster->get_std_args( %p );
 
     #	$self->ports_check_age("30");
 

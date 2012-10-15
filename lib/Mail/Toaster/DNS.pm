@@ -3,15 +3,15 @@ package Mail::Toaster::DNS;
 use strict;
 use warnings;
 
-our $VERSION = '5.30';
+our $VERSION = '5.33';
 
 use Carp;
 use Params::Validate qw( :all );
 
 use lib 'lib';
-use Mail::Toaster 5.30;
+use Mail::Toaster 5.33;
 
-my ( $log, $util, %std_opts );
+my ( $log, $toaster, $util, %std_opts );
 
 sub new {
     my $class = shift;
@@ -22,7 +22,7 @@ sub new {
         }
     );
 
-    $log = $p{'log'};
+    $log = $toaster = $p{'log'};
     $util = $log->get_util;
 
     my $debug = $log->get_debug;  # inherit from our parent
@@ -41,7 +41,8 @@ sub new {
     %std_opts = (
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
-        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },    
+        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     return $self;
@@ -57,8 +58,8 @@ sub is_ip_address {
         },
     );
 
+    my %args = $toaster->get_std_args( %p );
     my ( $ip, $rbl ) = ( $p{'ip'}, $p{'rbl'} );
-    my %args = (debug=>$p{debug},fatal=>$p{fatal});
 
     $ip =~ /^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/
         or return $log->error( "invalid IP address format: $ip", %args);
@@ -107,7 +108,7 @@ sub rbl_test_ns {
     );
 
     my ( $conf, $rbl ) = ( $p{'conf'}, $p{'rbl'} );
-    my %args = (debug=>$p{debug},fatal=>$p{fatal});
+    my %args = $toaster->get_std_args( %p );
 
     my $testns = $rbl;
 
@@ -132,8 +133,8 @@ sub rbl_test_positive_ip {
         },
     );
 
+    my %args = $toaster->get_std_args( %p );
     my ( $conf, $rbl ) = ( $p{'conf'}, $p{'rbl'} );
-    my %args = (debug=>$p{debug},fatal=>$p{fatal});
 
     # an IP that should always return an A record
     # for most RBL's this is 127.0.0.2, (2.0.0.127.bl.example.com)
@@ -172,8 +173,8 @@ sub rbl_test_negative_ip {
         },
     );
 
+    my %args = $toaster->get_std_args( %p );
     my ( $conf, $rbl ) = ( $p{'conf'}, $p{'rbl'} );
-    my %args = (debug=>$p{debug},fatal=>$p{fatal});
 
     my $test_ip = $rbl eq "korea.services.net"     ? "208.75.177.127"
                 : $rbl eq "kr.rbl.cluecentral.net" ? "208.75.177.127"
@@ -206,7 +207,7 @@ sub resolve {
     );
 
     my ( $conf, $record, $type ) = ( $p{'conf'}, $p{'record'}, $p{'type'} );
-    #my %args = (debug=>$p{debug},fatal=>$p{fatal});
+    #my %args = $toaster->get_std_args( %p );
 
     return $self->resolve_dig($record, $type ) 
         if ( $conf 

@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 
+#use Data::Dumper;
 use English qw( -no_match_vars );
 use Getopt::Std;
 
@@ -30,30 +31,24 @@ if ( ! $util->check_pidfile( $pidfile, fatal=>0, debug=>$debug ) ) {
     exit 500;
 };
 
-my %args = ( fatal=>0, debug => $debug );
-
 # suppress test output when not running in debug mode
 my $quiet = 1; $quiet-- if $debug;  
+
+my %args = ( fatal=>0, debug => $debug, quiet => $quiet );
 
 print "$0 v$Mail::Toaster::VERSION\n" if $debug;
 
 $toaster->log( "Starting up" );
-$qmail->config( first_time => 0, %args );
+$qmail->config( %args );
 
-$toaster->log( "Building send/run" );
-$qmail->build_send_run( %args );
+foreach my $prot ( qw/  send pop3 smtp submit / ) {
+    $toaster->log( "Building $prot/run" );
+    my $method = 'build_' . $prot . '_run';
+    $qmail->$method( %args );
+};
 
-$toaster->log( "Building pop3/run" );
-$qmail->build_pop3_run( %args );
-
-$toaster->log( "Building smtp/run");
-$qmail->build_smtp_run( %args );
-
-$toaster->log( "Building submit/run" );
-$qmail->build_submit_run( %args );
-
-$toaster->check( quiet => $quiet, %args );
-$setup->supervise( %args );
+#$setup->startup_script();
+$toaster->check( %args );
 $toaster->service_symlinks( %args );
 $toaster->clear_open_smtp( %args );
 $toaster->sqwebmail_clean_cache( %args );

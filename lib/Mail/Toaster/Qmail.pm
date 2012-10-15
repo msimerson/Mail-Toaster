@@ -3,7 +3,7 @@ package Mail::Toaster::Qmail;
 use strict;
 use warnings;
 
-our $VERSION = '5.31';
+our $VERSION = '5.33';
 
 use English qw( -no_match_vars );
 use File::Copy;
@@ -14,7 +14,7 @@ use POSIX;
 use vars qw/ $conf $toaster $setup $t_dns $log $util %std_opts /;
 
 use lib 'lib';
-use Mail::Toaster;          
+use Mail::Toaster;
 use Mail::Toaster::DNS;
 use Mail::Toaster::Setup;
 
@@ -48,6 +48,7 @@ sub new {
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
         'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     return $self;
@@ -56,18 +57,20 @@ sub new {
 sub build_pop3_run {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
+    my %args = $toaster->get_std_args( %p );
 
     my $vdir       = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
     my $qctrl      = $conf->{'qmail_dir'} . "/control";
     my $qsupervise = $conf->{'qmail_supervise'} || '/var/qmail/supervise';
 
-    -d $qsupervise or 
+    -d $qsupervise or
         return $log->error( "$qsupervise does not exist!",fatal=>0);
 
     my @lines = $toaster->supervised_do_not_edit_notice( vdir => 1 );
 
-    push @lines, $self->supervised_hostname_qmail( prot => "pop3" )
-        if $conf->{'pop3_hostname'} eq 'qmail';
+    if ( $conf->{'pop3_hostname'} eq 'qmail' ) {
+        push @lines, $self->supervised_hostname_qmail( prot => 'pop3' );
+    };
 
 #qmail-popup mail.cadillac.net /usr/local/vpopmail/bin/vchkpw qmail-pop3d Maildir 2>&1
     my $exec = $toaster->supervised_tcpserver( prot => 'pop3' ) or return;
@@ -90,6 +93,7 @@ sub build_pop3_run {
 sub build_send_run {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
+    my %args = $toaster->get_std_args( %p );
 
     $log->audit( "generating send/run..." );
 
@@ -124,6 +128,7 @@ exec qmail-start $mailbox 2>&1\n";
 sub build_smtp_run {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
+    my %args = $toaster->get_std_args( %p );
 
     $log->audit( "generating supervise/smtp/run...");
 
@@ -165,7 +170,8 @@ sub build_smtp_run {
 
 sub build_submit_run {
     my $self = shift;
-    my %p = validate( @_, { %std_opts, } );
+    my %p = validate( @_, { %std_opts } );
+    my %args = $toaster->get_std_args( %p );
 
     return if ! $conf->{'submit_enable'};
 
@@ -180,7 +186,7 @@ sub build_submit_run {
 
     push @lines, $self->smtp_set_qmailqueue( prot => 'submit' );
 
-    # don't subject authed clients to HELO tests since many (Outlook, OE) 
+    # don't subject authed clients to HELO tests since many (Outlook, OE)
     # do not send a proper HELO. -twa, 2007-03-07
     push @lines, 'export NOBADHELO=""
 
@@ -221,7 +227,7 @@ sub build_submit_run {
 }
 
 sub check_control {
-    my $self = shift;   
+    my $self = shift;
     my %p = validate( @_, { 'dir' => SCALAR, %std_opts } );
 
     # used in qqtool.pl
@@ -247,7 +253,6 @@ sub check_control {
 }
 
 sub check_rcpthosts {
-
     my ( $self, $qmaildir ) = @_;
     $qmaildir ||= "/var/qmail";
 
@@ -305,11 +310,8 @@ sub check_rcpthosts {
 
 sub config {
     my $self = shift;
-    my %p = validate( @_, {
-            first_time => { type=>BOOLEAN, optional=>1, default=>1 },
-            %std_opts,
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
+    my %args = $toaster->get_std_args( %p );
 
     my $qdir    = $conf->{'qmail_dir'}       || "/var/qmail";
     my $tmp     = $conf->{'toaster_tmp_dir'} || "/tmp";
@@ -355,7 +357,7 @@ sub config {
         my $password = $conf->{'vpopmail_mysql_pass'}
             or die "missing vpopmail SQL pass\n";
 
-        push @changes, { file => 'control/sql', setting => 
+        push @changes, { file => 'control/sql', setting =>
 "server $dbhost\nport $dbport
 database $dbname\ntable relay
 user $dbuser\npass $password\ntime 1800\n"
@@ -377,33 +379,29 @@ user $dbuser\npass $password\ntime 1800\n"
 
     $self->config_freebsd() if $OSNAME eq "freebsd";
 
-    # no need to run the rest of the tests every 5 minutes
-    return 1 if ! $p{'first_time'};
-
     # install the qmail control script (qmail cdb, qmail restart, etc)
-    $self->control_create();
+    $self->control_create( %args );
 
     # create all the service and supervised dirs
-    $toaster->service_dir_create();
-    $toaster->supervise_dirs_create();
+    $toaster->service_dir_create( %args );
+    $toaster->supervise_dirs_create( %args );
 
     # install the supervised control files
-    $self->install_qmail_control_files();
-    $self->install_qmail_control_log_files();
+    $self->install_qmail_control_files( %args );
+    $self->install_qmail_control_log_files( %args );
 }
 
 sub config_freebsd {
     my $self = shift;
-
-    my $tmp      = $conf->{'toaster_tmp_dir'} || "/tmp";
+    my $tmp  = $conf->{'toaster_tmp_dir'} || "/tmp";
 
     # disable sendmail
     require Mail::Toaster::FreeBSD;
     my $freebsd  = Mail::Toaster::FreeBSD->new( 'log' => $toaster );
 
-    $freebsd->conf_check( 
-        check => "sendmail_enable", 
-        line  => 'sendmail_enable="NONE"', 
+    $freebsd->conf_check(
+        check => "sendmail_enable",
+        line  => 'sendmail_enable="NONE"',
     );
 
     # don't build sendmail when we rebuild the world
@@ -415,9 +413,9 @@ sub config_freebsd {
 
     # make sure mailer.conf is set up for qmail
     my $tmp_mailer_conf = "$tmp/mailer.conf";
-    my $maillogs = $util->find_bin('maillogs',fatal=>0 ) 
+    my $maillogs = $util->find_bin('maillogs',fatal=>0 )
         || '/usr/local/bin/maillogs';
-    open my $MAILER_CONF, '>', $tmp_mailer_conf 
+    open my $MAILER_CONF, '>', $tmp_mailer_conf
         or $log->error( "unable to open $tmp_mailer_conf: $!",fatal=>0);
 
     print $MAILER_CONF '
@@ -497,7 +495,7 @@ sub config_write {
         unless (`grep "/var/qmail/man" $manpath | grep -v grep`) {
             $util->file_write( $manpath,
                 lines  => ["OPTIONAL_MANPATH\t\t/var/qmail/man"],
-                append => 1, 
+                append => 1,
             );
             $log->audit( "appended /var/qmail/man to MANPATH" );
         }
@@ -506,12 +504,7 @@ sub config_write {
 
 sub control_create {
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
     my ( $fatal, $debug ) = ($p{'fatal'}, $p{'debug'} );
 
@@ -529,7 +522,7 @@ sub control_create {
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     # install a new qmailcontrol if newer than existing one.
-    $self->control_write( "$tmp/qmailctl", $debug );
+    $self->control_write( "$tmp/qmailctl", %p );
     my $r = $util->install_if_changed(
         newfile  => "$tmp/qmailctl",
         existing => $qmailctl,
@@ -547,7 +540,7 @@ sub control_create {
 
     $util->syscmd( "$qmailctl cdb", debug=>0 );
 
-    # create aliases 
+    # create aliases
     foreach my $shortcut ( "$prefix/sbin/qmail", "$prefix/sbin/qmailctl" ) {
         next if -l $shortcut;
         if ( -e $shortcut ) {
@@ -570,11 +563,11 @@ sub control_create {
         $self->build_send_run();
         my $dir = $toaster->supervise_dir_get( prot => 'send' );
         copy( "$dir/run", "$qmaildir/rc" ) and
-            $log->audit( "control_create: created $qmaildir/rc."); 
+            $log->audit( "control_create: created $qmaildir/rc.");
         chmod oct('0755'), "$qmaildir/rc";
     }
 
-    # the FreeBSD port installs this but we won't be using it
+    # the FreeBSD port used to install this
     if ( -e "$confdir/rc.d/qmail.sh" ) {
         unlink("$confdir/rc.d/qmail.sh")
           or $log->error( "couldn't delete $confdir/rc.d/qmail.sh: $!");
@@ -583,15 +576,16 @@ sub control_create {
 
 sub control_write {
     my $self = shift;
-    my ($file, $debug) = @_;
+    my $file = shift or die "missing file name";
+    my %p = validate( @_, { %std_opts } );
 
     open ( my $FILE_HANDLE, '>', $file ) or
         return $log->error( "failed to open $file: $!" );
 
     my $qdir   = $conf->{'qmail_dir'}      || "/var/qmail";
     my $prefix = $conf->{'toaster_prefix'} || "/usr/local";
-    my $tcprules = $util->find_bin( 'tcprules', debug=>$debug );
-    my $svc      = $util->find_bin( 'svc', debug=>$debug );
+    my $tcprules = $util->find_bin( 'tcprules', %p );
+    my $svc      = $util->find_bin( 'svc', %p );
 
     print $FILE_HANDLE <<EOQMAILCTL;
 #!/bin/sh
@@ -643,14 +637,14 @@ case "\$1" in
 			$tcprules ~vpopmail/etc/tcp.smtp.cdb ~vpopmail/etc/tcp.smtp.tmp < ~vpopmail/etc/tcp.smtp
 			chmod 644 ~vpopmail/etc/tcp.smtp*
 			echo "Reloaded ~vpopmail/etc/tcp.smtp."
-		fi 
+		fi
 
 		if [ -s ~vpopmail/etc/tcp.submit ]
 		then
 			$tcprules ~vpopmail/etc/tcp.submit.cdb ~vpopmail/etc/tcp.submit.tmp < ~vpopmail/etc/tcp.submit
 			chmod 644 ~vpopmail/etc/tcp.submit*
 			echo "Reloaded ~vpopmail/etc/tcp.submit."
-		fi 
+		fi
 
 		if [ -s /etc/tcp.smtp ]
 		then
@@ -729,13 +723,11 @@ sub get_domains_from_assign {
             'assign'  => { type=>SCALAR,  optional=>1, default=>'/var/qmail/users/assign'},
             'match'   => { type=>SCALAR,  optional=>1, },
             'value'   => { type=>SCALAR,  optional=>1, },
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
+            %std_opts
         },
     );
 
-    my ( $assign, $match, $value, $fatal, $debug ) 
+    my ( $assign, $match, $value, $fatal, $debug )
         = ( $p{'assign'}, $p{'match'}, $p{'value'}, $p{'fatal'}, $p{'debug'} );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
@@ -1035,7 +1027,7 @@ don't exist in vpopmail. It is not compatible with system user mailboxes. \n\n";
     if ($chkusr) {
         $util->chown( "$qmaildir/bin/qmail-smtpd",
             uid => 'vpopmail',
-            gid => 'vchkpw', 
+            gid => 'vchkpw',
         );
 
         $util->chmod( file => "$qmaildir/bin/qmail-smtpd",
@@ -1138,6 +1130,7 @@ sub install_supervise_run {
             %std_opts,
         },
     );
+    my %args = $toaster->get_std_args( %p );
 
     my ( $tmpfile, $destination, $prot )
         = ( $p{'tmpfile'}, $p{'destination'}, $p{'prot'} );
@@ -1161,10 +1154,10 @@ sub install_supervise_run {
     return $util->install_if_changed(
         existing => $destination,  newfile  => $tmpfile,
         mode     => '0755',        clean    => 1,
-        debug    => $self->{debug},
-        fatal    => 0,
         notify   => $conf->{'supervise_rebuild_notice'} || 1,
         email    => $conf->{'toaster_admin_email'} || 'postmaster',
+        debug    => $self->{debug},
+        fatal    => 0,
     );
 }
 
@@ -1176,6 +1169,7 @@ sub install_qmail_control_log_files {
         },
     );
 
+    my %args = $toaster->get_std_args( %p );
     my $prots = $p{prots};
 
     my $supervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
@@ -1213,7 +1207,7 @@ sub install_qmail_control_log_files {
             $log->audit( " updating $run_f, ok" );
         }
 
-        $toaster->supervised_dir_test( prot  => $serv );
+        $toaster->supervised_dir_test( prot  => $serv, %args  );
     }
 }
 
@@ -1571,12 +1565,12 @@ sub netqmail_permissions {
     my $qmaildir = $conf->{'qmail_dir'} || "/var/qmail";
     $util->chown( "$qmaildir/bin/qmail-smtpd",
         uid  => 'vpopmail',
-        gid  => 'vchkpw', 
+        gid  => 'vchkpw',
     );
 
     $util->chmod(
         file_or_dir => "$qmaildir/bin/qmail-smtpd",
-        mode        => '6555', 
+        mode        => '6555',
     );
 };
 
@@ -1613,7 +1607,7 @@ sub netqmail_rebuild {
     # check to see if qmail-smtpd has vpopmail support already
     if ( -x "/var/qmail/bin/qmail-smtpd"
         && `strings /var/qmail/bin/qmail-smtpd | grep vpopmail` ) {
-        return if 
+        return if
             !$util->yes_or_no(
                 "toasterized qmail is already installed, do you want to reinstall",
                 timeout => 30,
@@ -1720,7 +1714,7 @@ sub queue_check {
     # used in qqtool.pl
 
     my $self = shift;
-    my %p = validate( @_, { %std_opts } ); 
+    my %p = validate( @_, { %std_opts } );
 
     my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
 
@@ -1729,7 +1723,7 @@ sub queue_check {
         print "queue_check: ERROR! qmail_dir is not set in conf! This is almost certainly an error!\n";
         $base = "/var/qmail"
     }
-    
+
     my $queue = "$base/queue";
 
     print "queue_check: checking $queue..." if $debug;
@@ -1741,7 +1735,7 @@ sub queue_check {
 
         return $log->error( $err, fatal => $fatal );
     }
-    
+
     print "ok.\n" if $debug;
     return "$base/queue";
 }
@@ -1870,7 +1864,7 @@ sub send_stop {
 
     my $qcontrol = $toaster->service_dir_get( prot => "send" );
 
-    return $log->error( "uh oh, the service directory $qcontrol is missing! Giving up.", 
+    return $log->error( "uh oh, the service directory $qcontrol is missing! Giving up.",
         %args ) unless $qcontrol;
 
     return $log->error( "something was wrong with the service/send dir.", %args )
@@ -1929,7 +1923,7 @@ sub smtp_auth_enable {
         $smtp_auth .= $toaster->supervised_hostname( prot => 'smtpd' );
     }
 
-    my $chkpass = $self->_set_checkpasswd_bin( prot => 'smtpd' ) 
+    my $chkpass = $self->_set_checkpasswd_bin( prot => 'smtpd' )
         or return '';
 
     return "$smtp_auth $chkpass /usr/bin/true ";
@@ -1960,7 +1954,7 @@ sub smtp_set_qmailqueue {
         return $log->error( "$queue is not executable by uid $>.", fatal => 0)
             if !-x "$qdir/bin/qmail-queue";
 
-        warn "WARNING: $queue is not executable! I'm falling back to 
+        warn "WARNING: $queue is not executable! I'm falling back to
 $qdir/bin/qmail-queue. You need to either (re)install $queue or update your
 toaster-watcher.conf file to point to its correct location.\n
 You will continue to get this notice every 5 minutes until you fix this.\n";
@@ -2195,7 +2189,7 @@ sub _memory_explanation {
     warn <<EOMAXMEM;
 
 These settings control the concurrent connection limit set by tcpserver,
-and the per-connection RAM limit set by softlimit. 
+and the per-connection RAM limit set by softlimit.
 
 Here are some suggestions for how to set these options:
 
@@ -2209,18 +2203,18 @@ smtpd_max_memory_per_connection = $perconnection
 smtpd_max_connections = $connections
 
 If you want to allow more than $connections simultaneous SMTP connections,
-you'll either need to lower smtpd_max_memory_per_connection, or raise 
+you'll either need to lower smtpd_max_memory_per_connection, or raise
 smtpd_max_memory.
 
 smtpd_max_memory_per_connection is a VERY important setting, because
 softlimit/qmail will start soft-bouncing mail if the smtpd processes
 exceed this value, and the number needs to be sufficient to allow for
 any virus scanning, filtering, or other processing you have configured
-on your toaster. 
+on your toaster.
 
 If you raise smtpd_max_memory over $sysmb MB to allow for more than
 $connections incoming SMTP connections, be prepared that in some
-situations your smtp processes might use more than $sysmb MB of memory. 
+situations your smtp processes might use more than $sysmb MB of memory.
 In this case, your system will use swap space (virtual memory) to
 provide the necessary amount of RAM, and this slows your system down. In
 extreme cases, this can result in a denial of service-- your server can
@@ -2232,12 +2226,7 @@ EOMAXMEM
 
 sub _test_smtpd_config_values {
     my $self = shift;
-    my %p = validate( @_, {
-            'fatal'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'debug'   => { type=>BOOLEAN, optional=>1, default=>1 },
-            'test_ok' => { type=>BOOLEAN, optional=>1, },
-        },
-    );
+    my %p = validate( @_, { %std_opts } );
 
     my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
 
@@ -2282,7 +2271,7 @@ sub _set_checkpasswd_bin {
 
     $log->audit( "  setting checkpasswd for protocol: $prot");
 
-    my $vdir = $conf->{'vpopmail_home_dir'} 
+    my $vdir = $conf->{'vpopmail_home_dir'}
         or return $log->error( "vpopmail_home_dir not set in $conf" );
 
     my $prot_dir = $prot . "_checkpasswd_bin";
@@ -2314,10 +2303,10 @@ __END__
 
 
 =head1 NAME
- 
+
 Mail::Toaster:::Qmail - Qmail specific functions
- 
- 
+
+
 =head1 SYNOPSIS
 
     use Mail::Toaster::Qmail;
@@ -2331,13 +2320,13 @@ See http://mail-toaster.org/ for details.
 
 
 =head1 DESCRIPTION
- 
-This module has all sorts of goodies, the most useful of which are the build_????_run modules which build your qmail control files for you. See the METHODS section for more details.
- 
 
-=head1 SUBROUTINES/METHODS 
- 
-An object of this class represents a means for interacting with qmail. There are functions for starting, stopping, installing, generating run-time config files, building ssl temp keys, testing functionality, monitoring processes, and training your spam filters. 
+This module has all sorts of goodies, the most useful of which are the build_????_run modules which build your qmail control files for you. See the METHODS section for more details.
+
+
+=head1 SUBROUTINES/METHODS
+
+An object of this class represents a means for interacting with qmail. There are functions for starting, stopping, installing, generating run-time config files, building ssl temp keys, testing functionality, monitoring processes, and training your spam filters.
 
 =over 8
 
@@ -2379,7 +2368,7 @@ If it succeeds in building the file, it will install it. You should restart the 
 Installs the files that control your supervised processes logging. Typically this consists of qmail-smtpd, qmail-send, and qmail-pop3d. The generated files are:
 
  arguments optional:
-    prots - an arrayref list of protocols to build run files for. 
+    prots - an arrayref list of protocols to build run files for.
            Defaults to [pop3,smtp,send,submit]
 	debug
 	fatal
@@ -2437,12 +2426,12 @@ Use send_stop to quit the qmail-send process. It will send qmail-send the TERM s
 
   $qmail->restart( prot=>"smtp")
 
-Use restart to restart a supervised qmail process. It will send the TERM signal causing it to exit. It will restart immediately because it's supervised. 
+Use restart to restart a supervised qmail process. It will send the TERM signal causing it to exit. It will restart immediately because it's supervised.
 
 
 =item  supervised_hostname_qmail
 
-Gets/sets the qmail hostname for use in supervise/run scripts. It dynamically creates and returns those hostname portion of said run file such as this one based on the settings in $conf. 
+Gets/sets the qmail hostname for use in supervise/run scripts. It dynamically creates and returns those hostname portion of said run file such as this one based on the settings in $conf.
 
  arguments required:
     prot - the protocol name (pop3, smtp, submit, send)
@@ -2463,7 +2452,7 @@ Gets/sets the qmail hostname for use in supervise/run scripts. It dynamically cr
 
 	my $available = $qmail->test_each_rbl( rbls=>$selected, debug=>1 );
 
-We get a list of RBL's in an arrayref, run some tests on them to determine if they are working correctly, and pass back the working ones in an arrayref. 
+We get a list of RBL's in an arrayref, run some tests on them to determine if they are working correctly, and pass back the working ones in an arrayref.
 
  arguments required:
    rbls - an arrayref with a list of RBL zones
@@ -2518,7 +2507,7 @@ If it succeeds in building the file, it will install it. You can optionally rest
  results:
     0 - failure
     1 - success
- 
+
 
 =item  build_submit_run
 
@@ -2540,11 +2529,11 @@ If it succeeds in building the file, it will install it. You can optionally rest
  results:
     0 - failure
     1 - success
- 
+
 
 =item  check_control
 
-Verify the existence of the qmail control directory (typically /var/qmail/control). 
+Verify the existence of the qmail control directory (typically /var/qmail/control).
 
  arguments required:
     dir - the directory whose existence we test for
@@ -2556,7 +2545,7 @@ Verify the existence of the qmail control directory (typically /var/qmail/contro
  results:
     0 - failure
     1 - success
- 
+
 
 =item  check_rcpthosts
 
@@ -2607,11 +2596,11 @@ You should not manually edit these files. Instead, make changes in toaster-watch
  results:
     0 - failure
     1 - success
- 
+
 
 =item  control_create
 
-To make managing qmail a bit easier, we install a control script that allows the administrator to interact with the running qmail processes. 
+To make managing qmail a bit easier, we install a control script that allows the administrator to interact with the running qmail processes.
 
  Usage:
    $qmail->control_create();
@@ -2676,7 +2665,7 @@ Gets passed a hashref of values and extracts all the RBLs that are enabled in th
 
   my $selected = $qmail->get_list_of_rwls( debug=>$debug);
 
-Here we collect a list of the RWLs from the configuration file that gets passed to us and return them. 
+Here we collect a list of the RWLs from the configuration file that gets passed to us and return them.
 
  arguments optional:
    debug
@@ -2706,7 +2695,7 @@ Patch info is here: http://mail-toaster.org/patches/
 
 =item  install_qmail_control_files
 
-When qmail is first installed, it needs some supervised run files to run under tcpserver and daemontools. This sub generates the qmail/supervise/*/run files based on your settings. Perpetual updates are performed by toaster-watcher.pl. 
+When qmail is first installed, it needs some supervised run files to run under tcpserver and daemontools. This sub generates the qmail/supervise/*/run files based on your settings. Perpetual updates are performed by toaster-watcher.pl.
 
   $qmail->install_qmail_control_files();
 
@@ -2724,28 +2713,28 @@ When qmail is first installed, it needs some supervised run files to run under t
 
 =head1 EXAMPLES
 
-Working examples of the usage of these methods can be found in  t/Qmail.t, toaster-watcher.pl, and toaster_setup.pl. 
+Working examples of the usage of these methods can be found in  t/Qmail.t, toaster-watcher.pl, and toaster_setup.pl.
 
- 
+
 =head1 DIAGNOSTICS
- 
+
 All functions include debugging output which is enabled by default. You can disable the status/debugging messages by calling the functions with debug=>0. The default behavior is to die upon errors. That too can be overriddent by setting fatal=>0. See the tests in t/Qmail.t for code examples.
- 
+
 
   #=head1 COMMON USAGE MISTAKES
 
 
- 
+
 =head1 CONFIGURATION AND ENVIRONMENT
- 
-Nearly all of the configuration options can be manipulated by setting the 
+
+Nearly all of the configuration options can be manipulated by setting the
 appropriate values in toaster-watcher.conf. After making changes in toaster-watcher.conf,
 you can run toaster-watcher.pl and your changes will propagate immediately,
 or simply wait a few minutes for them to take effect.
 
 
 =head1 DEPENDENCIES
- 
+
 A list of all the other modules that this module relies upon, including any
 restrictions on versions, and an indication whether these required modules are
 part of the standard Perl distribution, part of the module's distribution,
@@ -2753,10 +2742,10 @@ or must be installed separately.
 
     Params::Validate        - from CPAN
     Mail::Toaster           - with package
- 
+
 
 =head1 BUGS AND LIMITATIONS
- 
+
 None known. When found, report to author.
 Patches are welcome.
 
@@ -2766,7 +2755,7 @@ Patches are welcome.
 
 =head1 SEE ALSO
 
-  Mail::Toaster 
+  Mail::Toaster
   Mail::Toaster::Conf
   toaster.conf
   toaster-watcher.conf
@@ -2775,7 +2764,7 @@ Patches are welcome.
 
 
 =head1 AUTHOR
- 
+
 Matt Simerson  (matt@tnpi.net)
 
 
@@ -2783,8 +2772,8 @@ Matt Simerson  (matt@tnpi.net)
 
 
 =head1 LICENCE AND COPYRIGHT
- 
-Copyright (c) 2004-2008 The Network People, Inc. (info@tnpi.net). All rights reserved.
+
+Copyright (c) 2004-2012 The Network People, Inc. (info@tnpi.net). All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

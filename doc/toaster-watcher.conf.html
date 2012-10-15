@@ -225,11 +225,7 @@
   qmail_supervise_send           = /var/qmail/supervise/send
   qmail_supervise_pop3           = /var/qmail/supervise/pop3
   qmail_supervise_submit         = /var/qmail/supervise/submit
-  qmail_service                  = /var/service
-  qmail_service_smtp             = /var/service/smtp
-  qmail_service_send             = /var/service/send
-  qmail_service_pop3             = /var/service/pop3
-  qmail_service_submit           = /var/service/submit</pre>
+  qmail_service                  = /var/service</pre>
 <p>These are your supervise and service directories. Only change if you have already created these directories elsewhere. For example Dan Bernstein has convinced some people to create /service instead of /var/service. Life-with-Qmail based servers will have /var/service/qmail-smtpd and /var/service/qmail-send. (qmail_supervise should match the logs_supervise in toaster.conf).</p>
 <p>The supervise directory is where all the control files are created and where they'll live forever and ever, even if they aren't used. The supervise directory can be the same as the service directory, but it shouldn't be. Per Dan &amp; LWQ docs, the service directory should exist elsewhere. On FreeBSD /var/service is the most appropriate location (man hier for details).</p>
 <p>In the service directory you create symlinks to the supervised directories you want running.</p>

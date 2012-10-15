@@ -3,14 +3,14 @@ use warnings;
 
 package Mail::Toaster::Ezmlm;
 
-our $VERSION = '5.26';
+our $VERSION = '5.33';
 
 use Params::Validate qw( :all );;
 use Pod::Usage;
 use English qw( -no_match_vars );
 
 use lib 'lib';
-use Mail::Toaster          5.26; 
+use Mail::Toaster          5.33;
 
 my ( $log, $util, %std_opts );
 
@@ -44,6 +44,7 @@ sub new {
         'test_ok' => { type => BOOLEAN, optional => 1 },
         'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
         'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
     return $self;
@@ -198,7 +199,7 @@ sub logo {
 
 sub process_cgi {
     my $self = shift;
-    
+
     my %p = validate( @_, {
             'list_dir' => { type=>SCALAR,  optional=>1, },
             'br'       => { type=>SCALAR,  optional=>1, default=>'<br>' },
@@ -390,14 +391,14 @@ sub subs_add {
         },
     );
 
-	my ($list, $list_dir, $requested, $br, $fatal, $debug) 
+	my ($list, $list_dir, $requested, $br, $fatal, $debug)
         = ( $p{'list'}, $p{'list_dir'}, $p{'requested'}, $p{'br'}, $p{'fatal'}, $p{'debug'} );
 	
 	if ( ! -d $list_dir ) {
         print "ERROR: Aiiieee, the list $list_dir is missing!\n" if $debug;
         return 0;
     }
-    
+
     my ( $duplicates, $success, $failed, @list_dups, @list_success, @list_fail );
 
     print "$br";
@@ -500,7 +501,7 @@ Mail::Toaster::Ezmlm - a batch processing tool for ezmlm mailing lists
 
 =head1 DESCRIPTION
 
-Ezmlm.cgi is a command line and CGI application that allows a domain administrator (ie, postmaster@example.com) to add, remove, and list batches of email addresses. You can use this utility to subscribe lists of email addresses, delete a list of addresses, or simply retrieve a list of subscribers. 
+Ezmlm.cgi is a command line and CGI application that allows a domain administrator (ie, postmaster@example.com) to add, remove, and list batches of email addresses. You can use this utility to subscribe lists of email addresses, delete a list of addresses, or simply retrieve a list of subscribers.
 
 
 =head1 DEPENDENCIES
@@ -508,7 +509,7 @@ Ezmlm.cgi is a command line and CGI application that allows a domain administrat
  some functions depend on Mail::Ezmlm;
  authentication depends on "vpopmail" (a perl extension)
 
-If you need to run ezmlm.cgi suid, which is likely the case, then hacks to Mail::Ezmlm are required for the "list" function to work in taint mode. Also, for a perl script to run suid, you must have suidperl installed. Another (better) approach is to use Apache suexec instead of suidperl. 
+If you need to run ezmlm.cgi suid, which is likely the case, then hacks to Mail::Ezmlm are required for the "list" function to work in taint mode. Also, for a perl script to run suid, you must have suidperl installed. Another (better) approach is to use Apache suexec instead of suidperl.
 
 
 =head1 METHODS
@@ -539,7 +540,7 @@ return 0 if not, return 1 if OK.
 
 =item lists_get
 
-Get a list of Ezmlm lists for a given mail directory. This is designed to work with vpopmail where all the list for example.com are in ~vpopmail/domains. 
+Get a list of Ezmlm lists for a given mail directory. This is designed to work with vpopmail where all the list for example.com are in ~vpopmail/domains.
 
     $ezmlm->lists_get("example.com");
 
@@ -552,7 +553,7 @@ Put the logo on the HTML page. Sets the URL from $conf.
 
 $conf is values from toaster.conf.
 
- Example: 
+ Example:
     $ezmlm->logo(
         web_logo_url => 'http://www.tnpi.net/images/head.jpg',
         web_log_alt  => 'tnpi.net logo',
@@ -576,8 +577,8 @@ Get input from the command line options and proceed accordingly.
 Subcribe a user (or list of users) to a mailing list.
 
    $ezmlm->subs_add(
-       list      => $list_name, 
-       list_dir  => $list_dir, 
+       list      => $list_name,
+       list_dir  => $list_dir,
        requested => $address_list
     );
 
@@ -605,9 +606,9 @@ None known. Report any to author.
 
 =head1 SEE ALSO
 
-The following are all man/perldoc pages: 
+The following are all man/perldoc pages:
 
- Mail::Toaster 
+ Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
  toaster-watcher.conf
@@ -617,7 +618,7 @@ The following are all man/perldoc pages:
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2005-2008, The Network People, Inc.  All rights reserved.
+Copyright (c) 2005-2012, The Network People, Inc.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
