@@ -44,16 +44,17 @@ ok ( $apache->isa('Mail::Toaster::Apache'), 'check object class' );
 
 # conf_get_dir
         my $httpd_conf = $apache->conf_get_dir(conf=>$conf);
-        print "httpd.conf: $httpd_conf \n";
-        ok ( -f $httpd_conf, 'find httpd.conf' );
+        if ( -f $httpd_conf ) {
+            print "httpd.conf: $httpd_conf \n";
+            ok ( -f $httpd_conf, 'find httpd.conf' );
 
 # apache_conf_patch
-        ok( $apache->apache_conf_patch(
-            conf    => $conf, 
-            test_ok => 1, 
-            debug   => 0,
-        ), 'apache_conf_patch');
-
+            ok( $apache->apache_conf_patch(
+                conf    => $conf, 
+                test_ok => 1, 
+                debug   => 0,
+            ), 'apache_conf_patch');
+        };
 
 # install_ssl_certs
         ok( $apache->install_ssl_certs(conf=>$conf, test_ok=>1, debug=>0), 'install_ssl_certs');
