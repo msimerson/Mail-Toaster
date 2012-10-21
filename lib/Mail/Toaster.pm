@@ -1845,10 +1845,10 @@ context to help them understand the methods that are subsequently described.
 
 Performs the following tests:
 
-   • check for processes that should be running.
-   • make sure watcher.log is less than 1MB
-   • make sure ~alias/.qmail-* exist and are not empty
-   • verify multilog log directories are working
+   * check for processes that should be running.
+   * make sure watcher.log is less than 1MB
+   * make sure ~alias/.qmail-* exist and are not empty
+   * verify multilog log directories are working
 
 When this is run by toaster-watcher.pl via cron, the mail server admin will get notified via email any time one of the tests fails. Otherwise, there is no output generated.
 
@@ -2152,12 +2152,12 @@ unless otherwise specified in $conf
 
 Checks a supervised directory to see if it is set up properly for supervise to start it. It performs a bunch of tests including:
 
- • directory exists
- • dir/run file exists and is executable
- • dir/down file is not present
- • dir/log exists
- • dir/log/run exists and is executable
- • dir/log/down does not exist
+ * directory exists
+ * dir/run file exists and is executable
+ * dir/down file is not present
+ * dir/log exists
+ * dir/log/run exists and is executable
+ * dir/log/down does not exist
 
  arguments required:
     prot - a protocol to check (smtp, pop3, send, submit)
