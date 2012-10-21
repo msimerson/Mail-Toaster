@@ -711,38 +711,16 @@ sub conf_get_dir {
     };
 
     # apachectl did not return anything useful from -V, must be apache 1.x
-    my @paths;
-    my @found;
 
-    if    ( $OSNAME eq "darwin"  ) {
-        push @paths, "/opt/local/etc";
-        push @paths, "/private/etc";
-    }
-    elsif ( $OSNAME eq "freebsd" ) {
-        push @paths, "/usr/local/etc";
-    }
-    elsif ( $OSNAME eq "linux" ) {
-        push @paths, "/etc";
-    }
-    else {
-        push @paths, "/usr/local/etc";
-        push @paths, "/opt/local/etc";
-        push @paths, "/etc";
-    }
+    foreach my $dir ( qw[ /opt/local/etc /usr/local/etc /private/etc /etc ] ) {
+        next if ! -d $dir;
 
-    PATH:
-    foreach my $path ( @paths ) {
-        if ( ! -e $path && ! -d $path ) {
-            next PATH;
+        return "$dir/httpd.conf" if -f "$dir/httpd.conf";
+
+        foreach my $sd ( qw[ httpd apache apache2 apache22 apache20 ] ) {
+            return "$dir/$sd/httpd.conf" if -f "$dir/$sd/httpd.conf";
         };
-
-        @found = `find $path -name httpd.conf`;
-        chomp @found;
-        foreach my $find (@found) {
-            if ( -f $find ) {
-                return $find;
-            };
-        };
+        return "$dir/httpd.conf" if -f "$dir/httpd.conf";
     };
 
     return;
