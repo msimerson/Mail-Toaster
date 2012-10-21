@@ -19,6 +19,7 @@ my $deps = {
 #        { module => 'Provision::Unix'   , info => {} },
         { module => 'URI'               , info => {} },
         { module => 'version'           , info => {} },
+        { module => 'IO::Socket::SSL'   , info => {} },
     ],
     'apps' => [
         { app => 'expat'         , info => { port => 'expat2',         dport=>'expat2' } },
