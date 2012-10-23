@@ -179,74 +179,6 @@ sub test {
     print $result ? 'ok' : 'FAILED', "\n";
 };
 
-sub find_config {
-    my $self = shift;
-    my %p = validate(
-        @_,
-        {   file   => { type => SCALAR, },
-            etcdir => { type => SCALAR | UNDEF, optional => 1, },
-            %std_opts,
-        }
-    );
-
-#my @caller = caller;
-#warn sprintf( "Toaster->find_config loaded by %s, %s, %s\n", @caller );
-
-    my $file   = $p{file};
-    my $etcdir = $p{etcdir};
-
-    $log->audit("find_config: searching for $file");
-
-    return $self->find_readable( $file, $etcdir ) if $etcdir;
-
-    my @etc_dirs;
-    push @etc_dirs, $etcdir if $etcdir;
-    push @etc_dirs, qw{ /opt/local/etc /usr/local/etc /etc etc };
-    push @etc_dirs, cwd;
-
-    my $r = $self->find_readable( $file, @etc_dirs );
-    if ( $r  ) {
-        $log->audit( "  found $r" );
-        return $r;
-    };
-
-    # try $file-dist in the working dir
-    if ( -r "./$file-dist" ) {
-        $log->audit("  found in ./");
-        return cwd . "/$file-dist";
-    }
-
-    return $self->error( "could not find $file", fatal => $p{fatal} );
-}
-
-sub find_readable {
-    my $self = shift;
-    my $file = shift;
-    my $dir  = shift or return;   # break recursion at end of @_
-
-    #$log->audit("looking for $file in $dir") if $self->{debug};
-    if ( -r "$dir/$file" ) {
-        no warnings;
-        return "$dir/$file";       # success
-    }
-
-    if ( -d $dir ) {
-
-        # warn about directories we don't have read access to
-        if ( !-r $dir ) {
-            $self->error( "$dir is not readable", fatal => 0 );
-        }
-        else {
-
-            # warn about files that exist but aren't readable
-            $self->error( "$dir/$file is not readable", fatal => 0)
-                if -e "$dir/$file";
-        }
-    }
-
-    return $self->find_readable( $file, @_ );
-}
-
 sub has_module {
     my $self = shift;
     my ($name, $ver) = @_;
@@ -267,10 +199,10 @@ sub parse_config {
         },
     );
 
-    my %args = $self->get_std_args( %p );
-    my $file = $p{file};
+    my %args = $util->get_std_args( %p );
+    my $file = delete $p{file};
 
-    if ( ! -f $file ) { $file = $self->find_config( %p ); };
+    if ( ! -f $file ) { $file = $util->find_config( $file, %p ); };
 
     if ( ! $file || ! -r $file ) {
         return $self->error( "could not find config file!", %args);
@@ -333,7 +265,7 @@ sub parse_line {
 sub check {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     $conf ||= $self->get_config();
 
@@ -386,7 +318,7 @@ sub check_permissions {
 sub check_processes {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     $conf ||= $self->get_config();
 
@@ -425,7 +357,7 @@ sub check_processes {
 sub check_cron {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     $conf ||= $self->get_config();
 
@@ -476,7 +408,7 @@ sub check_watcher_log_size {
 sub learn_mailboxes {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -526,7 +458,7 @@ sub learn_mailboxes {
 sub learn_mailboxes_setup {
     my $self = shift;
     my %p    = validate( @_, { %std_opts } );
-    #my %args = $self->get_std_args( %p );
+    #my %args = $util->get_std_args( %p );
 
     my $log_base = $conf->{'qmail_log_base'} || '/var/log/mail';
     my $learn_log = "$log_base/learn.log";
@@ -588,7 +520,7 @@ sub train_dspam {
 sub clean_mailboxes {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -994,7 +926,7 @@ sub get_fatal {
 sub get_maildir_paths {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     my $vpdir = $conf->{'vpopmail_home_dir'};
 
@@ -1065,13 +997,7 @@ sub get_maildir_messages {
 
 sub get_std_args {
     my $self = shift;
-    my %p = @_;
-    my %args;
-    foreach ( qw/ debug fatal test_ok quiet / ) {
-        next if ! defined $p{$_};
-        $args{$_} = $p{$_};
-    };
-    return %args;
+    $util->get_std_args(@_);
 };
 
 sub get_toaster_htdocs {
@@ -1253,7 +1179,7 @@ sub service_dir_get {
 sub service_symlinks {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     my @active_services = 'send';
 
@@ -1395,7 +1321,7 @@ sub supervise_dir_get {
 sub supervise_dirs_create {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     my $supervise = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
 
@@ -1448,7 +1374,7 @@ sub supervised_dir_test {
     );
 
     my ($prot, $dir ) = ( $p{'prot'}, $p{'dir'} );
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -1553,7 +1479,7 @@ sub supervised_hostname {
 sub supervised_multilog {
     my $self = shift;
     my %p = validate( @_, { 'prot' => SCALAR, %std_opts, },);
-    my %args = $self->get_std_args( %p );
+    my %args = $util->get_std_args( %p );
     my $prot = $p{prot};
 
     my $setuidgid = $util->find_bin( 'setuidgid', fatal=>0 );
@@ -1931,39 +1857,6 @@ Sends an email message with the Eicar virus inline. It should trigger the AV eng
 =item email_send_spam
 
 Sends a sample spam message that SpamAssassin should block.
-
-
-=item find_config
-
-This sub is called by several others to determine which configuration file to use. The general logic is as follows:
-
-  If the etc dir and file name are provided and the file exists, use it.
-
-If that fails, then go prowling around the drive and look in all the usual places, in order of preference:
-
-  /opt/local/etc/
-  /usr/local/etc/
-  /etc
-
-Finally, if none of those work, then check the working directory for the named .conf file, or a .conf-dist.
-
-Example:
-  my $twconf = $util->find_config (
-      file   => 'toaster-watcher.conf',
-      etcdir => '/usr/local/etc',
-    )
-
- arguments required:
-   file - the .conf file to read in
-
- arguments optional:
-   etcdir - the etc directory to prefer
-   debug
-   fatal
-
- result:
-   0 - failure
-   the path to $file
 
 
 =item get_toaster_cgibin

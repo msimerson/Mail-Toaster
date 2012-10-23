@@ -363,8 +363,21 @@ ok( $rm && -x $rm, 'find_bin' );
 ok( !$util->find_bin( "globRe", fatal => 0 ), 'find_bin' );
 
 # a shortcut that should work
-$rm = $util->find_bin( "rm" );
+$rm = $util->find_bin( 'rm' );
 ok( -x $rm, 'find_bin' );
+
+
+
+# find_config
+ok( $util->find_config( 'services', fatal => 0 ), 'find_config valid' );
+
+# same as above but with etcdir defined
+ok( $util->find_config( 'services', etcdir => '/etc', fatal  => 0,), 'find_config valid');
+
+# this one fails because the file does not exist
+ok( !$util->find_config( 'country-bumpkins.conf', fatal => 0),
+    'find_config non-existent file'
+);
 
 # fstab_list
 my $fs = $util->fstab_list();

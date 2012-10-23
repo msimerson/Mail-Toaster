@@ -388,7 +388,7 @@ sub config {
     $self->config_tweaks();
 
     my $file_name = "toaster-watcher.conf";
-    my $file_path = $toaster->find_config( file => $file_name );
+    my $file_path = $util->find_config( $file_name );
     $conf = $self->refresh_config( $file_path ) or return;
 
 ### start questions
@@ -650,7 +650,7 @@ sub config_tweaks {
 
     my $status = "ok";
 
-    my $file = $toaster->find_config( file => 'toaster-watcher.conf' );
+    my $file = $util->find_config( 'toaster-watcher.conf' );
 
     # verify that find_config worked and $file is readable
     return $log->error( "config_tweaks: read test on $file, FAILED",
@@ -5344,15 +5344,23 @@ sub smtp_test_auth {
     my $self  = shift;
     my %p = validate( @_, { %std_opts } );
 
-    my $r = $util->install_module( "Net::SMTP_auth", debug=>0);
-    $log->test( "checking Net::SMTP_auth", $r );
-    if ( ! $r ) {
-        print "skipping SMTP auth tests\n";
-        return;
+    my @modules = ('IO::Socket::INET', 'IO::Socket::SSL', 'Net::SSLeay', 'Socket qw(:DEFAULT :crlf)');
+    foreach ( @modules ) {
+        eval "use $_";
+        die $@ if $@;
+        $log->test( "loading $_", 'ok' );
     };
 
+    Net::SSLeay::load_error_strings();
+    Net::SSLeay::SSLeay_add_ssl_algorithms();
+    Net::SSLeay::randomize();
+
     my $host = $conf->{'smtpd_listen_on_address'} || 'localhost';
-       $host = "localhost" if ( $host =~ /system|qmail|all/i );
+       $host = 'localhost' if ( $host =~ /system|qmail|all/i );
+
+
+
+
 
     my $smtp = Net::SMTP_auth->new($host);
     $log->test( "connect to smtp port on $host", $smtp );

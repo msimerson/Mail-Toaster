@@ -28,33 +28,6 @@ $toaster->audit("line two");
 $toaster->audit("line three");
 $toaster->dump_audit( quiet=>1);
 
-# find_config
-ok( $toaster->find_config( file => 'services', fatal => 0 ), 
-    'find_config valid' ); 
-
-# same as above but with etcdir defined
-ok( $toaster->find_config( file => 'services',
-        etcdir => '/etc',
-        fatal  => 0,
-    ),
-    'find_config valid'
-);
-
-# this one fails because etcdir is set incorrect
-ok( !$toaster->find_config( file   => 'services',
-        etcdir => '/ect',
-        fatal  => 0
-    ),
-    'find_config invalid dir'
-);
-
-$toaster->dump_audit( quiet => 1 );
-
-# this one fails because the file does not exist
-ok( !$toaster->find_config( file  => 'country-bumpkins.conf', fatal => 0),
-    'find_config non-existent file'
-);
-
 # parse_line 
 my ( $foo, $bar ) = $toaster->parse_line( ' localhost1 = localhost, disk, da0, disk_da0 ' ); 
 ok( $foo eq "localhost1", 'parse_line lead & trailing whitespace' ); 
@@ -79,16 +52,6 @@ ok( !$toaster->parse_config(
         file  => 'toaster-wacher.conf', 
         debug => 0, 
         fatal => 0 
-    ), 
-    'parse_config invalid filename' 
-); 
- 
-# this fails because etcdir is set (incorrectly) 
-ok( !$toaster->parse_config( 
-        file   => 'toaster-watcher.conf', 
-        etcdir => "/ect", 
-        debug  => 0, 
-        fatal  => 0 
     ), 
     'parse_config invalid filename' 
 ); 

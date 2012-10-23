@@ -2230,7 +2230,7 @@ sub _test_smtpd_config_values {
 
     my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
 
-    my $file = $toaster->find_config( file => "toaster.conf" );
+    my $file = $util->find_config( "toaster.conf" );
 
     return $log->error( "qmail_dir does not exist as configured in $file" )
         if !-d $conf->{'qmail_dir'};
