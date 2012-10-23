@@ -21,7 +21,7 @@ require_ok( 'Mail::Toaster::Ezmlm' );
 
 # basic OO mechanism
 my $toaster = Mail::Toaster->new();
-my $ezmlm = Mail::Toaster::Ezmlm->new( 'log' => $toaster );
+my $ezmlm = Mail::Toaster::Ezmlm->new( toaster => $toaster );
 
 ok ( defined $ezmlm, 'get Mail::Toaster::Ezmlm object' );
 ok ( $ezmlm->isa('Mail::Toaster::Ezmlm'), 'check object class' );

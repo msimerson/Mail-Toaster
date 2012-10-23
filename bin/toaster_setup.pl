@@ -7,12 +7,12 @@ use Getopt::Long;
 use Pod::Usage;
 
 use lib 'lib';
-use Mail::Toaster          5.25; 
-use Mail::Toaster::Apache  5.25; 
-use Mail::Toaster::FreeBSD 5.25; 
-use Mail::Toaster::Qmail   5.25; 
-use Mail::Toaster::Setup   5.25; 
-use Mail::Toaster::Utility 5.25; 
+use Mail::Toaster          5.35; 
+use Mail::Toaster::Apache  5.35; 
+use Mail::Toaster::FreeBSD 5.35; 
+use Mail::Toaster::Qmail   5.35; 
+use Mail::Toaster::Setup   5.35; 
+use Mail::Toaster::Utility 5.35; 
 
 $OUTPUT_AUTOFLUSH++;
 
@@ -25,9 +25,9 @@ GetOptions (%command_line_options);
 $debug = 0 unless defined $debug;
 
 my $toaster = Mail::Toaster->new( debug => $debug );
-my $apache  = Mail::Toaster::Apache->new( 'log' =>$toaster );
-my $freebsd = Mail::Toaster::FreeBSD->new( 'log'  => $toaster );
-my $qmail   = Mail::Toaster::Qmail->new( 'log'  => $toaster );
+my $apache  = Mail::Toaster::Apache->new( toaster =>$toaster );
+my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
+my $qmail   = Mail::Toaster::Qmail->new( toaster => $toaster );
 my $util = $toaster->get_util;
 my $conf = $toaster->get_config;
 
@@ -54,7 +54,7 @@ else {
     $toaster->{debug} = 0;
 };
 
-my $setup = Mail::Toaster::Setup->new('log'=>$toaster, conf=>$conf);
+my $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf=>$conf);
 
   $section eq 'pre'        ? $setup->dependencies      ()
 : $section eq 'cpan'       ? $setup->cpan              ()
@@ -154,7 +154,7 @@ sub all {
     );
     $toaster->{'debug'} = 1 if $debug;
     $conf->{'toaster_debug'} = 1 if $debug;
-    $setup = Mail::Toaster::Setup->new('log'=>$toaster, conf => $conf);
+    $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf => $conf);
 
 	$setup->dependencies  ( );
 	$setup->openssl_conf  ( );

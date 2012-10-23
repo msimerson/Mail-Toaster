@@ -3,30 +3,30 @@ package Mail::Toaster::DNS;
 use strict;
 use warnings;
 
-our $VERSION = '5.33';
+our $VERSION = '5.35';
 
 use Carp;
 use Params::Validate qw( :all );
 
 use lib 'lib';
-use Mail::Toaster 5.33;
+use Mail::Toaster 5.35;
 
 my ( $log, $toaster, $util, %std_opts );
 
 sub new {
     my $class = shift;
     my %p     = validate( @_,
-        {   'log' => { type => OBJECT,  optional => 1 },
+        {  toaster=> { type => OBJECT,  optional => 1 },
             fatal => { type => BOOLEAN, optional => 1, default => 1 },
             debug => { type => BOOLEAN, optional => 1 },
         }
     );
 
-    $log = $toaster = $p{'log'};
-    $util = $log->get_util;
+    $toaster = $p{toaster};
+    $log = $util = $toaster->get_util;
 
-    my $debug = $log->get_debug;  # inherit from our parent
-    my $fatal = $log->get_fatal;
+    my $debug = $toaster->get_debug;  # inherit from our parent
+    my $fatal = $toaster->get_fatal;
     $debug = $p{debug} if defined $p{debug};  # explicity overridden
     $fatal = $p{fatal} if defined $p{fatal};
 
@@ -214,7 +214,7 @@ sub resolve {
             && $conf->{'rbl_enable_lookup_using'}
             && $conf->{'rbl_enable_lookup_using'} eq "dig" );
 
-    return $self->resolve_dig($record, $type ) if ! $log->has_module("Net::DNS");
+    return $self->resolve_dig($record, $type ) if ! $util->has_module("Net::DNS");
     return $self->resolve_net_dns($record, $type, $p{timeout} );
 };
 
@@ -300,7 +300,7 @@ Create a new DNS method:
    use Mail::Toaster;
    use Mail::Toaster::DNS;
    my $toaster = Mail::Toaster->new();
-   my $dns     = Mail::Toaster::DNS->new(log=>$toaster);
+   my $dns     = Mail::Toaster::DNS->new(toaster=>$toaster);
 
 
 =item rbl_test

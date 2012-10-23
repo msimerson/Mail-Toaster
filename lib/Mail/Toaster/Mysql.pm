@@ -3,7 +3,7 @@ package Mail::Toaster::Mysql;
 use strict;
 use warnings;
 
-our $VERSION = '5.33';
+our $VERSION = '5.35';
 
 use Carp;
 use Params::Validate qw( :all );
@@ -14,25 +14,25 @@ use lib 'lib';
 
 use vars qw($darwin $freebsd $toaster $log $util);
 
-use Mail::Toaster 5.33;
+use Mail::Toaster 5.35;
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, { 'log' => OBJECT } );
+    my %p = validate( @_, { toaster => OBJECT } );
 
     my $self = { };
     bless( $self, $class );
 
-    $toaster = $log = $p{'log'};
-    $util = $toaster->get_util;
+    $toaster = $p{toaster};
+    $log = $util = $toaster->get_util;
 
     if ( $OSNAME eq "freebsd" ) {
         require Mail::Toaster::FreeBSD;
-        $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
+        $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
     }
     elsif ( $OSNAME eq "darwin" ) {
         require Mail::Toaster::Darwin;
-        $darwin = Mail::Toaster::Darwin->new( 'log' => $log );
+        $darwin = Mail::Toaster::Darwin->new( toaster => $toaster );
     };
 
     return $self;

@@ -29,8 +29,8 @@ ok( $toaster->isa('Mail::Toaster'), 'check object class' );
 
 my $util  = $toaster->get_util();
 my $conf  = $toaster->get_config();
-my $qmail = Mail::Toaster::Qmail->new('log'=>$toaster);
-my $setup = Mail::Toaster::Setup->new('log'=>$toaster,conf=>$conf);
+my $qmail = Mail::Toaster::Qmail->new(toaster=>$toaster);
+my $setup = Mail::Toaster::Setup->new(toaster=>$toaster,conf=>$conf);
 
 my $clean = 1;
 

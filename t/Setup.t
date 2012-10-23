@@ -22,7 +22,7 @@ my $util = $toaster->get_util();
 my $conf = $toaster->get_config();
 
 # basic OO mechanism
-my $setup = Mail::Toaster::Setup->new( 'log' => $toaster, conf => $conf );
+my $setup = Mail::Toaster::Setup->new( toaster => $toaster, conf => $conf );
 ok( defined $setup, 'new Mail::Toaster::Setup object)' );
 ok( $setup->isa('Mail::Toaster::Setup'), 'setup object class' );
 # 6 tests completed

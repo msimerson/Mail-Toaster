@@ -18,7 +18,7 @@ require_ok( 'Mail::Toaster' );
 require_ok( 'Mail::Toaster::FreeBSD' );
 
 my $toaster = Mail::Toaster->new(debug=>0);
-my $freebsd = Mail::Toaster::FreeBSD->new('log'=>$toaster);
+my $freebsd = Mail::Toaster::FreeBSD->new(toaster=>$toaster);
 ok ( defined $freebsd, 'Mail::Toaster::FreeBSD is an object' );
 ok ( $freebsd->isa('Mail::Toaster::FreeBSD'), 'check object class' );
 

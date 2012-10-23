@@ -2,30 +2,30 @@ package Mail::Toaster::Darwin;
 use strict;
 use warnings;
 
-our $VERSION = '5.33';
+our $VERSION = '5.35';
 
 use Carp;
 use Params::Validate qw(:all);
 
 use lib 'lib';
-use Mail::Toaster 5.33;
+use Mail::Toaster 5.35;
 
 my ($toaster, $log, $util, %std_opts );
 
 sub new {
     my $class = shift;
     my %p     = validate( @_,
-        {   'log' => { type => OBJECT,  optional => 1 },
+        {  toaster=> { type => OBJECT,  optional => 1 },
             fatal => { type => BOOLEAN, optional => 1, default => 1 },
             debug => { type => BOOLEAN, optional => 1 },
         }
     );
 
-    $toaster = $log = $p{'log'};
-    $util = $toaster->get_util;
+    $toaster = $p{toaster};
+    $log = $util = $toaster->get_util;
 
-    my $debug = $log->get_debug;  # inherit from our parent
-    my $fatal = $log->get_fatal;
+    my $debug = $toaster->get_debug;  # inherit from our parent
+    my $fatal = $toaster->get_fatal;
     $debug = $p{debug} if defined $p{debug};  # explicity overridden
     $fatal = $p{fatal} if defined $p{fatal};
 

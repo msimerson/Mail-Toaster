@@ -8,12 +8,12 @@ use Test::More 'no_plan';
 use lib 'lib';
 use Mail::Toaster;
 my $toaster = Mail::Toaster->new(debug=>0);
-my $util = $toaster->get_util();
+my $log = my $util = $toaster->get_util();
 my $conf = $toaster->get_config();
 
 require_ok( 'Mail::Toaster::Qmail' );
 
-my $qmail = Mail::Toaster::Qmail->new( 'log' => $toaster );
+my $qmail = Mail::Toaster::Qmail->new( toaster => $toaster );
 ok ( defined $qmail, 'get Mail::Toaster::Qmail object' );
 ok ( $qmail->isa('Mail::Toaster::Qmail'), 'check object class' );
 
@@ -34,8 +34,8 @@ my $has_net_dns;
     }
     else {
         warn "test_each_rbl failed\n";
-        $toaster->dump_audit();
-        $toaster->dump_errors();
+        $log->dump_audit();
+        $log->dump_errors();
     };
 
 
@@ -74,7 +74,7 @@ my $has_net_dns;
 	$r = $qmail->get_list_of_rwls( debug=>0 );
 	ok ( ! @$r[0], 'get_list_of_rwls nok');
 
-$toaster->dump_audit( quiet => 1 );
+$log->dump_audit( quiet => 1 );
 
 # service_dir_get
 	# a normal smtp invocation
@@ -90,7 +90,7 @@ $toaster->dump_audit( quiet => 1 );
 	ok ( $toaster->service_dir_get( prot=>"pop3" ) eq "/var/service/pop3", 'service_dir_get pop3');
 
 $qmail->set_config( $conf );
-$toaster->dump_audit( quiet => 1 );
+$log->dump_audit( quiet => 1 );
 
 # _set_checkpasswd_bin
 	# this test will only succeed on a fully installed toaster

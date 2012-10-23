@@ -3,32 +3,30 @@ use warnings;
 
 package Mail::Toaster::Ezmlm;
 
-our $VERSION = '5.33';
+our $VERSION = '5.35';
 
 use Params::Validate qw( :all );;
 use Pod::Usage;
 use English qw( -no_match_vars );
 
 use lib 'lib';
-use Mail::Toaster          5.33;
+use Mail::Toaster  5.35;
 
 my ( $log, $util, %std_opts );
 
 sub new {
     my $class = shift;
     my %p     = validate( @_,
-        {   'log' => { type => OBJECT  },
+        {  toaster  => { type => OBJECT  },
             fatal   => { type => BOOLEAN, optional => 1 },
             debug   => { type => BOOLEAN, optional => 1 },
             test_ok => { type => BOOLEAN, optional => 1 },
         }
     );
 
-    $log = $p{'log'};
-    $util = $log->get_util;
-
-    my $debug = $log->get_debug;  # inherit from our parent
-    my $fatal = $log->get_fatal;
+    $log = $util = $p{toaster}->get_util;
+    my $debug = $p{toaster}->get_debug;  # inherit from our parent
+    my $fatal = $p{toaster}->get_fatal;
     $debug = $p{debug} if defined $p{debug};  # explicity overridden
     $fatal = $p{fatal} if defined $p{fatal};
 

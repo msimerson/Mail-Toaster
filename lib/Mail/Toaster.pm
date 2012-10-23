@@ -3,7 +3,7 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.33';
+our $VERSION = '5.35';
 
 use Cwd;
 #use Data::Dumper;
@@ -39,8 +39,8 @@ sub new {
     };
     bless( $self, $class );
 
-    $log  = $self;
     $self->{util} = $util = $self->get_util();
+    $log  = $util;
 
     %std_opts = (
         test_ok => { type => BOOLEAN, optional => 1 },
@@ -54,99 +54,6 @@ sub new {
         if $caller[0] ne 'main';
     return $self;
 }
-
-sub audit {
-    my $self = shift;
-    my $mess = shift;
-
-    my %p = validate( @_, { %std_opts } );
-
-    if ($mess) {
-        push @{ $self->{audit} }, $mess;
-        print "$mess\n" if $self->{debug} || $p{debug};
-    }
-
-    return \$self->{audit};
-}
-
-sub error {
-    my $self = shift;
-    my $message = shift;
-    my %p = validate( @_,
-        {   location => { type => SCALAR,  optional => 1, },
-            %std_opts,
-        },
-    );
-
-    my $location = $p{location};
-    my $debug = $p{debug};
-    my $fatal = $p{fatal};
-
-    if ( $message ) {
-        my @caller = caller;
-
-        # append message and location to the error stack
-        push @{ $self->{errors} },
-            {
-            errmsg => $message,
-            errloc => $location || join( ", ", $caller[0], $caller[2] ),
-            };
-    }
-    else {
-        $message = @{ $self->{errors} }[-1];
-    }
-
-    if ( $debug || $fatal ) {
-        $self->dump_audit();
-        $self->dump_errors();
-    }
-
-    exit 1 if $fatal;
-    return;
-}
-
-sub dump_audit {
-    my $self = shift;
-    my %p = validate( @_, { %std_opts } );
-
-    my $audit = $self->{audit};
-    return if $self->{last_audit} == scalar @$audit; # nothing new
-
-    if ( $p{quiet} ) {   # hide/mask unreported messages
-        $self->{last_audit} = scalar @$audit;
-        $self->{last_error} = scalar @{ $self->{errors}};
-        return 1;
-    };
-
-    print "\n\t\t\tAudit History Report \n\n";
-    for( my $i = $self->{last_audit}; $i < scalar @$audit; $i++ ) {
-        print "   $audit->[$i]\n";
-        $self->{last_audit}++;
-    };
-    return 1;
-};
-
-sub dump_errors {
-    my $self = shift;
-    my $last_line = $self->{last_error};
-
-    return if $last_line == scalar @{ $self->{errors} }; # everything dumped
-
-    print "\n\t\t\t Error History Report \n\n";
-    my $i = 0;
-    foreach ( @{ $self->{errors} } ) {
-        $i++;
-        next if $i < $last_line;
-        my $msg = $_->{errmsg};
-        my $loc = " at $_->{errloc}";
-        print $msg;
-        for (my $j=length($msg); $j < 90-length($loc); $j++) { print '.'; };
-        print " $loc\n";
-    };
-    print "\n";
-    $self->{last_error} = $i;
-    return;
-};
 
 sub log {
     my $self = shift;
@@ -179,17 +86,6 @@ sub test {
     print $result ? 'ok' : 'FAILED', "\n";
 };
 
-sub has_module {
-    my $self = shift;
-    my ($name, $ver) = @_;
-
-## no critic ( ProhibitStringyEval )
-    eval "use $name" . ($ver ? " $ver;" : ";");
-## use critic
-
-    !$EVAL_ERROR;
-};
-
 sub parse_config {
     my $self = shift;
     my %p = validate( @_, {
@@ -205,7 +101,7 @@ sub parse_config {
     if ( ! -f $file ) { $file = $util->find_config( $file, %p ); };
 
     if ( ! $file || ! -r $file ) {
-        return $self->error( "could not find config file!", %args);
+        return $log->error( "could not find config file!", %args);
     };
 
     my %hash;
@@ -932,7 +828,7 @@ sub get_maildir_paths {
 
     # this method requires a SQL query for each domain
     require Mail::Toaster::Qmail;
-    my $qmail = Mail::Toaster::Qmail->new( 'log' => $self );
+    my $qmail = Mail::Toaster::Qmail->new( toaster => $self );
 
     my $qdir  = $conf->{'qmail_dir'} || "/var/qmail";
 
@@ -997,7 +893,7 @@ sub get_maildir_messages {
 
 sub get_std_args {
     my $self = shift;
-    $util->get_std_args(@_);
+    return $util->get_std_args(@_);
 };
 
 sub get_toaster_htdocs {
@@ -1097,7 +993,7 @@ sub get_util {
     return $util if ref $util;
     use lib 'lib';
     require Mail::Toaster::Utility;
-    $self->{util} = $util = Mail::Toaster::Utility->new( 'log' => $self, debug => $self->{debug} );
+    $self->{util} = $util = Mail::Toaster::Utility->new( debug => $self->{debug} );
     return $util;
 };
 
@@ -1113,7 +1009,7 @@ sub process_logfiles {
     $self->supervised_log_rotate( prot => 'pop3'   ) if $pop3_logs eq 'qpop3d';
 
     require Mail::Toaster::Logs;
-    my $logs = Mail::Toaster::Logs->new( 'log' => $self, conf => $conf ) or return;
+    my $logs = Mail::Toaster::Logs->new( toaster => $self, conf => $conf ) or return;
 
     $logs->compress_yesterdays_logs( file=>"sendlog" );
     $logs->compress_yesterdays_logs( file=>"smtplog" ) if $smtpd eq 'qmail';
@@ -1557,12 +1453,12 @@ sub supervise_restart {
     my $self = shift;
     my $dir  = shift or die "missing dir\n";
 
-    return $self->error( "supervise_restart: is not a dir: $dir" ) if !-d $dir;
+    return $log->error( "supervise_restart: is not a dir: $dir" ) if !-d $dir;
 
     my $svc  = $util->find_bin( 'svc',  debug=>0, fatal=>0 );
     my $svok = $util->find_bin( 'svok', debug=>0, fatal=>0 );
 
-    return $self->error( "unable to find svc! Is daemontools installed?")
+    return $log->error( "unable to find svc! Is daemontools installed?")
         if ! -x $svc;
 
     if ( $svok ) {
@@ -1605,7 +1501,7 @@ sub supervised_tcpserver {
             require POSIX;
             $maxcon = POSIX::floor( $maxmem / ( $mem / 1024000 ) );
             require Mail::Toaster::Qmail;
-            my $qmail = Mail::Toaster::Qmail->new( 'log'  => $self );
+            my $qmail = Mail::Toaster::Qmail->new( toaster  => $self );
             $qmail->_memory_explanation( $prot, $maxcon );
         }
     }

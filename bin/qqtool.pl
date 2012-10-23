@@ -2,9 +2,9 @@
 use strict;
 use warnings;
 
-our $VERSION = '1.12';
+our $VERSION = '1.13';
 
-use vars qw/ $opt_a   $opt_h  $opt_q   $opt_s   $opt_v $remotes $locals /;
+use vars qw/ $opt_a $opt_h $opt_q $opt_s $opt_v $remotes $locals /;
 
 use English;
 use Getopt::Std;
@@ -14,13 +14,13 @@ use Pod::Usage;
 getopts('a:h:q:s:v');
 
 use lib 'lib';
-use Mail::Toaster        5.25; 
-use Mail::Toaster::Qmail 5.25; 
+use Mail::Toaster        5.35;
+use Mail::Toaster::Qmail 5.35;
 
 my $debug   = $opt_v ? 1 : 0;
 my $toaster = Mail::Toaster->new( debug => $debug );
 my $util    = $toaster->get_util;
-my $qmail   = Mail::Toaster::Qmail->new( 'log' => $toaster );
+my $qmail   = Mail::Toaster::Qmail->new( toaster => $toaster );
 
 print "           Qmail Queue Tool   v $VERSION\n\n";
 print "NOTICE: only the root user has permission to read the email queues.
@@ -144,7 +144,7 @@ sub message_expire {
 }
 
 sub messages_expire {
-    
+
     foreach my $q (@_) {
         foreach my $hash (@$q) {
             my $header = headers_get( $hash->{'tree'}, $hash->{'num'} );
@@ -172,12 +172,12 @@ sub messages_expire {
 
     $qmail->queue_process();
 
-    print "NOTICE: Expiring the messages does not remove them from the queue. 
+    print "NOTICE: Expiring the messages does not remove them from the queue.
 	It merely alters their expiration time. The messages will be removed from
-	the queue after qmail attempts to deliver them one more time. 
+	the queue after qmail attempts to deliver them one more time.
 	
-	I've already told qmail to start that process so be patient while qmail 
-	is processing the queue. This might be a good time to check the value of 
+	I've already told qmail to start that process so be patient while qmail
+	is processing the queue. This might be a good time to check the value of
 	/var/qmail/control/concurrencyremote and verify it's value is reasonable
 	for your site.\n\n";
 
@@ -196,7 +196,7 @@ sub messages_list {
 
         # skip to the next queue if it's empty
         next QUEUE if ! $_[0];
-        
+
         #print "message $queue starting\n";
         foreach my $hash (@$queue) {
 
@@ -264,7 +264,7 @@ sub headers_get {
     my %hash;
 
 #    foreach my $line ( $util->file_read( "$qdir/mess/$tree/$id", max_lines  => 40, max_length => 256, ) )
- 
+
     my ($FILE, $header);
 
     if ( open $FILE, '<', "$qdir/mess/$tree/$id" )
@@ -274,7 +274,7 @@ sub headers_get {
     	undef $/;          # reset it back to normal
     	#$body = <STDIN>;
     };
-    
+
     foreach my $line ( split /\n/, $header ) {
         #print "$line\n"; sleep 1;
         if ( $line =~ /^([a-zA-Z\-]*):\s+(.*?)$/ ) {
@@ -303,7 +303,7 @@ sub messages_get {
         print "ERROR: queue $queue is not a directory!\n";
         return 0;
     }
-    
+
     unless ( -r $queue ) {
         print "ERROR: queue $queue is not readable by you!\n";
         return 0;
@@ -351,14 +351,14 @@ qqtool.pl - A tool for viewing and purging messages from a qmail queue
 
 	-a  action (delete, expire, list)
 	-h  header to match (From, To, Subject, Date)
-	-q  queue to search (local/remote) 
+	-q  queue to search (local/remote)
 	-s  search  (pattern to search for)
 	-v  verbose
 	
 	If no -h is specified, then the pattern is searched for in any header.
 	If no -q is specified, then both queues are searched.
 
-	To list messages in queue from matt: 
+	To list messages in queue from matt:
 	qqtool.pl -a list -s matt -h From
 
 	To list messages in queue with string \"foo\" in the headers:
@@ -367,7 +367,7 @@ qqtool.pl - A tool for viewing and purging messages from a qmail queue
 
 =head1 DESCRIPTION
 
-Qmail Queue Tool (qqtool.pl) 
+Qmail Queue Tool (qqtool.pl)
 
 This program will allow you to search and view messages in your qmail queue. It will also allow you to remove them, via expiration or deletion. It was written by Matt Simerson for the toaster users on mail-toaster@simerson.net
 
@@ -402,7 +402,7 @@ Run the script without any parameters and it will show you a menu of options.
 
 If no -h is specified, then the pattern is searched for in any header. If no -q is specified, then both queues are searched.
 
-To list messages in queue from matt: 
+To list messages in queue from matt:
 
    ./Mail-Toaster/qqtool.pl -a list -s matt -h From
 

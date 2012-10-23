@@ -21,8 +21,8 @@ require_ok('Mail::Toaster');
 require_ok('Mail::Toaster::Utility');
 
 # let the testing begin
-my $log = Mail::Toaster->new( debug => 0 );
-my $util = Mail::Toaster::Utility->new( 'log' => $log );
+my $toaster = Mail::Toaster->new();
+my $log = my $util = $toaster->get_util();
 ok( defined $util, 'get Mail::Toaster::Utility object' );
 isa_ok( $util, 'Mail::Toaster::Utility' );
 

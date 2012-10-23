@@ -4,7 +4,7 @@ package Mail::Toaster::Utility;
 use strict;
 use warnings;
 
-our $VERSION = '5.34';
+our $VERSION = '5.35';
 
 use Cwd;
 use Carp;
@@ -23,42 +23,29 @@ use vars qw/ $log %std_opts /;
 
 sub new {
     my $class = shift;
-    my %p     = validate( @_,
-        {   'log' => { type => OBJECT,  optional => 1 },
-            fatal => { type => BOOLEAN, optional => 1, default => 1 },
-            debug => { type => BOOLEAN, optional => 1, default => 1 },
-        }
-    );
-
-    $log = $p{'log'};
-    if ( ! $log ) {
-        my @bits = split /::/, $class; pop @bits;
-        my $parent_class = join '::', grep { defined $_ } @bits;
-## no critic ( ProhibitStringyEval )
-        eval "require $parent_class";
-## use critic
-        $log = $parent_class->new();
-    };
-
-    my $debug = $log->get_debug;  # inherit from our parent
-    my $fatal = $log->get_fatal;
-    $debug = $p{debug} if defined $p{debug};  # explicity overridden
-    $fatal = $p{fatal} if defined $p{fatal};
-
-    my $self = {
-        'log' => $log,
-        debug => $debug,
-        fatal => $fatal,
-    };
-    bless $self, $class;
 
 # globally scoped hash, populated with defaults as requested by the caller
     %std_opts = (
-        'test_ok' => { type => BOOLEAN, optional => 1 },
-        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
-        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
+        'fatal'   => { type => BOOLEAN, optional => 1, default => 1 },
+        'debug'   => { type => BOOLEAN, optional => 1, default => 1 },
         'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
+        'test_ok' => { type => BOOLEAN, optional => 1 },
     );
+
+    my %p = validate( @_,
+        {  toaster=> { type => OBJECT,  optional => 1 },
+            %std_opts,
+        }
+    );
+
+    my $toaster = $p{toaster};
+    my $self = {
+        debug => $p{debug},
+        fatal => $p{fatal},
+    };
+    bless $self, $class;
+
+    $log = $self->{log} = $self;
 
     $log->audit( $class . sprintf( " loaded by %s, %s, %s", caller ) );
     return $self;
@@ -129,6 +116,20 @@ PROMPT:
     return $response if $response; # if they typed something, return it
     return $default if $default;   # return the default, if available
     return '';                     # return empty handed
+}
+
+sub audit {
+    my $self = shift;
+    my $mess = shift;
+
+    my %p = validate( @_, { %std_opts } );
+
+    if ($mess) {
+        push @{ $log->{audit} }, $mess;
+        print "$mess\n" if $self->{debug} || $p{debug};
+    }
+
+    return \$log->{audit};
 }
 
 sub archive_file {
@@ -391,12 +392,91 @@ sub cwd_source_dir {
     return 1;
 }
 
+sub dump_audit {
+    my $self = shift;
+    my %p = validate( @_, { %std_opts } );
+
+    my $audit = $log->{audit} or return;
+    return if ! $log->{last_audit};
+    return if $log->{last_audit} == scalar @$audit; # nothing new
+
+    if ( $p{quiet} ) {   # hide/mask unreported messages
+        $log->{last_audit} = scalar @$audit;
+        $log->{last_error} = scalar @{ $log->{errors}};
+        return 1;
+    };
+
+    print "\n\t\t\tAudit History Report \n\n";
+    for( my $i = $log->{last_audit}; $i < scalar @$audit; $i++ ) {
+        print "   $audit->[$i]\n";
+        $log->{last_audit}++;
+    };
+    return 1;
+};
+
+sub dump_errors {
+    my $self = shift;
+    my $last_line = $log->{last_error} or return;
+
+    return if $last_line == scalar @{ $log->{errors} }; # everything dumped
+
+    print "\n\t\t\t Error History Report \n\n";
+    my $i = 0;
+    foreach ( @{ $log->{errors} } ) {
+        $i++;
+        next if $i < $last_line;
+        my $msg = $_->{errmsg};
+        my $loc = " at $_->{errloc}";
+        print $msg;
+        for (my $j=length($msg); $j < 90-length($loc); $j++) { print '.'; };
+        print " $loc\n";
+    };
+    print "\n";
+    $log->{last_error} = $i;
+    return;
+};
+
 sub _try_mkdir {
     my ( $dir ) = @_;
     mkpath( $dir, 0, oct('0755') )
         or return $log->error( "mkdir $dir failed: $!");
     $log->audit( "created $dir");
     return 1;
+}
+
+sub error {
+    my $self = shift;
+    my $message = shift;
+    my %p = validate( @_,
+        {   location => { type => SCALAR,  optional => 1, },
+            %std_opts,
+        },
+    );
+
+    my $location = $p{location};
+    my $debug = $p{debug};
+    my $fatal = $p{fatal};
+
+    if ( $message ) {
+        my @caller = $p{caller} || caller;
+
+        # append message and location to the error stack
+        push @{ $log->{errors} }, {
+            errmsg => $message,
+            errloc => $location || join( ", ", $caller[0], $caller[2] ),
+            };
+    }
+    else {
+        $message = @{ $log->{errors} }[-1];
+    }
+
+    if ( $debug || $fatal ) {
+        $self->dump_audit();
+        $self->dump_errors();
+    }
+
+    exit 1 if $fatal;
+    return;
 }
 
 sub extract_archive {
@@ -1195,6 +1275,17 @@ sub get_url_system {
     return $log->error( "error executing $fetchcmd", %args) if !$r;
     return 1;
 }
+
+sub has_module {
+        my $self = shift;
+            my ($name, $ver) = @_;
+
+## no critic ( ProhibitStringyEval )
+    eval "use $name" . ($ver ? " $ver;" : ";");
+## use critic
+
+        !$EVAL_ERROR;
+};
 
 sub install_if_changed {
     my $self = shift;

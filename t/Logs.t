@@ -25,7 +25,7 @@ else {
 
 require_ok('Mail::Toaster::Logs');
 
-my $log = Mail::Toaster::Logs->new('log' => $toaster, conf=>$conf);
+my $log = Mail::Toaster::Logs->new(toaster => $toaster, conf=>$conf);
 ok( defined $log, 'get Mail::Toaster::Logs object' );
 ok( $log->isa('Mail::Toaster::Logs'), 'check object class' );
 
@@ -61,7 +61,7 @@ SKIP: {
 
 # rbl_count
     #skip "rbl_count, needs root permissions", 1 if ( $UID != 0 );
-    if ( $toaster->has_module("Date::Format") ) {
+    if ( $util->has_module("Date::Format") ) {
         ok( $log->rbl_count(), 'rbl_count');
     };
 
@@ -72,7 +72,7 @@ SKIP: {
 
 
 # send_count
-    if ( $toaster->has_module("Date::Format") ) {
+    if ( $util->has_module("Date::Format") ) {
         ok( $log->send_count(), 'send_count');
     };
 
@@ -113,7 +113,7 @@ SKIP: {
 ###### end of STDIN subs ########
 
 # compress_yesterdays_logs
-    if ( $toaster->has_module("Date::Format") ) {
+    if ( $util->has_module("Date::Format") ) {
         ok( $log->compress_yesterdays_logs( file=>"sendlog" ), 'compress_yesterdays_logs');
 
 # purge_last_months_logs

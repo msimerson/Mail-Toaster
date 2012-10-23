@@ -12,12 +12,12 @@ migrate.pl - migrate email domains from one Mail Toaster to another.
 
 =head1 VERSION
 
-This is version .06.
+This is version .07.
 
 
 =head1 SYNOPSIS
 
-  ./migrate.pl 
+  ./migrate.pl
 
 
 =head1 DESCRIPTION
@@ -35,12 +35,12 @@ Create the new users using vadduser -s. Will be more reliable in fringe cases wh
 =cut
 
 use lib 'lib';
-use Mail::Toaster::Mysql;   
-use Mail::Toaster::Utility; 
+use Mail::Toaster::Mysql;
+use Mail::Toaster::Utility;
 
 my $toaster = Mail::Toaster->new();
-my $util  = Mail::Toaster::Utility->new( log => $toaster );
-my $mysql = Mail::Toaster::Mysql->new( log => $toaster );
+my $util  = toaster->get_util();
+my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
 
 my ($type, $domain, $newhost) = @ARGV;
 my $vpopdir = "/usr/local/vpopmail";
@@ -48,13 +48,12 @@ my $exists = 0;
 
 unless ( $newhost && $newhost ne "" ) { _usage($domain, $newhost); };
 
-if    ($type eq "user")   { migrate_user    ($domain, $newhost) } 
-elsif ($type eq "domain") { migrate_vpopmail($domain, $newhost) } 
+if    ($type eq "user")   { migrate_user    ($domain, $newhost) }
+elsif ($type eq "domain") { migrate_vpopmail($domain, $newhost) }
 else                      { _usage          ($domain, $newhost) }
 
 
-sub migrate_vpopmail
-{
+sub migrate_vpopmail {
 	my ($domain, $host) = @_;
 
 	my @users = get_userlist_from_mysql($domain);
@@ -69,7 +68,7 @@ sub migrate_vpopmail
 	my $postmaster = add_postmaster(undef, $domain, $host, @users);  # show the domain creation cmd
 	add_emails(undef, $domain, $host, @users);    # the email accounts to add
 
-	if ( $util->yes_or_no( "\nshall I try it for you?", force=>1) ) 
+	if ( $util->yes_or_no( "\nshall I try it for you?", force=>1) )
 	{
 		# does the domain directory exist on the other end?
 		unless ( $util->syscmd("ssh $host test -d $vpopdir/domains/$domain", debug=>0)) {
@@ -103,7 +102,7 @@ sub migrate_vpopmail
 	send_test_email("old", $domain);  # should get forwarded to new server via smtproutes
 
 	# test remove email delivery
-	send_test_email($host, $domain);  
+	send_test_email($host, $domain);
 
 	# delete the domain locally
 	delete_domain($domain);
@@ -139,7 +138,7 @@ sub add_postmaster
 {
 	my ($do, $domain, $host, @r) = @_;
 
-	foreach (@r) {                                
+	foreach (@r) {
 		next unless ($_->{'pw_name'} eq "postmaster");    # find the postmaster account
 		my $cmd = "$vpopdir/bin/vadddomain '$domain' '$_->{'pw_clear_passwd'}'";
 		print "  $cmd\n";
@@ -234,8 +233,7 @@ sub delete_domain
 	};
 };
 
-sub verify_domain_exists_in_rcpthosts 
-{
+sub verify_domain_exists_in_rcpthosts {
 	my ($domain) = @_;
 
 	print "checking rcpthosts for $domain...";
@@ -368,5 +366,5 @@ llowing disclaimer in the documentation and/or other materials provided with the
 
 Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED ANDON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED ANDON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 

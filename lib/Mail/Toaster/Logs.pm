@@ -3,7 +3,7 @@ package Mail::Toaster::Logs;
 use strict;
 use warnings;
 
-our $VERSION = '5.33';
+our $VERSION = '5.35';
 
 # the output of warnings and diagnostics should not be enabled in production.
 # the SNMP daemon depends on the output of maillogs, so we need to return
@@ -19,24 +19,24 @@ use Pod::Usage;
 use vars qw( $spam_ref $count_ref );
 
 use lib 'lib';
-use Mail::Toaster 5.33;
+use Mail::Toaster 5.35;
 my ( $log, $util, $conf, %std_opts );
 
 sub new {
     my $class = shift;
     my %p = validate(@_, {
             'conf'  => HASHREF,
-            'log'   => OBJECT,
+            toaster => OBJECT,
             test_ok => { type => BOOLEAN, optional => 1 },
             fatal   => { type => BOOLEAN, optional => 1, default => 1 },
             debug   => { type => BOOLEAN, optional => 1, default => 1 },
         },
     );
 
+    my $toaster = $p{toaster};
+    $log = $util = $toaster->get_util();
+    my $debug = $toaster->get_debug;
     $conf = $p{conf};
-    $log = $p{'log'};
-    $util = $log->get_util();
-    my $debug = $log->get_debug;
     $debug = $conf->{'logs_debug'} if defined $conf->{'logs_debug'};
 
     my $self = {

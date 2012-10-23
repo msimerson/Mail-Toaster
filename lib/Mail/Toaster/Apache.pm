@@ -3,7 +3,7 @@ package Mail::Toaster::Apache;
 use strict;
 use warnings;
 
-our $VERSION = '5.33';
+our $VERSION = '5.35';
 
 use Carp;
 use English qw( -no_match_vars );
@@ -11,22 +11,22 @@ use File::Copy;
 use Params::Validate qw( :all );
 
 use lib 'lib';
-my ( $log, $util, %std_opts );
+my ( $log, $util, $toaster, %std_opts );
 
 sub new {
     my $class = shift;
     my %p = validate( @_,
-        {   'log' => { type=>OBJECT },
+        {   toaster => { type => OBJECT },
             fatal => { type => BOOLEAN, optional => 1, default => 1 },
             debug => { type => BOOLEAN, optional => 1 },
         }
     );
 
-    $log  = $p{'log'};
-    $util = $log->get_util;
+    $toaster  = $p{toaster};
+    $util = $log = $toaster->get_util;
 
-    my $debug = $log->get_debug;    # inherit from our parent
-    my $fatal = $log->get_fatal;
+    my $debug = $toaster->get_debug;    # inherit from our parent
+    my $fatal = $toaster->get_fatal;
     $debug = $p{debug} if defined $p{debug};  # explicity overridden
     $fatal = $p{fatal} if defined $p{fatal};
 
@@ -162,7 +162,7 @@ sub install_1_freebsd {
     my ($self, $conf) = @_;
 
     require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
+    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
 
     if ( $conf->{'package_install_method'} eq "packages" ) {
         $freebsd->install_package( "mm" );
@@ -223,7 +223,7 @@ sub install_2 {
         }
 
         require Mail::Toaster::Darwin;
-        my $darwin = Mail::Toaster::Darwin->new( 'log' => $log );
+        my $darwin = Mail::Toaster::Darwin->new( toaster => $toaster );
 
         $darwin->install_port( "apache2" );
         $darwin->install_port( "php5", opts => "+apache2" );
@@ -247,7 +247,7 @@ sub install_2_freebsd {
     $log->audit( "install_2: v$ver from www/$ports_dir on FreeBSD");
 
     require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
+    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
 
     # if some variant of apache 2 is installed
     my $r = $freebsd->is_port_installed( "apache-2", debug=>$debug );
@@ -379,7 +379,7 @@ sub startup_freebsd {
     my ($conf, $debug) = @_;
 
     require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
+    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
 
     $freebsd->conf_check( check=>"apache2_enable", line=>'apache2_enable="YES"' );
     $freebsd->conf_check( check=>"apache22_enable", line=>'apache22_enable="YES"' );
@@ -456,7 +456,7 @@ sub apache2_install_vhost {
     my $redirect_host = $hostname;
 
     require Mail::Toaster::DNS;
-    my $dns = Mail::Toaster::DNS->new( 'log' => $log );
+    my $dns = Mail::Toaster::DNS->new( toaster => $toaster );
 
     if ( ! $dns->resolve(type=>"A", record=>$hostname) ) {
         $redirect_host = $local_ip;
@@ -988,7 +988,7 @@ Perl methods for working with Apache. See METHODS.
    use Mail::Toaster;
    use Mail::Toaster::Apache
    my $log = Mail::Toaster->new(debug=>0)
-   my $apache = Mail::Toaster::Apache->new( 'log' => $log );
+   my $apache = Mail::Toaster::Apache->new( toaster => $toaster );
 
 use this function to create a new apache object. From there you can use all the functions
 included in this document.

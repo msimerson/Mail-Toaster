@@ -3,7 +3,7 @@ package Mail::Toaster::Setup;
 use strict;
 use warnings;
 
-our $VERSION = '5.33';
+our $VERSION = '5.35';
 
 use vars qw/ $conf $log $freebsd $darwin $err $qmail $toaster $util %std_opts /;
 
@@ -18,24 +18,24 @@ use Params::Validate qw( :all );
 use Sys::Hostname;
 
 use lib 'lib';
-use Mail::Toaster       5.33;
+use Mail::Toaster       5.35;
 
 sub new {
     my $class = shift;
     my %p     = validate( @_,
-        {   'log' => { type => OBJECT,  optional => 1 },
+        {  toaster=> { type => OBJECT,  optional => 1 },
             conf  => { type => HASHREF, optional => 1 },
             fatal => { type => BOOLEAN, optional => 1, default => 1 },
             debug => { type => BOOLEAN, optional => 1 },
         }
     );
 
-    $toaster = $log = $p{'log'};
+    $toaster = $p{toaster};
     $conf    = $p{conf} || $toaster->get_config;
-    $util    = $toaster->get_util;
+    $log = $util = $toaster->get_util;
 
-    my $debug = $log->get_debug;  # inherit from our parent
-    my $fatal = $log->get_fatal;
+    my $debug = $toaster->get_debug;  # inherit from our parent
+    my $fatal = $toaster->get_fatal;
     $debug = $p{debug} if defined $p{debug};  # explicity overridden
     $fatal = $p{fatal} if defined $p{fatal};
 
@@ -56,11 +56,11 @@ sub new {
 
     if ( $OSNAME eq "freebsd" ) {
         require Mail::Toaster::FreeBSD;
-        $freebsd = Mail::Toaster::FreeBSD->new( 'log' => $log );
+        $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
     }
     elsif ( $OSNAME eq "darwin" ) {
         require Mail::Toaster::Darwin;
-        $darwin = Mail::Toaster::Darwin->new( 'log' => $log );
+        $darwin = Mail::Toaster::Darwin->new( toaster => $toaster );
     }
 
     return $self;
@@ -78,7 +78,7 @@ sub apache {
     };
 
     require Mail::Toaster::Apache;
-    my $apache = Mail::Toaster::Apache->new( 'log' => $log );
+    my $apache = Mail::Toaster::Apache->new( 'toaster' => $toaster );
 
     require Cwd;
     my $old_directory = Cwd::cwd();
@@ -108,7 +108,7 @@ sub apache_conf_fixup {
     return $p{test_ok} if defined $p{test_ok};
 
     require Mail::Toaster::Apache;
-    my $apache    = Mail::Toaster::Apache->new('log'=>$log);
+    my $apache = Mail::Toaster::Apache->new( 'toaster' => $toaster );
     my $httpdconf = $apache->conf_get_dir( conf=> $conf );
 
     unless ( -e $httpdconf ) {
@@ -1442,7 +1442,7 @@ sub dependencies {
     if ( ! -x "$qmaildir/bin/qmail-queue" ) {
         $conf->{'qmail_chk_usr_patch'} = 0;
         require Mail::Toaster::Qmail;
-        $qmail ||= Mail::Toaster::Qmail->new('log'=>$log);
+        $qmail ||= Mail::Toaster::Qmail->new(toaster => $toaster );
         $qmail->netqmail_virgin();
     }
 
@@ -1507,7 +1507,7 @@ sub dependencies_other {
 
     if ( $OSNAME eq "linux" ) {
         my $vpopdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
-        $qmail ||= Mail::Toaster::Qmail->new('log'=>$log);
+        $qmail ||= Mail::Toaster::Qmail->new(toaster=>$toaster);
         $qmail->install_qmail_groups_users();
 
         $util->syscmd( "groupadd -g 89 vchkpw" );
@@ -2079,7 +2079,7 @@ sub enable_all_spam {
         '| /usr/local/bin/maildrop /usr/local/etc/mail/mailfilter';
 
     require Mail::Toaster::Qmail;
-    $qmail ||= Mail::Toaster::Qmail->new('log'=>$log);
+    $qmail ||= Mail::Toaster::Qmail->new(toaster=>$toaster);
 
     my @domains = $qmail->get_domains_from_assign(
             assign => "$qmail_dir/users/assign",
@@ -2501,6 +2501,17 @@ sub group_exists {
     my $group = lc(shift) or die "missing group";
     my $gid = getgrnam($group);
     return ( $gid && $gid > 0 ) ? $gid : undef;
+};
+
+sub has_module {
+    my $self = shift;
+    my ($name, $ver) = @_;
+
+## no critic ( ProhibitStringyEval )
+    eval "use $name" . ($ver ? " $ver;" : ";");
+## use critic
+
+    !$EVAL_ERROR;
 };
 
 sub imap_test_auth {
@@ -3741,7 +3752,7 @@ sub maillogs {
     $self->isoqlog();
 
     require Mail::Toaster::Logs;
-    my $logs = Mail::Toaster::Logs->new('log'=>$log, conf=>$conf);
+    my $logs = Mail::Toaster::Logs->new(toaster=>$toaster, conf=>$conf);
     $logs->verify_settings();
 }
 
@@ -3899,7 +3910,7 @@ sub mysql {
     };
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
 
     return $mysql->install( conf  => $conf, debug => $p{debug} );
 }
@@ -4327,7 +4338,7 @@ sub phpmyadmin {
     }
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
     $mysql->phpmyadmin_install($conf);
 }
 
@@ -4966,7 +4977,7 @@ sub roundcube_config_mysql {
     );
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
     my $host = $conf->{vpopmail_mysql_repl_master};
     my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 )
         || { user => 'root', pass => '', host => $host };
@@ -5679,7 +5690,7 @@ sub spamassassin_sql_freebsd {
     my $pass = $conf->{'install_spamassassin_dbpass'};
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
 
     my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 );
     my ( $dbh, $dsn, $drh ) = $mysql->connect( $dot, 1 );
@@ -5858,7 +5869,7 @@ sub squirrelmail_mysql {
     my $host = "localhost";
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
 
     my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 );
     my ( $dbh, $dsn, $drh ) = $mysql->connect( $dot, 1 );
@@ -6234,7 +6245,7 @@ sub supervise {
     $toaster->service_dir_create(%p);
 
     require Mail::Toaster::Qmail;
-    $qmail ||= Mail::Toaster::Qmail->new( 'log' => $log );
+    $qmail ||= Mail::Toaster::Qmail->new( toaster=>$toaster );
 
     $qmail->control_create(%p);
     $qmail->install_qmail_control_files(%p);
@@ -6387,7 +6398,7 @@ sub test {
     $log->dump_audit(quiet=>1);  # clear audit history
 
     require Mail::Toaster::Qmail;
-    $qmail ||= Mail::Toaster::Qmail->new( 'log' => $log );
+    $qmail ||= Mail::Toaster::Qmail->new( toaster => $toaster );
 
     $self->test_supervised_procs();
     sleep 1;
@@ -6752,7 +6763,7 @@ sub test_supervised_procs {
     my $q_ser = $conf->{'qmail_service'};
 
     require Mail::Toaster::Qmail;
-    $qmail ||= Mail::Toaster::Qmail->new( 'log' => $log );
+    $qmail ||= Mail::Toaster::Qmail->new( toaster => $toaster );
 
     my @active_service_dirs;
     foreach ( qw/ smtp send / ) {
@@ -7527,7 +7538,7 @@ sub vpopmail_mysql_privs {
     );
 
     require Mail::Toaster::Mysql;
-    my $mysql = Mail::Toaster::Mysql->new( 'log' => $toaster );
+    my $mysql = Mail::Toaster::Mysql->new( toaster => $toaster );
 
     my $dot = $mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 )
         || { user => $user, pass => $pass, host => $my_write, db => $db };

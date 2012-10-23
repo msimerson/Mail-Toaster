@@ -19,7 +19,7 @@ my $toaster = Mail::Toaster->new(debug=>0);
 my $conf = $toaster->get_config();
 my $util = $toaster->get_util();
 
-my $apache = Mail::Toaster::Apache->new( 'log' => $toaster );
+my $apache = Mail::Toaster::Apache->new( 'toaster' => $toaster );
 ok ( defined $apache, 'get Mail::Toaster::Apache object' );
 ok ( $apache->isa('Mail::Toaster::Apache'), 'check object class' );
 

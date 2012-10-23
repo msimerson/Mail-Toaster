@@ -13,7 +13,7 @@ BEGIN { use_ok('Mail::Toaster::DNS') }
 require_ok('Mail::Toaster::DNS');
 
 # basic OO mechanism
-my $dns = Mail::Toaster::DNS->new( 'log' => $toaster );
+my $dns = Mail::Toaster::DNS->new( toaster => $toaster );
 ok( defined $dns, 'new (get a Mail::Toaster::DNS object)' );
 ok( $dns->isa('Mail::Toaster::DNS'), 'dns object class' );
 
