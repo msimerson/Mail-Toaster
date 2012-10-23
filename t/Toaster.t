@@ -16,7 +16,8 @@ require_ok('Mail::Toaster');
 my $toaster = Mail::Toaster->new(debug=>0);
 ok( defined $toaster, 'get Mail::Toaster object' );
 ok( $toaster->isa('Mail::Toaster'), 'check object class' );
-ok( ref $toaster->get_config(), 'get_config');
+my $conf = $toaster->get_config();
+ok( ref $conf, 'get_config');
 
 my $util = my $log = $toaster->get_util;
 
@@ -27,46 +28,6 @@ $log->audit("line one");
 $log->audit("line two");
 $log->audit("line three");
 $log->dump_audit( quiet=>1);
-
-# parse_line 
-my ( $foo, $bar ) = $toaster->parse_line( ' localhost1 = localhost, disk, da0, disk_da0 ' ); 
-ok( $foo eq "localhost1", 'parse_line lead & trailing whitespace' ); 
-ok( $bar eq "localhost, disk, da0, disk_da0", 'parse_line lead & trailing whitespace' ); 
- 
-( $foo, $bar ) = $toaster->parse_line( 'localhost1=localhost, disk, da0, disk_da0' ); 
-ok( $foo eq "localhost1", 'parse_line no whitespace' ); 
-ok( $bar eq "localhost, disk, da0, disk_da0", 'parse_line no whitespace' ); 
-
-( $foo, $bar ) = $toaster->parse_line( ' htmldir = /usr/local/www/toaster ' );
-ok( $foo && $bar, 'parse_line' );
-
-( $foo, $bar )
-    = $toaster->parse_line( ' hosts   = localhost lab.simerson.net seattle.simerson.net ' );
-ok( $foo eq "hosts", 'parse_line' );
-ok( $bar eq "localhost lab.simerson.net seattle.simerson.net", 'parse_line' );
-
-
-# parse_config
-# this fails because the filename is wrong
-ok( !$toaster->parse_config( 
-        file  => 'toaster-wacher.conf', 
-        debug => 0, 
-        fatal => 0 
-    ), 
-    'parse_config invalid filename' 
-); 
- 
-# this works because find_config will check for -dist in the local dir
-my $conf;
-ok( $conf = $toaster->parse_config(
-        file  => 'toaster-watcher.conf',
-        debug => 0,
-        fatal => 0
-    ),
-    'parse_config correct'
-);
-
-$log->dump_audit( quiet => 1 );
 
 # check
 ok( $toaster->check( debug => 0, test_ok=> 1 ), 'check' );

@@ -216,7 +216,7 @@ sub process_cgi {
 
     $util->install_module( "HTML::Template", debug => $debug,);
 
-    my $conf = $log->parse_config( file=>"toaster.conf", debug => 0 );
+    my $conf = $util->parse_config( "toaster.conf", debug => 0 );
 
     $debug = 0;
 

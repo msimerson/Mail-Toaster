@@ -10,7 +10,7 @@ use Mail::Toaster;
 
 my $toaster = Mail::Toaster->new(debug=>0);
 my $util = $toaster->{util};
-my $conf = $toaster->parse_config( file => "toaster.conf", debug => 0 );
+my $conf = $util->parse_config( "toaster.conf", debug => 0 );
 
 my $logdir = $conf->{logs_base};
 my $count  = $conf->{logs_counters};

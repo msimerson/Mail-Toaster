@@ -2076,6 +2076,77 @@ sub check_pidfile {
     return $file;
 }
 
+sub parse_config {
+    my $self = shift;
+    my $file = shift or die "missing file name";
+    my %p = validate( @_, {
+            etcdir => { type=>SCALAR,  optional=>1, },
+            %std_opts,
+        },
+    );
+
+    my %args = $self->get_std_args( %p );
+
+    if ( ! -f $file ) { $file = $self->find_config( $file, %p ); };
+
+    if ( ! $file || ! -r $file ) {
+        return $log->error( "could not find config file!", %args);
+    };
+
+    my %hash;
+    $log->audit( "  read config from $file");
+
+    my @config = $self->file_read( $file );
+    foreach ( @config ) {
+        next if ! $_;
+        chomp;
+        next if $_ =~ /^#/;          # skip lines beginning with #
+        next if $_ =~ /^[\s+]?$/;    # skip empty lines
+
+        my ( $key, $val ) = $self->parse_line( $_ );
+
+        next if ! $key;
+        $hash{$key} = $val;
+    }
+
+    return \%hash;
+}
+
+sub parse_line {
+    my $self = shift;
+    my $line = shift;
+    my %p = validate( @_, {
+            strip => { type => BOOLEAN, optional=>1, default=>1 },
+        },
+    );
+
+    my $strip = $p{strip};
+
+    # this regexp must match and return these patterns
+    # localhost1  = localhost, disk, da0, disk_da0
+    # hosts   = localhost lab.simerson.net seattle.simerson.net
+
+    my ( $key, $val ) = $line =~ /\A
+        \s*      # any amount of leading white space, greedy
+        (.*?)    # all characters, non greedy
+        \s*      # any amount of white space, greedy
+        =
+        \s*      # same, except on the other side of the =
+        (.*?)
+        \s*
+        \z/xms;
+
+    # remove any comments
+    if ( $strip && $val && $val =~ /#/ ) {
+
+        # removes everything from a # to the right, including
+        # any spaces to the left of the # symbol.
+        ($val) = $val =~ /(.*?\S)\s*#/;
+    }
+
+    return ( $key, $val );
+}
+
 sub provision_unix {
     my $self = shift;
     $self->install_module( 'Provision::Unix' );
@@ -2448,9 +2519,8 @@ __END__
 
 =head1 SYNOPSIS
 
-  use Mail::Toaster;
-  my $toaster = Mail::Toaster->new;
-  my $util = $toaster->get_util;
+  use Mail::Toaster::Utility;
+  my $toaster = Mail::Toaster::Utility->new;
 
   $util->file_write($file, lines=> @lines);
 

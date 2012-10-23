@@ -566,6 +566,45 @@ ok( $util->regexp_test(
     'regexp_test'
 );
 
+
+
+# parse_line 
+my ( $foo, $bar ) = $util->parse_line( ' localhost1 = localhost, disk, da0, disk_da0 ' );
+ok( $foo eq "localhost1", 'parse_line lead & trailing whitespace' );
+ok( $bar eq "localhost, disk, da0, disk_da0", 'parse_line lead & trailing whitespace' );
+
+( $foo, $bar ) = $util->parse_line( 'localhost1=localhost, disk, da0, disk_da0' );
+ok( $foo eq "localhost1", 'parse_line no whitespace' );
+ok( $bar eq "localhost, disk, da0, disk_da0", 'parse_line no whitespace' );
+
+( $foo, $bar ) = $util->parse_line( ' htmldir = /usr/local/www/toaster ' );
+ok( $foo && $bar, 'parse_line' );
+
+( $foo, $bar )
+    = $util->parse_line( ' hosts   = localhost lab.simerson.net seattle.simerson.net ' );
+    ok( $foo eq "hosts", 'parse_line' );
+    ok( $bar eq "localhost lab.simerson.net seattle.simerson.net", 'parse_line' );
+
+
+# parse_config
+# this fails because the filename is wrong
+    ok( !$util->parse_config( 'toaster-wacher.conf',
+                debug => 0,
+                fatal => 0
+                ),
+            'parse_config invalid filename'
+      );
+
+# this works because find_config will check for -dist in the local dir
+    my $conf;
+    ok( $conf = $util->parse_config( 'toaster-watcher.conf',
+                debug => 0,
+                fatal => 0
+                ),
+            'parse_config correct'
+      );
+
+
 # sources_get
 # do I really want a test script downloading stuff? probably not.
 
@@ -603,6 +642,9 @@ ok( $util->file_delete( file => "$rwtest.md5" ), 'file_delete' );
 
 ok( $util->clean_tmp_dir( dir => $tmp ), 'clean_tmp_dir' );
 
+
 # yes_or_no
 ok( $util->yes_or_no( "test", timeout => 5 ), 'yes_or_no' );
+
+
 

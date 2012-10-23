@@ -148,10 +148,7 @@ sub all {
 	$setup->config        ( );
 
     # re-initialize $conf with new settings. 
-    $conf = $toaster->parse_config( 
-        file  => "toaster-watcher.conf", 
-        debug => $debug,
-    );
+    $conf = $util->parse_config( "toaster-watcher.conf", debug => $debug );
     $toaster->{'debug'} = 1 if $debug;
     $conf->{'toaster_debug'} = 1 if $debug;
     $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf => $conf);

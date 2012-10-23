@@ -21,7 +21,7 @@ print "maillogs $VERSION: verbose mode enabled.\n" if $debug;
 
 my $toaster = Mail::Toaster->new(debug=>$debug);
 my $util    = $toaster->get_util;
-my $conf    = $toaster->parse_config( file=>'toaster.conf', debug=>0);
+my $conf    = $util->parse_config( 'toaster.conf', debug=>0);
    $conf->{'logs_debug'} = $debug;
 my $logs    = Mail::Toaster::Logs->new(conf=>$conf, toaster => $toaster );
 
