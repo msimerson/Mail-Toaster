@@ -310,12 +310,12 @@ sub messages_get {
     }
 
     # eache queue has "buckets" within it that we need to iterate over
-    foreach my $queue_buckets ( $util->get_dir_files( dir => $queue ) ) {
+    foreach my $queue_buckets ( $util->get_dir_files( $queue ) ) {
 
         # within each bucket is files that contain the email address we
         # are trying to deliver to.
 
-        foreach my $file ( $util->get_dir_files( dir => $queue_buckets ) ) {
+        foreach my $file ( $util->get_dir_files( $queue_buckets ) ) {
 
             # id is the message id
             ( $up1dir, $id )     = $util->path_parse($file);

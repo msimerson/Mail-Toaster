@@ -135,7 +135,7 @@ if ( $UID == 0 && $sudo_bin && -x $sudo_bin ) {
 TODO: {
     my $why = " - no test written yet";
 }
-ok( $util->clean_tmp_dir( dir => $tmp ), 'clean_tmp_dir' );
+ok( $util->clean_tmp_dir( $tmp ), 'clean_tmp_dir' );
 
 print "\t\t wd: " . cwd . "\n" if $debug;
 
@@ -388,7 +388,7 @@ if ($fs) {
 }
 
 # get_dir_files
-my (@list) = $util->get_dir_files( dir => "/etc" );
+my (@list) = $util->get_dir_files( "/etc" );
 ok( -e $list[0], 'get_dir_files' );
 
 # get_my_ips
@@ -640,7 +640,7 @@ ok( !$util->file_delete( file => $backup, fatal => 0 ),
 ok( $util->file_delete( file => $rwtest       ), 'file_delete' );
 ok( $util->file_delete( file => "$rwtest.md5" ), 'file_delete' );
 
-ok( $util->clean_tmp_dir( dir => $tmp ), 'clean_tmp_dir' );
+ok( $util->clean_tmp_dir( $tmp ), 'clean_tmp_dir' );
 
 
 # yes_or_no

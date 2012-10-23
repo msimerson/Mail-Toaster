@@ -154,10 +154,10 @@ sub lists_get {
 
     print "now fetching a list of ezmlm lists..." if $debug;
 
-    foreach my $all ( $util->get_dir_files( dir => $dir ) ) {
+    foreach my $all ( $util->get_dir_files( $dir ) ) {
         next unless ( -d $all );
 
-        foreach my $second ( $util->get_dir_files( dir => $all ) ) {
+        foreach my $second ( $util->get_dir_files( $all ) ) {
             next unless ( -d $second );
             if ( $second =~ /subscribers$/ ) {
                 print "found one: $all, $second $br" if $debug;

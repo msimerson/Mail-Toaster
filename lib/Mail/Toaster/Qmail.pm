@@ -866,7 +866,7 @@ sub get_qmailscanner_virus_sender_ips {
         return;
     }
 
-    my @files = $util->get_dir_files( dir => "$quarantine/new" );
+    my @files = $util->get_dir_files( "$quarantine/new" );
 
     foreach my $file (@files) {
         if ($block) {

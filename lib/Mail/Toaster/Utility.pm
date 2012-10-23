@@ -318,20 +318,16 @@ sub chown_system {
 
 sub clean_tmp_dir {
     my $self = shift;
-    my %p = validate( @_,
-        {   'dir'   => { type => SCALAR,  optional => 0, },
-            %std_opts
-        }
-    );
+    my $dir = shift or die "missing dir name";
+    my %p = validate( @_, { %std_opts } );
 
-    my $dir = $p{dir};
     my %args = $self->get_std_args( %p );
 
     my $before = cwd;   # remember where we started
 
     return $log->error( "couldn't chdir to $dir: $!", %args) if !chdir $dir;
 
-    foreach ( $self->get_dir_files( dir => $dir ) ) {
+    foreach ( $self->get_dir_files( $dir ) ) {
         next unless $_;
 
         my ($file) = $_ =~ /^(.*)$/;
@@ -343,8 +339,7 @@ sub clean_tmp_dir {
                 $self->file_delete( file => $file, %args );
         }
         elsif ( -d $file ) {
-            use File::Path;
-            rmtree $file or return $log->error( "couldn't delete $file");
+            rmtree $file or return $log->error( "couldn't delete $file", %args);
         }
         else {
             $log->audit( "Cannot delete unknown entity: $file" );
@@ -986,13 +981,9 @@ sub get_cpan_config {
 
 sub get_dir_files {
     my $self = shift;
-    my %p = validate( @_,
-        {   'dir'   => { type => SCALAR,  optional => 0, },
-            %std_opts,
-        }
-    );
+    my $dir = shift or die "missing dir name";
+    my %p = validate( @_, { %std_opts } );
 
-    my $dir = $p{dir};
     my %args = $self->get_std_args( %p );
 
     my @files;
@@ -1784,7 +1775,7 @@ sub install_module_from_src {
 
     my $found;
     print "looking for $module in $src...";
-    foreach my $file ( $self->get_dir_files( dir => $src ) ) {
+    foreach my $file ( $self->get_dir_files( $src ) ) {
 
         next if ! -d $file;  # only check directories
         next if $file !~ /$module/;
@@ -2652,7 +2643,7 @@ The advantage this sub has over a Pure Perl implementation is that it can utiliz
 
 
   ############## clean_tmp_dir ################
-  # Usage      : $util->clean_tmp_dir( dir=>$dir );
+  # Usage      : $util->clean_tmp_dir( $dir );
   # Purpose    : clean up old build stuff before rebuilding
   # Returns    : 0 - failure,  1 - success
   # Parameters : S - $dir - a directory or file.
@@ -2969,7 +2960,7 @@ If the file exists, it checks to see if it is writable. If the file does not exi
 
 =item get_dir_files
 
-   $util->get_dir_files( dir=>$dir, debug=>1 )
+   $util->get_dir_files( $dir, debug=>1 )
 
  required arguments:
    dir - a directory
