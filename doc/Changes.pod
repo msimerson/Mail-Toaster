@@ -1,7 +1,20 @@
 
 =head1 Mail Toaster Changes
 
-=head2 5.33 - Oct 26, 2011
+=head2 5.35 - Oct 23, 2012
+
+    api change for get_dir_files, clean_tmp_dir, file_delete
+    moved subs from Toaster to Utility: audit, error, dump_audit, dump_errors, has_module, find_config, find_readable, get_std_args, parse_config & parse_line
+    replaced non-ASCII • with *
+    added IO::Socket::SSL to bin/install_deps
+    check just the 'standard' places for httpd.conf instead of using `find $dir`
+    apache test failed if no httpd.conf found on test machines, this is quite likely. The lack of finding the file now skips the test.
+    more argument unpacking with get_std_args
+    toaster-watcher attempts to create missing service dirs
+    added 'quiet' to %std_args (was manually passing it around)
+    removed qmail_service_* settings
+
+=head2 5.33 - Oct 13, 2012
 
     updated path to maildir-deliverquota
     updated path to freshclam.log

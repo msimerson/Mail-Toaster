@@ -20,7 +20,8 @@
 	<li><a href="#mail_toaster_changes">Mail Toaster Changes</a></li>
 	<ul>
 
-		<li><a href="#5_33___oct_26__2011">5.33 - Oct 26, 2011</a></li>
+		<li><a href="#5_35___oct_23__2012">5.35 - Oct 23, 2012</a></li>
+		<li><a href="#5_33___oct_13__2012">5.33 - Oct 13, 2012</a></li>
 		<li><a href="#5_32___aug_19__2012">5.32 - Aug 19, 2012</a></li>
 		<li><a href="#5_30___sep_26__2011">5.30 - Sep 26, 2011</a></li>
 		<li><a href="#5_29___jun_12__2011">5.29 - Jun 12, 2011</a></li>
@@ -61,7 +62,21 @@
 <h1><a name="mail_toaster_changes">Mail Toaster Changes</a></h1>
 <p>
 </p>
-<h2><a name="5_33___oct_26__2011">5.33 - Oct 26, 2011</a></h2>
+<h2><a name="5_35___oct_23__2012">5.35 - Oct 23, 2012</a></h2>
+<pre>
+    api change for get_dir_files, clean_tmp_dir, file_delete
+    moved subs from Toaster to Utility: audit, error, dump_audit, dump_errors, has_module, find_config, find_readable, get_std_args, parse_config &amp; parse_line
+    replaced non-ASCII • with *
+    added IO::Socket::SSL to bin/install_deps
+    check just the 'standard' places for httpd.conf instead of using `find $dir`
+    apache test failed if no httpd.conf found on test machines, this is quite likely. The lack of finding the file now skips the test.
+    more argument unpacking with get_std_args
+    toaster-watcher attempts to create missing service dirs
+    added 'quiet' to %std_args (was manually passing it around)
+    removed qmail_service_* settings</pre>
+<p>
+</p>
+<h2><a name="5_33___oct_13__2012">5.33 - Oct 13, 2012</a></h2>
 <pre>
     updated path to maildir-deliverquota
     updated path to freshclam.log
