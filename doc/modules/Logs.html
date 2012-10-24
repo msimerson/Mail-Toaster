@@ -84,12 +84,12 @@
 <dd>
 <pre>
         $logs-&gt;compress_yesterdays_logs(
-            file  =&gt; $file, 
+            file  =&gt; $file,
         );</pre>
-<p>You'll have to guess what this does. ;)</p>
-<pre>
- 
-=item count_rbl_line</pre>
+</dd>
+<dt><strong><a name="count_rbl_line" class="item">count_rbl_line</a></strong></dt>
+
+<dd>
 <pre>
     $logs-&gt;count_rbl_line($line);</pre>
 </dd>
@@ -98,8 +98,8 @@
 <dd>
 <pre>
  usage:
-     $logs-&gt;count_send_line( $count, $line );
-     
+     $logs-&gt;count_send_line( $count, $line );</pre>
+<pre>
  arguments required:
       count - a hashref of counter values
       line  - an entry from qmail's send logs</pre>
@@ -260,7 +260,7 @@ Patches welcome.</p>
 <p>The following are relevant man/perldoc pages:</p>
 <pre>
  maillogs
- Mail::Toaster 
+ Mail::Toaster
  toaster.conf</pre>
 <pre>
  <a href="http://mail-toaster.org/">http://mail-toaster.org/</a></pre>

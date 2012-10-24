@@ -628,3 +628,10 @@ Mail Toaster Changes
 
     See Also 4.x Changes <http://mail-toaster.org/changes/4.x-changes.html>
 
+POD ERRORS
+    Hey! The above document had some coding errors, which are explained
+    below:
+
+    Around line 11:
+        Non-ASCII character seen before =encoding in '…`'. Assuming UTF-8
+

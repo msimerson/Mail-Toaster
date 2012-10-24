@@ -336,7 +336,7 @@ sub clean_tmp_dir {
 
         if ( -f $file ) {
             unlink $file or
-                $self->file_delete( file => $file, %args );
+                $self->file_delete( $file, %args );
         }
         elsif ( -d $file ) {
             rmtree $file or return $log->error( "couldn't delete $file", %args);
@@ -527,14 +527,13 @@ sub extract_archive {
 
 sub file_delete {
     my $self = shift;
+    my $file = shift or die "missing file argument";
     my %p = validate( @_,
-        {   'file'  => { type => SCALAR },
-            'sudo'  => { type => BOOLEAN, optional => 1, default => 0 },
+        {   'sudo'  => { type => BOOLEAN, optional => 1, default => 0 },
             %std_opts,
         }
     );
 
-    my $file = $p{file};
     my %args = $self->get_std_args( %p );
 
     return $log->error( "$file does not exist", %args ) if !-e $file;
@@ -2209,7 +2208,7 @@ sub sources_get {
                 and return $log->audit( "  ok, using existing archive: $tarball");
         }
 
-        $self->file_delete( file => $tarball, %args );
+        $self->file_delete( $tarball, %args );
     }
 
     foreach my $ext (@extensions) {
@@ -2230,7 +2229,7 @@ sub sources_get {
         };
 
         $log->audit( "  oops, is not [b|g]zipped data!");
-        $self->file_delete( file => $tarball, %args);
+        $self->file_delete( $tarball, %args);
     }
 
     return $log->error( "unable to get $package", %args );
@@ -2725,7 +2724,7 @@ Set the ownership (user and group) of a file. Will use the native perl methods (
 =item file_delete
 
   ############################################
-  # Usage      : $util->file_delete( file=>$file );
+  # Usage      : $util->file_delete( $file );
   # Purpose    : Deletes a file.
   # Returns    : 0 - failure, 1 - success
   # Parameters

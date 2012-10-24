@@ -17,9 +17,12 @@
 <ul>
 
 	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
 	<li><a href="#description">DESCRIPTION</a></li>
 	<li><a href="#subroutines_methods">SUBROUTINES/METHODS</a></li>
 	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#diagnostics">DIAGNOSTICS</a></li>
+	<li><a href="#configuration_and_environment">CONFIGURATION AND ENVIRONMENT</a></li>
 	<li><a href="#dependencies">DEPENDENCIES</a></li>
 	<li><a href="#bugs_and_limitations">BUGS AND LIMITATIONS</a></li>
 	<li><a href="#todo">TODO</a></li>
@@ -36,12 +39,11 @@
 <p>
 </p>
 <h1><a name="name">NAME</a></h1>
-<pre>
-
-Mail::Toaster:::Qmail - Qmail specific functions</pre>
-<pre>
-
-=head1 SYNOPSIS</pre>
+<p>Mail::Toaster:::Qmail - Qmail specific functions</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
 <pre>
     use Mail::Toaster::Qmail;
     my $qmail = Mail::Toaster::Qmail-&gt;new();</pre>
@@ -53,16 +55,12 @@ Mail::Toaster:::Qmail - Qmail specific functions</pre>
 </p>
 <hr />
 <h1><a name="description">DESCRIPTION</a></h1>
-<pre>
-
-This module has all sorts of goodies, the most useful of which are the build_????_run modules which build your qmail control files for you. See the METHODS section for more details.</pre>
+<p>This module has all sorts of goodies, the most useful of which are the build_????_run modules which build your qmail control files for you. See the METHODS section for more details.</p>
 <p>
 </p>
 <hr />
 <h1><a name="subroutines_methods">SUBROUTINES/METHODS</a></h1>
-<pre>
-
-An object of this class represents a means for interacting with qmail. There are functions for starting, stopping, installing, generating run-time config files, building ssl temp keys, testing functionality, monitoring processes, and training your spam filters.</pre>
+<p>An object of this class represents a means for interacting with qmail. There are functions for starting, stopping, installing, generating run-time config files, building ssl temp keys, testing functionality, monitoring processes, and training your spam filters.</p>
 <dl>
 <dt><strong><a name="new" class="item">new</a></strong></dt>
 
@@ -101,7 +99,7 @@ An object of this class represents a means for interacting with qmail. There are
 <p>Installs the files that control your supervised processes logging. Typically this consists of qmail-smtpd, qmail-send, and qmail-pop3d. The generated files are:</p>
 <pre>
  arguments optional:
-    prots - an arrayref list of protocols to build run files for. 
+    prots - an arrayref list of protocols to build run files for.
            Defaults to [pop3,smtp,send,submit]
         debug
         fatal</pre>
@@ -442,31 +440,29 @@ An object of this class represents a means for interacting with qmail. There are
 <hr />
 <h1><a name="examples">EXAMPLES</a></h1>
 <p>Working examples of the usage of these methods can be found in  t/Qmail.t, toaster-watcher.pl, and toaster_setup.pl.</p>
-<pre>
- 
-=head1 DIAGNOSTICS
- 
-All functions include debugging output which is enabled by default. You can disable the status/debugging messages by calling the functions with debug=&gt;0. The default behavior is to die upon errors. That too can be overriddent by setting fatal=&gt;0. See the tests in t/Qmail.t for code examples.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="diagnostics">DIAGNOSTICS</a></h1>
+<p>All functions include debugging output which is enabled by default. You can disable the status/debugging messages by calling the functions with debug=&gt;0. The default behavior is to die upon errors. That too can be overriddent by setting fatal=&gt;0. See the tests in t/Qmail.t for code examples.</p>
 <pre>
   #=head1 COMMON USAGE MISTAKES</pre>
-<pre>
- 
-=head1 CONFIGURATION AND ENVIRONMENT
- 
-Nearly all of the configuration options can be manipulated by setting the 
+<p>
+</p>
+<hr />
+<h1><a name="configuration_and_environment">CONFIGURATION AND ENVIRONMENT</a></h1>
+<p>Nearly all of the configuration options can be manipulated by setting the
 appropriate values in toaster-watcher.conf. After making changes in toaster-watcher.conf,
 you can run toaster-watcher.pl and your changes will propagate immediately,
-or simply wait a few minutes for them to take effect.</pre>
+or simply wait a few minutes for them to take effect.</p>
 <p>
 </p>
 <hr />
 <h1><a name="dependencies">DEPENDENCIES</a></h1>
-<pre>
-
-A list of all the other modules that this module relies upon, including any
+<p>A list of all the other modules that this module relies upon, including any
 restrictions on versions, and an indication whether these required modules are
 part of the standard Perl distribution, part of the module's distribution,
-or must be installed separately.</pre>
+or must be installed separately.</p>
 <pre>
     Params::Validate        - from CPAN
     Mail::Toaster           - with package</pre>
@@ -474,10 +470,8 @@ or must be installed separately.</pre>
 </p>
 <hr />
 <h1><a name="bugs_and_limitations">BUGS AND LIMITATIONS</a></h1>
-<pre>
-
-None known. When found, report to author.
-Patches are welcome.</pre>
+<p>None known. When found, report to author.
+Patches are welcome.</p>
 <p>
 </p>
 <hr />
@@ -487,7 +481,7 @@ Patches are welcome.</pre>
 <hr />
 <h1><a name="see_also">SEE ALSO</a></h1>
 <pre>
-  Mail::Toaster 
+  Mail::Toaster
   Mail::Toaster::Conf
   toaster.conf
   toaster-watcher.conf</pre>
@@ -497,9 +491,7 @@ Patches are welcome.</pre>
 </p>
 <hr />
 <h1><a name="author">AUTHOR</a></h1>
-<pre>
-
-Matt Simerson  (matt@tnpi.net)</pre>
+<p>Matt Simerson  (<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>)</p>
 <p>
 </p>
 <hr />
@@ -507,9 +499,8 @@ Matt Simerson  (matt@tnpi.net)</pre>
 <p>
 </p>
 <hr />
-<h1><a name="licence_and_copyright_copyright__c__2004_2008_the_network_people__inc___info_tnpi_net___all_rights_reserved_">LICENCE AND COPYRIGHT
- 
-Copyright (c) 2004-2008 The Network People, Inc. (<a href="mailto:info@tnpi.net">info@tnpi.net</a>) All rights reserved.</a></h1>
+<h1><a name="licence_and_copyright">LICENCE AND COPYRIGHT</a></h1>
+<p>Copyright (c) 2004-2012 The Network People, Inc. (<a href="mailto:info@tnpi.net">info@tnpi.net</a>) All rights reserved.</p>
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>

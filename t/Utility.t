@@ -94,7 +94,7 @@ SKIP: {
     ok( !$util->extract_archive( "$archive.fizzlefuzz", fatal => 0 ), 'extract_archive -');
 
     # clean up behind the tests
-    ok( $util->file_delete( file => $archive, fatal => 0 ), 'file_delete' );
+    ok( $util->file_delete( $archive, fatal => 0 ), 'file_delete' );
 }
 
 $log->dump_audit(quiet=>1);
@@ -112,7 +112,7 @@ ok( $util->cwd_source_dir( $tmp ), 'cwd_source_dir' );
 
 # clean up after previous runs
 if ( -f "$tmp/foo" ) {
-    ok( $util->file_delete( file => "$tmp/foo", fatal => 0 ), 'file_delete' );
+    ok( $util->file_delete( "$tmp/foo", fatal => 0 ), 'file_delete' );
 }
 
 # a dir to create
@@ -174,7 +174,7 @@ ok( $util->file_write( $rwtest, lines  => ["more junk"], append => 1 ), 'file_ap
 # a typical invocation
 my $backup = $util->archive_file( $rwtest, fatal => 0 );
 ok( -e $backup, 'archive_file' );
-ok( $util->file_delete( file => $backup, fatal => 0 ), 'file_delete' );
+ok( $util->file_delete( $backup, fatal => 0 ), 'file_delete' );
 
 ok( !$util->archive_file( $backup, fatal => 0 ), 'archive_file' );
 
@@ -633,12 +633,11 @@ ok( $util->syscmd( "rm $tmpfile", fatal => 0, ), 'syscmd +');
 ) if ( $network && -f "$tmp/maildrop-qmail-domain" );
 
 # file_delete
-ok( $util->file_delete( file => $backup ), 'file_delete' );
-ok( !$util->file_delete( file => $backup, fatal => 0 ),
-    'file_delete' );
+ok( $util->file_delete( $backup ), 'file_delete' );
+ok( !$util->file_delete( $backup, fatal => 0 ), 'file_delete' );
 
-ok( $util->file_delete( file => $rwtest       ), 'file_delete' );
-ok( $util->file_delete( file => "$rwtest.md5" ), 'file_delete' );
+ok( $util->file_delete( $rwtest       ), 'file_delete' );
+ok( $util->file_delete( "$rwtest.md5" ), 'file_delete' );
 
 ok( $util->clean_tmp_dir( $tmp ), 'clean_tmp_dir' );
 

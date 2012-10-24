@@ -81,8 +81,8 @@
     $fbsd-&gt;jail_create( );</pre>
 <pre>
  arguments required:
-    ip        - 10.0.1.1
-    
+    ip        - 10.0.1.1</pre>
+<pre>
  arguments optional:
     hostname  - jail36.example.com,
     jail_home - /home/jail,
@@ -94,15 +94,15 @@ be looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
 <pre>
     ifconfig fxp0 inet alias 10.0.1.175/32</pre>
 <pre>
-    perl -e 'use Mail::Toaster::FreeBSD;  
-         my $fbsd = Mail::Toaster::FreeBSD-&gt;new; 
+    perl -e 'use Mail::Toaster::FreeBSD;
+         my $fbsd = Mail::Toaster::FreeBSD-&gt;new;
          $fbsd-&gt;jail_create( ip=&gt;&quot;10.0.1.175&quot; )';</pre>
-<p>After running $fbsd-&gt;jail_create, you need to set up the jail. 
+<p>After running $fbsd-&gt;jail_create, you need to set up the jail.
 At the very least, you need to:</p>
 <pre>
     1. set root password
     2. create a user account
-    3. get remote root 
+    3. get remote root
         a) use sudo (pkg_add -r sudo; visudo)
         b) add user to wheel group (vi /etc/group)
         c) modify /etc/ssh/sshd_config to permit root login
@@ -114,8 +114,8 @@ At the very least, you need to:</p>
     pkg_add -r sudo rsync perl5.8
     rehash; visudo
     sh /etc/rc</pre>
-<p>Ssh into the jail from another terminal. Once successfully 
-logged in with root privs, you can drop the initial shell 
+<p>Ssh into the jail from another terminal. Once successfully
+logged in with root privs, you can drop the initial shell
 and access the jail directly.</p>
 <p>Read the jail man pages for more details. Read the perl code
 to see what else it does.</p>
@@ -148,12 +148,13 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
 <p>jail_home defaults to &quot;/home/jail&quot;.</p>
 <p>Here's an example of how I use it:</p>
 <pre>
-    perl -e 'use Mail::Toaster::FreeBSD; 
+    perl -e 'use Mail::Toaster::FreeBSD;
       $fbsd = Mail::Toaster::FreeBSD-&gt;new;
       $fbsd-&gt;jail_start( ip=&gt;&quot;10.0.1.175&quot; )';</pre>
-<pre>
-    
-=item install_port</pre>
+</dd>
+<dt><strong><a name="install_port" class="item">install_port</a></strong></dt>
+
+<dd>
 <pre>
     $fbsd-&gt;install_port( &quot;openldap&quot; );</pre>
 <p>That's it. Really. Well, OK, sometimes it can get a little more complex. install_port checks first to determine if a port is already installed and if so, skips right on by. It is very intelligent that way. However, sometimes port maintainers do goofy things and we need to override settings that would normally work. A good example of this is currently openldap.</p>
@@ -165,11 +166,10 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
                 /usr/ports/net/openldap24-client</pre>
 <p>So, a full complement of settings could look like:</p>
 <pre>
-
     $freebsd-&gt;install_port( &quot;openldap-client&quot;,
                 dir   =&gt; &quot;openldap24-server&quot;,
                 check =&gt; &quot;openldap-client-2.4&quot;,
-                flags =&gt; &quot;NOPORTDOCS=true&quot;, 
+                flags =&gt; &quot;NOPORTDOCS=true&quot;,
                 fatal =&gt; 0,
         );</pre>
 <pre>
@@ -215,9 +215,8 @@ looked up. Otherwise, the hostname defaults to &quot;jail&quot;.</p>
     $fbsd-&gt;update_ports();</pre>
 <pre>
  arguments required:
-   conf - a hashref
- 
-See the docs for toaster-watcher.conf for complete details.</pre>
+   conf - a hashref</pre>
+<p>See the docs for toaster-watcher.conf for complete details.</p>
 </dd>
 <dt><strong><a name="conf_check" class="item">conf_check</a></strong></dt>
 
@@ -248,7 +247,7 @@ See the docs for toaster-watcher.conf for complete details.</pre>
 <h1><a name="see_also">SEE ALSO</a></h1>
 <p>The following are all man/perldoc pages:</p>
 <pre>
- Mail::Toaster 
+ Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
  toaster-watcher.conf</pre>
@@ -259,7 +258,7 @@ See the docs for toaster-watcher.conf for complete details.</pre>
 </p>
 <hr />
 <h1><a name="copyright">COPYRIGHT</a></h1>
-<p>Copyright 2003-2009, The Network People, Inc. All Rights Reserved.</p>
+<p>Copyright 2003-2012, The Network People, Inc. All Rights Reserved.</p>
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>

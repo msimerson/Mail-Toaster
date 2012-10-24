@@ -115,10 +115,10 @@ context to help them understand the methods that are subsequently described.</p>
   # Comments   :</pre>
 <p>Performs the following tests:</p>
 <pre>
-   • check for processes that should be running.
-   • make sure watcher.log is less than 1MB
-   • make sure ~alias/.qmail-* exist and are not empty
-   • verify multilog log directories are working</pre>
+   * check for processes that should be running.
+   * make sure watcher.log is less than 1MB
+   * make sure ~alias/.qmail-* exist and are not empty
+   * verify multilog log directories are working</pre>
 <p>When this is run by toaster-watcher.pl via cron, the mail server admin will get notified via email any time one of the tests fails. Otherwise, there is no output generated.</p>
 </dd>
 <dt><strong><a name="learn_mailboxes" class="item">learn_mailboxes</a></strong></dt>
@@ -194,36 +194,6 @@ context to help them understand the methods that are subsequently described.</p>
 
 <dd>
 <p>Sends a sample spam message that SpamAssassin should block.</p>
-</dd>
-<dt><strong><a name="find_config" class="item">find_config</a></strong></dt>
-
-<dd>
-<p>This sub is called by several others to determine which configuration file to use. The general logic is as follows:</p>
-<pre>
-  If the etc dir and file name are provided and the file exists, use it.</pre>
-<p>If that fails, then go prowling around the drive and look in all the usual places, in order of preference:</p>
-<pre>
-  /opt/local/etc/
-  /usr/local/etc/
-  /etc</pre>
-<p>Finally, if none of those work, then check the working directory for the named .conf file, or a .conf-dist.</p>
-<p>Example:
-  my $twconf = $util-&gt;find_config (
-      file   =&gt; 'toaster-watcher.conf',
-      etcdir =&gt; '/usr/local/etc',
-    )</p>
-<pre>
- arguments required:
-   file - the .conf file to read in</pre>
-<pre>
- arguments optional:
-   etcdir - the etc directory to prefer
-   debug
-   fatal</pre>
-<pre>
- result:
-   0 - failure
-   the path to $file</pre>
 </dd>
 <dt><strong><a name="get_toaster_cgibin" class="item">get_toaster_cgibin</a></strong></dt>
 
@@ -406,12 +376,12 @@ that are a different than mine, like a LWQ install.</p>
 <dd>
 <p>Checks a supervised directory to see if it is set up properly for supervise to start it. It performs a bunch of tests including:</p>
 <pre>
- • directory exists
- • dir/run file exists and is executable
- • dir/down file is not present
- • dir/log exists
- • dir/log/run exists and is executable
- • dir/log/down does not exist</pre>
+ * directory exists
+ * dir/run file exists and is executable
+ * dir/down file is not present
+ * dir/log exists
+ * dir/log/run exists and is executable
+ * dir/log/down does not exist</pre>
 <pre>
  arguments required:
     prot - a protocol to check (smtp, pop3, send, submit)</pre>

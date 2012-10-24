@@ -1,10 +1,12 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 
 # by Matt Simerson & Phil Nadeau
 # circa 2008, but based in installer in Mail::Toaster dating back to the 20th century
 
 use strict;
 use warnings;
+
+our $VERSION = 1.2;
 
 use CPAN;
 use English qw( -no_match_vars );

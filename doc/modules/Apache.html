@@ -62,7 +62,7 @@
    use Mail::Toaster;
    use Mail::Toaster::Apache
    my $log = Mail::Toaster-&gt;new(debug=&gt;0)
-   my $apache = Mail::Toaster::Apache-&gt;new( 'log' =&gt; $log );</pre>
+   my $apache = Mail::Toaster::Apache-&gt;new( toaster =&gt; $toaster );</pre>
 <p>use this function to create a new apache object. From there you can use all the functions
 included in this document.</p>
 <p>Each method expect to recieve one or two hashrefs. The first hashref must have a value set for &lt;i&gt;vhost&lt;/i&gt; and optional values set for the following: ip, serveralias serveradmin, documentroot, redirect, ssl, sslcert, sslkey, cgi, customlog, customerror.</p>
@@ -147,7 +147,7 @@ included in this document.</p>
 <h1><a name="see_also">SEE ALSO</a></h1>
 <p>The following are all man/perldoc pages:</p>
 <pre>
- Mail::Toaster 
+ Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
  toaster-watcher.conf</pre>
@@ -157,7 +157,7 @@ included in this document.</p>
 </p>
 <hr />
 <h1><a name="copyright_and_license">COPYRIGHT AND LICENSE</a></h1>
-<p>Copyright (c) 2003-2008, The Network People, Inc. All Rights Reserved.</p>
+<p>Copyright (c) 2003-2012, The Network People, Inc. All Rights Reserved.</p>
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>

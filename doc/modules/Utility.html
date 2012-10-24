@@ -33,9 +33,8 @@
 </p>
 <h1><a name="synopsis">SYNOPSIS</a></h1>
 <pre>
-  use Mail::Toaster;
-  my $toaster = Mail::Toaster-&gt;new;
-  my $util = $toaster-&gt;get_util;</pre>
+  use Mail::Toaster::Utility;
+  my $toaster = Mail::Toaster::Utility-&gt;new;</pre>
 <pre>
   $util-&gt;file_write($file, lines=&gt; @lines);</pre>
 <p>This is just one of the many handy little methods I have amassed here. Rather than try to remember all of the best ways to code certain functions and then attempt to remember them, I have consolidated years of experience and countless references from Learning Perl, Programming Perl, Perl Best Practices, and many other sources into these subroutines.</p>
@@ -160,7 +159,7 @@
 <dd>
 <pre>
   ############## clean_tmp_dir ################
-  # Usage      : $util-&gt;clean_tmp_dir( dir=&gt;$dir );
+  # Usage      : $util-&gt;clean_tmp_dir( $dir );
   # Purpose    : clean up old build stuff before rebuilding
   # Returns    : 0 - failure,  1 - success
   # Parameters : S - $dir - a directory or file.
@@ -244,7 +243,7 @@
 <dd>
 <pre>
   ############################################
-  # Usage      : $util-&gt;file_delete( file=&gt;$file );
+  # Usage      : $util-&gt;file_delete( $file );
   # Purpose    : Deletes a file.
   # Returns    : 0 - failure, 1 - success
   # Parameters
@@ -389,6 +388,35 @@
    0 - failure
    success will return the full path to the binary.</pre>
 </dd>
+<dt><strong><a name="find_config" class="item">find_config</a></strong></dt>
+
+<dd>
+<p>This sub is called by several others to determine which configuration file to use. The general logic is as follows:</p>
+<pre>
+  If the etc dir and file name are provided and the file exists, use it.</pre>
+<p>If that fails, then go prowling around the drive and look in all the usual places, in order of preference:</p>
+<pre>
+  /opt/local/etc/
+  /usr/local/etc/
+  /etc</pre>
+<p>Finally, if none of those work, then check the working directory for the named .conf file, or a .conf-dist.</p>
+<p>Example:
+  my $twconf = $util-&gt;find_config ( 'toaster-watcher.conf',
+      etcdir =&gt; '/usr/local/etc',
+    )</p>
+<pre>
+ arguments required:
+   file - the .conf file to read in</pre>
+<pre>
+ arguments optional:
+   etcdir - the etc directory to prefer
+   debug
+   fatal</pre>
+<pre>
+ result:
+   0 - failure
+   the path to $file</pre>
+</dd>
 <dt><strong><a name="get_my_ips" class="item">get_my_ips</a></strong></dt>
 
 <dd>
@@ -446,7 +474,7 @@
 
 <dd>
 <pre>
-   $util-&gt;get_dir_files( dir=&gt;$dir, debug=&gt;1 )</pre>
+   $util-&gt;get_dir_files( $dir, debug=&gt;1 )</pre>
 <pre>
  required arguments:
    dir - a directory</pre>
