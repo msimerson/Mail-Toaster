@@ -3,10 +3,16 @@
 # by Matt Simerson & Phil Nadeau
 # circa 2008, but based in installer in Mail::Toaster dating back to the 20th century
 
+# v1.4 - 2012-10-23
+#      - improved yum & apt-get module installer
+# v1.3 - 2012-10-23
+#      - added apt-get support
+#      - added app install support
+
 use strict;
 use warnings;
 
-our $VERSION = 1.2;
+our $VERSION = 1.4;
 
 use CPAN;
 use English qw( -no_match_vars );
@@ -18,10 +24,11 @@ my $deps = {
         { module => 'Email::Valid'      , info => {} },
         { module => 'Mail::Send'        , info => { port => 'Mail::Tools' }  },
         { module => 'Params::Validate'  , info => {} },
-#        { module => 'Provision::Unix'   , info => {} },
+#       { module => 'Provision::Unix'   , info => {} },
         { module => 'URI'               , info => {} },
         { module => 'version'           , info => {} },
         { module => 'IO::Socket::SSL'   , info => {} },
+#       { module => 'Mail::Toaster'     , info => {} },
     ],
     'apps' => [
         { app => 'expat'         , info => { port => 'expat2',         dport=>'expat2' } },
@@ -33,28 +40,33 @@ my $deps = {
     ]
 };
 
-$EUID == 0 or die( "You will have better luck if you run me as root.\n");
+$EUID == 0 or die "You will have better luck if you run me as root.\n";
 
 # this causes problems when CPAN is not configured.
 #$ENV{PERL_MM_USE_DEFAULT} = 1;       # supress CPAN prompts
 
 $ENV{FTP_PASSIVE} = 1;        # for FTP behind NAT/firewalls
 
-my $modules = $deps->{modules};
-my @failed  = ();
-foreach ( @$modules ) {
+my @failed;
+foreach ( @{ $deps->{apps} } ) {
+    my $name = $_->{app} or die 'missing app name';
+    install_app( $name, $_->{info} );
+};
+
+foreach ( @{ $deps->{modules} } ) {
     my $module = $_->{module} or die 'missing module name';
     my $info   = $_->{info};
     my $version = $info->{version} || '';
     print "checking for $module $version\n";
+
+    eval "use $module $version";
+    next if ! $EVAL_ERROR;
+    next if $info->{ships_with} && $info->{ships_with} eq 'perl';
+
+    install_module( $module, $info, $version );
     eval "use $module $version";
     if ($EVAL_ERROR) {
-        next if $info->{ships_with} && $info->{ships_with} eq 'perl';
-        install_module( $module, $info, $version );
-        eval "use $module $version";
-        if ($EVAL_ERROR) {
-            push @failed, $module;
-        }
+        push @failed, $module;
     }
 }
 
@@ -65,6 +77,73 @@ if ( scalar @failed > 0 ) {
 }
 
 exit;
+
+sub install_app {
+    my ( $app, $info) = @_;
+
+    if ( lc($OSNAME) eq 'darwin' ) {
+        install_app_darwin($app, $info );
+    }
+    elsif ( lc($OSNAME) eq 'freebsd' ) {
+        install_app_freebsd($app, $info );
+    }
+    elsif ( lc($OSNAME) eq 'linux' ) {
+        install_app_linux( $app, $info );
+    };
+
+};
+
+sub install_app_darwin {
+    my ($app, $info ) = @_;
+
+    my $port = $info->{dport} || $app;
+
+    if ( ! -x '/opt/local/bin/port' ) {
+        print "MacPorts is not installed! Consider installing it.\n";
+        return;
+    }
+
+    system "/opt/local/bin/port install $port"
+        and warn "install failed for Darwin port $port";
+}
+
+sub install_app_freebsd {
+    my ($app, $info ) = @_;
+
+    print " from ports...";
+    my $name = $info->{port} || $app;
+
+    if (`/usr/sbin/pkg_info | /usr/bin/grep $name`) {
+        return print "$app is installed.\n";
+    }
+
+    print "installing $app";
+
+    my ($portdir) = </usr/ports/*/$name>;
+
+    if ( $portdir && -d $portdir && chdir $portdir ) {
+        print " from ports ($portdir)\n";
+        system "make install clean"
+            and warn "'make install clean' failed for port $app\n";
+    };
+};
+
+sub install_app_linux {
+    my ($app, $info ) = @_;
+
+    if ( -x '/usr/bin/yum' ) {
+        my $rpm = $info->{yum} || $app;
+        system "/usr/bin/yum -y install $rpm";
+    }
+    elsif ( -x '/usr/bin/apt-get' ) {
+        my $package = $info->{apt} || $app;
+        system "/usr/bin/apt-get -y install $package";
+    }
+    else {
+        warn "no Linux package manager detected\n";
+    };
+};
+
 
 sub install_module {
 
@@ -110,14 +189,14 @@ sub install_module_darwin {
 
     my $dport = '/opt/local/bin/port';
     if ( ! -x $dport ) {
-        print "Darwin ports is not installed!\n";
-    } 
-    else {
-        my $port = "p5-$module";
-        $port =~ s/::/-/g;
-        system "sudo $dport install $port" 
-            or warn "install failed for Darwin port $module";
+        print "MacPorts is not installed! Consider installing it.\n";
+        return;
     }
+
+    my $port = "p5-$module";
+    $port =~ s/::/-/g;
+    system "$dport install $port"
+        and warn "install failed for Darwin port $module";
 }
 
 sub install_module_freebsd {
@@ -138,20 +217,38 @@ sub install_module_freebsd {
 
     if ( $portdir && -d $portdir && chdir $portdir ) {
         print " from ports ($portdir)\n";
-        system "make install clean" 
+        system "make install clean"
             and warn "'make install clean' failed for port $module\n";
     }
 }
 
 sub install_module_linux {
     my ($module, $info, $version) = @_;
-    my $rpm = $info->{rpm};
-    if ( $rpm ) {
-        my $portname = "perl-$rpm";
-        $portname =~ s/::/-/g;
-        my $yum = '/usr/bin/yum';
-        system "$yum -y install $portname" if -x $yum;
+
+    my $package;
+    if ( -x '/usr/bin/yum' ) {
+        if ( $info->{yum} ) {
+            $package = $info->{yum};
+        }
+        else {
+            $package = "perl-$module";
+            $package =~ s/::/-/g;
+        };
+        system "/usr/bin/yum -y install $package";
     }
+    elsif ( -x '/usr/bin/apt-get' ) {
+        if ( $info->{apt} ) {
+            $package = $info->{apt};
+        }
+        else {
+            $package = 'lib' . $module . '-perl';
+            $package =~ s/::/-/g;
+        };
+        system "/usr/bin/apt-get -y install $package";
+    }
+    else {
+        warn "no Linux package manager detected\n";
+    };
 };
 
 sub get_cpan_config {
@@ -163,7 +260,7 @@ sub get_cpan_config {
     my $make = `which make`; chomp $make;
     my $wget = `which wget`; chomp $wget;
 
-    return 
+    return
 {
   'build_cache' => q[10],
   'build_dir' => qq[$ENV{HOME}/.cpan/build],
