@@ -1796,18 +1796,14 @@ sub rebuild_ssl_temp_keys {
 
 sub restart {
     my $self = shift;
-    my %p = validate( @_, {
-            'prot'    => { type=>SCALAR },
-            %std_opts,
-        },
-    );
+    my %p = validate( @_, { 'prot' => { type => SCALAR }, %std_opts, } );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     my $prot = $p{'prot'};
     my $dir = $toaster->service_dir_get( prot => $prot ) or return;
 
-    return $log->error( "no such dir: $dir!" ) unless ( -d $dir || -l $dir );
+    return $log->error( "no such dir: $dir!", fatal=>0 ) unless ( -d $dir || -l $dir );
 
     $toaster->supervise_restart($dir);
 }

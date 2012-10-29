@@ -39,8 +39,7 @@ sub new {
     };
     bless( $self, $class );
 
-    $self->{util} = $util = $self->get_util();
-    $log  = $util;
+    $self->{util} = $log = $util = $self->get_util();
 
     %std_opts = (
         test_ok => { type => BOOLEAN, optional => 1 },
@@ -756,7 +755,7 @@ sub get_maildir_paths {
 
     # this method requires a SQL query for each domain
     require Mail::Toaster::Qmail;
-    my $qmail = Mail::Toaster::Qmail->new( toaster => $self );
+    $qmail ||= Mail::Toaster::Qmail->new( toaster => $self );
 
     my $qdir  = $conf->{'qmail_dir'} || "/var/qmail";
 
@@ -1208,16 +1207,16 @@ sub supervised_dir_test {
 
     return $log->error("directory $dir does not exist", %args )
         unless ( -d $dir || -l $dir );
-    $log->test( "exists, $dir", -d $dir, %args );
+    $self->test( "exists, $dir", -d $dir, %args );
 
     return $log->error("$dir/run does not exist!", %args ) if ! -f "$dir/run";
-    $log->test( "exists, $dir/run", -f "$dir/run", %args);
+    $self->test( "exists, $dir/run", -f "$dir/run", %args);
 
     return $log->error("$dir/run is not executable", %args ) if ! -x "$dir/run";
-    $log->test( "perms,  $dir/run", -x "$dir/run", %args );
+    $self->test( "perms,  $dir/run", -x "$dir/run", %args );
 
     return $log->error("$dir/down is present", %args ) if -f "$dir/down";
-    $log->test( "!exist, $dir/down", !-f "$dir/down", %args );
+    $self->test( "!exist, $dir/down", !-f "$dir/down", %args );
 
     my $log_method = $conf->{ $prot . '_log_method' }
       || $conf->{ $prot . 'd_log_method' }
@@ -1227,19 +1226,19 @@ sub supervised_dir_test {
 
     # make sure the log directory exists
     return $log->error( "$dir/log does not exist", %args ) if ! -d "$dir/log";
-    $log->test( "exists, $dir/log", -d "$dir/log", %args );
+    $self->test( "exists, $dir/log", -d "$dir/log", %args );
 
     # make sure the supervise/log/run file exists
     return $log->error( "$dir/log/run does not exist", %args ) if ! -f "$dir/log/run";
-    $log->test( "exists, $dir/log/run", -f "$dir/log/run", %args );
+    $self->test( "exists, $dir/log/run", -f "$dir/log/run", %args );
 
     # check the log/run file permissions
     return $log->error( "perms, $dir/log/run", %args) if ! -x "$dir/log/run";
-    $log->test( "perms,  $dir/log/run", -x "$dir/log/run", %args );
+    $self->test( "perms,  $dir/log/run", -x "$dir/log/run", %args );
 
     # make sure the supervise/down file does not exist
     return $log->error( "$dir/log/down exists", %args) if -f "$dir/log/down";
-    $log->test( "!exist, $dir/log/down", "$dir/log/down", %args );
+    $self->test( "!exist, $dir/log/down", "$dir/log/down", %args );
     return 1;
 }
 
@@ -1402,7 +1401,7 @@ sub supervise_restart {
 
 sub supervised_tcpserver {
     my $self = shift;
-    my %p = validate( @_, { prot => { type=>SCALAR,  }, },);
+    my %p = validate( @_, { prot => { type=>SCALAR } } );
 
     my $prot = $p{'prot'};
 
@@ -1429,7 +1428,7 @@ sub supervised_tcpserver {
             require POSIX;
             $maxcon = POSIX::floor( $maxmem / ( $mem / 1024000 ) );
             require Mail::Toaster::Qmail;
-            my $qmail = Mail::Toaster::Qmail->new( toaster  => $self );
+            $qmail ||= Mail::Toaster::Qmail->new( toaster  => $self );
             $qmail->_memory_explanation( $prot, $maxcon );
         }
     }

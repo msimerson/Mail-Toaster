@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-#use warnings;
+use warnings;
 
 use English qw( -no_match_vars );
 use Test::More 'no_plan';
@@ -194,7 +194,6 @@ $log->dump_audit( quiet => 1 );
 		ok ( $qmail->rebuild_ssl_temp_keys( debug=>0, fatal=>0, test_ok=>1 ), 'rebuild_ssl_temp_keys');
 	}
 
-
 # restart
     my $send = $toaster->service_dir_get( prot=>'send');
 	if ( -d $send ) {
@@ -211,10 +210,11 @@ $log->dump_audit( quiet => 1 );
 	}
 
 # restart
-	if ( $toaster->supervised_dir_test( prot=>"smtp", fatal=>0 ) ) {
-		ok ( $qmail->restart( prot=>"smtp" ), 'restart smtp');
+	if ( $toaster->service_dir_test( prot => 'smtp', fatal=>0 ) ) {
+        if ( ! $conf->{smtpd_daemon} || $conf->{smtpd_daemon} eq 'qmail' ) {
+            ok( $qmail->restart( prot=> 'smtp' ), 'restart smtp' );
+        };
 	};
-
 
 # smtp_set_qmailqueue
 	if ( -d $qmail_dir && -f "$qmail_dir/bin/qmail-queue" ) {
