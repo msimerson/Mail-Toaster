@@ -8,6 +8,7 @@ use lib 'lib';
 use Mail::Toaster;
 
 my $toaster = Mail::Toaster->new(debug=>0);
+my $util = $toaster->get_util;
 
 BEGIN { use_ok('Mail::Toaster::DNS') }
 require_ok('Mail::Toaster::DNS');
@@ -18,7 +19,7 @@ ok( defined $dns, 'new (get a Mail::Toaster::DNS object)' );
 ok( $dns->isa('Mail::Toaster::DNS'), 'dns object class' );
 
 # rbl_test_ns
-my $zone = 'zen.spamhaus.org';
+my $zone = 'cbl.abuseat.org';
 my $has_ns = $dns->rbl_test_ns( rbl => $zone );
 if ( $has_ns ) {
     ok( $has_ns, "rbl_test_ns +, $zone" );
@@ -29,9 +30,9 @@ if ( $has_ns ) {
         ok( $dns->rbl_test( zone => $zone ), 'rbl_test +' );
     };
 } else {
-    $toaster->dump_audit();
-    $toaster->error( "Your nameserver fails to resolve $zone. Consider installing dnscache locally.");
-    $toaster->dump_errors();
+    $util->dump_audit();
+    $util->error( "Your nameserver fails to resolve $zone. Consider installing dnscache locally.");
+    $util->dump_errors();
 };
 
 # queries that should fail
