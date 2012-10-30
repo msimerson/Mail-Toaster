@@ -195,7 +195,7 @@ ok( $util->is_writable( $rwtest, fatal => 0 ), 'is_writable' );
 
 # get_url
 SKIP: {
-    skip "avoiding network tests", 2 if ( !$network );
+    skip "avoiding network tests", 3 if ( !$network );
 
     ok( $util->cwd_source_dir( $tmp ), 'cwd_source_dir' );
 

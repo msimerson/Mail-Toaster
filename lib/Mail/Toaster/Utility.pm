@@ -1187,7 +1187,7 @@ sub get_url {
             $log->audit( "result 200: file download ok" );
         }
         else {
-            $log->error( "unhandled response: $response", fatal => 0 );
+            $log->error( "unhandled response: $response for $url", fatal => 0 );
         };
     };
 
