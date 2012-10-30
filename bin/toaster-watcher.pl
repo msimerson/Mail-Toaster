@@ -27,7 +27,7 @@ my $debug  = $conf->{'toaster_debug'} || $opt_v || 0;
 
 my $pidfile = "/var/run/toaster-watcher.pid";
 if ( ! $util->check_pidfile( $pidfile, fatal=>0, debug=>$debug ) ) {
-    $toaster->error( "another toaster-watcher is running,  I refuse to!",fatal=>0);
+    $util->error( "another toaster-watcher is running,  I refuse to!",fatal=>0);
     exit 500;
 };
 

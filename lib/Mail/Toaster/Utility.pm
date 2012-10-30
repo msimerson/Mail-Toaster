@@ -8,6 +8,7 @@ our $VERSION = '5.35';
 
 use Cwd;
 use Carp;
+#use Data::Dumper;
 use English qw( -no_match_vars );
 use File::Basename;
 use File::Copy;
@@ -24,11 +25,11 @@ use vars qw/ $log %std_opts /;
 sub new {
     my $class = shift;
 
-# globally scoped hash, populated with defaults as requested by the caller
+# globally scoped hash, populated with defaults, overridable by the caller
     %std_opts = (
-        'fatal'   => { type => BOOLEAN, optional => 1, default => 1 },
-        'debug'   => { type => BOOLEAN, optional => 1, default => 1 },
-        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
+        'fatal'   => { type => BOOLEAN, optional => 1 },
+        'debug'   => { type => BOOLEAN, optional => 1 },
+        'quiet'   => { type => BOOLEAN, optional => 1 },
         'test_ok' => { type => BOOLEAN, optional => 1 },
     );
 
@@ -38,16 +39,26 @@ sub new {
         }
     );
 
-    my $toaster = $p{toaster};
+    my $toaster = $p{toaster} || {};
     my $self = {
-        debug => $p{debug},
-        fatal => $p{fatal},
+        audit  => [],
+        errors => [],
+        last_audit => 0,
+        last_error => 0,
+        debug  => $p{debug},
+        fatal  => $p{fatal},
     };
     bless $self, $class;
 
+    if ( defined $toaster ) {      # inherit settings
+        $self->{debug} = $toaster->{debug} if defined $toaster->{debug};
+        $self->{fatal} = $toaster->{fatal} if defined $toaster->{fatal};
+    };
+
     $log = $self->{log} = $self;
 
-    $log->audit( $class . sprintf( " loaded by %s, %s, %s", caller ) );
+    my %args = $self->get_std_args( %p );
+    $log->audit( $class . sprintf( " loaded by %s, %s, %s", caller ), %args );
     return $self;
 }
 
@@ -1063,8 +1074,13 @@ sub get_std_args {
     my %p = @_;
     my %args;
     foreach ( qw/ debug fatal test_ok quiet / ) {
-        next if ! defined $p{$_};
-        $args{$_} = $p{$_};
+        if ( defined $p{$_} ) {
+            $args{$_} = $p{$_};
+            next;
+        };
+        if ( $self->{$_} ) {
+            $args{$_} = $self->{$_};
+        };
     };
     return %args;
 };
@@ -2077,7 +2093,7 @@ sub parse_config {
 
     my %args = $self->get_std_args( %p );
 
-    if ( ! -f $file ) { $file = $self->find_config( $file, %p ); };
+    if ( ! -f $file ) { $file = $self->find_config( $file, %args ); };
 
     if ( ! $file || ! -r $file ) {
         return $log->error( "could not find config file!", %args);

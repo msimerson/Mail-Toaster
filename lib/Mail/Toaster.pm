@@ -19,12 +19,15 @@ use vars qw/ $INJECT $util $conf $log $qmail %std_opts /;
 
 sub new {
     my $class = shift;
-    my %p = validate( @_, {
-            test_ok => { type => BOOLEAN, optional => 1 },
-            debug   => { type => BOOLEAN, optional => 1, default => 1 },
-            fatal   => { type => BOOLEAN, optional => 1, default => 1 },
-        }
+
+    %std_opts = (
+        test_ok => { type => BOOLEAN, optional => 1 },
+        debug   => { type => BOOLEAN, optional => 1, default => 1 },
+        fatal   => { type => BOOLEAN, optional => 1, default => 1 },
+        quiet   => { type => BOOLEAN, optional => 1, default => 0 },
     );
+
+    my %p = validate( @_, { %std_opts } );
 
     my $self = {
         audit  => [],
@@ -40,13 +43,6 @@ sub new {
     bless( $self, $class );
 
     $self->{util} = $log = $util = $self->get_util();
-
-    %std_opts = (
-        test_ok => { type => BOOLEAN, optional => 1 },
-        debug   => { type => BOOLEAN, optional => 1, default => $self->{debug} },
-        fatal   => { type => BOOLEAN, optional => 1, default => $self->{fatal} },
-        quiet   => { type => BOOLEAN, optional => 1, default => 0 },
-    );
 
     my @caller = caller;
     warn sprintf( "Toaster.pm loaded by %s, %s, %s\n", @caller )
