@@ -1158,7 +1158,7 @@ sub supervise_dirs_create {
 
     my @sdirs = qw/ smtp send pop3 submit /;
     push @sdirs, 'vpopmaild' if $conf->{vpopmail_daemon};
-    if ( 'qpsmtpd' eq $conf->{smtpd_daemon} ) {
+    if ( $conf->{smtpd_daemon}  && 'qpsmtpd' eq $conf->{smtpd_daemon} ) {
         push @sdirs, 'qmail-deliverable';
         push @sdirs, 'qpsmtpd';
     };
