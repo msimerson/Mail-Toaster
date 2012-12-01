@@ -49,7 +49,7 @@ foreach my $sub (@subs_to_test) {
     $conf->{$install_sub} = 0;                  # disable install
 
     # and then make sure it refuses to install
-    ok( !$setup->$sub( debug => $debug ), $sub );
+    ok( !$setup->$sub( debug => $debug, fatal=>0 ), $sub );
 
     # set $conf->install_sub back to its initial state
     $conf->{$install_sub} = $before;
@@ -81,11 +81,10 @@ ok( !$setup->filtering( test_ok => 0, debug => 1 ),
 
 # nictool
 ok( $setup->nictool( test_ok => 1 ), 'nictool' );
-ok( !$setup->nictool( test_ok => 0, debug => 1 ), 'nictool' );
+ok( !$setup->nictool( test_ok => 0, debug => 1, fatal=>0 ), 'nictool' );
 
 # set this back to where we started so subsequent testing scripts work
 chdir($initial_working_directory);
-
 
 
 1;

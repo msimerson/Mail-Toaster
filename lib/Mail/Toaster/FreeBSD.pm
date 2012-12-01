@@ -212,11 +212,11 @@ sub is_port_installed {
     if ( scalar @matches == 0 ) { @matches = grep {/^$alt\-/ } @packages; };
     if ( scalar @matches == 0 ) { @matches = grep {/^$alt/ } @packages; };
     return if scalar @matches == 0; # no matches
-    $toaster->audit( "WARN: found multiple matches for port $port",debug=>1)
+    $log->audit( "WARN: found multiple matches for port $port",debug=>1)
         if scalar @matches > 1;
 
     my ($installed_as) = split(/\s/, $matches[0]);
-    $toaster->audit( "found port $port installed as $installed_as",debug=>$p{debug} );
+    $log->audit( "found port $port installed as $installed_as",debug=>$p{debug} );
     return $installed_as;
 }
 

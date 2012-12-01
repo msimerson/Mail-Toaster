@@ -910,10 +910,10 @@ sub spama_count {
     $count_ref->{'sa_spam_seconds'} = (defined $temp{spam_seconds} && $spam_count)
         ? POSIX::floor( $temp{spam_seconds} / $spam_count * 100 ) : 0;
 
-    $count_ref->{'sa_ham_bytes'}  = (defined $temp{'ham_bytes'} && $ham_count ) 
+    $count_ref->{'sa_ham_bytes'}  = (defined $temp{'ham_bytes'} && $ham_count )
         ? POSIX::floor( $temp{'ham_bytes'} / $ham_count * 100 ) : 0;
 
-    $count_ref->{'sa_spam_bytes'} = (defined $temp{'ham_bytes'} && $spam_count ) 
+    $count_ref->{'sa_spam_bytes'} = (defined $temp{'spam_bytes'} && $spam_count )
         ? POSIX::floor( $temp{'spam_bytes'} / $spam_count * 100 ) : 0;
 
     print "sa_spam:$count_ref->{'sa_spam'}"
