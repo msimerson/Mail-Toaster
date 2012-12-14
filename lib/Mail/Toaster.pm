@@ -1005,13 +1005,18 @@ sub service_symlinks {
     my $r = $self->service_symlinks_smtp();
     push @active_services, $r if $r;
 
-    foreach my $prot ( qw/ pop3 submit / ) {
-        if ( $conf->{$prot . '_enable'} ) {
-            push @active_services, $prot;
-        }
-        else {
-            $self->service_symlinks_cleanup( $prot );
-        };
+    if ( $conf->{pop3_enable} || $conf->{'pop3_daemon'} eq 'qpop3d' ) {
+        push @active_services, 'pop3';
+    }
+    else {
+        $self->service_symlinks_cleanup( 'pop3' );
+    };
+
+    if ( $conf->{submit_enable} ) {
+        push @active_services, 'submit';
+    }
+    else {
+        $self->service_symlinks_cleanup( 'submit' );
     };
 
     foreach my $prot ( @active_services ) {
