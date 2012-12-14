@@ -1138,9 +1138,7 @@ sub courier_startup {
     }
 
     if ( $conf->{'pop3_daemon'} eq "courier" ) {
-
         if ( !-e "/var/run/pop3d.pid" ) {
-
             $util->syscmd( "$prefix/sbin/pop3 start", debug=>0 )
               if ( -x "$prefix/sbin/pop3" );
         }
@@ -1404,7 +1402,7 @@ sub daemontools_test {
     my @bins = qw{ multilog softlimit setuidgid supervise svok svscan tai64nlocal };
     foreach my $test ( @bins ) {
         my $bin = $util->find_bin( $test, fatal => 0, debug=>0);
-        $log->test("  $test", -x $bin );
+        $toaster->test("  $test", -x $bin );
     };
 
     return 1;
@@ -2528,7 +2526,7 @@ sub imap_test_auth_nossl {
     my $self = shift;
 
     my $r = $util->install_module("Mail::IMAPClient", debug => 0);
-    $log->test("checking Mail::IMAPClient", $r );
+    $toaster->test("checking Mail::IMAPClient", $r );
     if ( ! $r ) {
         print "skipping imap test authentications\n";
         return;
@@ -2541,11 +2539,11 @@ sub imap_test_auth_nossl {
         Server   => 'localhost',
     );
     if ( !defined $imap ) {
-        $log->test( "imap connection", $imap );
+        $toaster->test( "imap connection", $imap );
         return;
     };
 
-    $log->test( "authenticate IMAP user with plain passwords",
+    $toaster->test( "authenticate IMAP user with plain passwords",
         $imap->IsAuthenticated() );
 
     my @features = $imap->capability
@@ -2560,11 +2558,11 @@ sub imap_test_auth_nossl {
         Pass   => 'hi_there_log_watcher'
     )
     or do {
-        $log->test( "imap connection that should fail", 0);
+        $toaster->test( "imap connection that should fail", 0);
         return 1;
     };
-    $log->test( "  imap connection", $imap->IsConnected() );
-    $log->test( "  test auth that should fail", !$imap->IsAuthenticated() );
+    $toaster->test( "  imap connection", $imap->IsConnected() );
+    $toaster->test( "  test auth that should fail", !$imap->IsAuthenticated() );
     $imap->logout;
     return;
 };
@@ -2576,7 +2574,7 @@ sub imap_test_auth_ssl {
     my $pass = $conf->{'toaster_test_email_pass'} || 'cHanGeMe';
 
     my $r = $util->install_module( "IO::Socket::SSL", debug => 0,);
-    $log->test( "checking IO::Socket::SSL ", $r);
+    $toaster->test( "checking IO::Socket::SSL ", $r);
     if ( ! $r ) {
         print "skipping IMAP SSL tests due to missing SSL support\n";
         return;
@@ -2588,13 +2586,13 @@ sub imap_test_auth_ssl {
         PeerPort => 993,
         Proto    => 'tcp'
     );
-    $log->test( "  imap SSL connection", $socket);
+    $toaster->test( "  imap SSL connection", $socket);
     return if ! $socket;
 
     print "  connected with " . $socket->get_cipher() . "\n";
     print $socket ". login $user $pass\n";
     ($r) = $socket->peek =~ /OK/i;
-    $log->test( "  auth IMAP SSL with plain password", $r ? 0 : 1);
+    $toaster->test( "  auth IMAP SSL with plain password", $r ? 0 : 1);
     print $socket ". logout\n";
     close $socket;
 
@@ -4214,7 +4212,7 @@ sub pop3_test_auth {
     $OUTPUT_AUTOFLUSH = 1;
 
     my $r = $util->install_module( "Mail::POP3Client", debug => 0,);
-    $log->test("checking Mail::POP3Client", $r );
+    $toaster->test("checking Mail::POP3Client", $r );
     if ( ! $r ) {
         print "skipping POP3 tests\n";
         return;
@@ -4257,7 +4255,7 @@ sub pop3_auth {
     $pop->User($user);
     $pop->Pass($pass);
     $pop->Connect() >= 0 || warn $pop->Message();
-    $log->test( "  $name authentication", ($pop->State() eq "TRANSACTION"));
+    $toaster->test( "  $name authentication", ($pop->State() eq "TRANSACTION"));
 
     if ( my @features = $pop->Capa() ) {
         #print "  POP3 server supports: " . join( ",", @features ) . "\n";
@@ -5358,7 +5356,7 @@ sub smtp_test_auth {
     foreach ( @modules ) {
         eval "use $_";
         die $@ if $@;
-        $log->test( "loading $_", 'ok' );
+        $toaster->test( "loading $_", 'ok' );
     };
 
     Net::SSLeay::load_error_strings();
@@ -5373,11 +5371,11 @@ sub smtp_test_auth {
 
 
     my $smtp = Net::SMTP_auth->new($host);
-    $log->test( "connect to smtp port on $host", $smtp );
+    $toaster->test( "connect to smtp port on $host", $smtp );
     return 0 if ! defined $smtp;
 
     my @auths = $smtp->auth_types();
-    $log->test( "  get list of SMTP AUTH methods", scalar @auths);
+    $toaster->test( "  get list of SMTP AUTH methods", scalar @auths);
     $smtp->quit;
 
     $self->smtp_test_auth_pass($host, \@auths);
@@ -5397,7 +5395,7 @@ sub smtp_test_auth_pass {
 
         my $smtp = Net::SMTP_auth->new($host);
         my $r = $smtp->auth( $_, $user, $pass );
-        $log->test( "  authentication with $_", $r );
+        $toaster->test( "  authentication with $_", $r );
         next if ! $r;
 
         $smtp->mail( $conf->{'toaster_admin_email'} );
@@ -5409,7 +5407,7 @@ sub smtp_test_auth_pass {
         $smtp->dataend();
 
         $smtp->quit;
-        $log->test("  sending after auth $_", 1 );
+        $toaster->test("  sending after auth $_", 1 );
     }
 }
 
@@ -5424,7 +5422,7 @@ sub smtp_test_auth_fail {
     foreach (@$auths) {
         my $smtp = Net::SMTP_auth->new($host);
         my $r = $smtp->auth( $_, $user, $pass );
-        $log->test( "  failed authentication with $_", ! $r );
+        $toaster->test( "  failed authentication with $_", ! $r );
         $smtp->quit;
     }
 }
@@ -6505,7 +6503,7 @@ sub test_crons {
     print "checking cron processes\n";
 
     foreach (@crons) {
-        $log->test("  $_", system( $_ ) ? 0 : 1 );
+        $toaster->test("  $_", system( $_ ) ? 0 : 1 );
     }
 }
 
@@ -6654,17 +6652,17 @@ sub test_logging {
     print "do the logging directories exist?\n";
     my $q_log = $conf->{'qmail_log_base'};
     foreach ( '', "pop3", "send", "smtp", "submit" ) {
-        $log->test("  $q_log/$_", -d "$q_log/$_" );
+        $toaster->test("  $q_log/$_", -d "$q_log/$_" );
     }
 
     print "checking log files?\n";
     my @active_log_files = ( "clean.log", "maildrop.log", "watcher.log",
                     "send/current",  "smtp/current",  "submit/current" );
 
-    push @active_log_files, "pop3/current" if $conf->{'pop3_daemon'} eq "qpop3d";
+    push @active_log_files, "pop3/current" if $conf->{'pop3_daemon'} eq 'qpop3d';
 
     foreach ( @active_log_files ) {
-        $log->test("  $_", -f "$q_log/$_" );
+        $toaster->test("  $_", -f "$q_log/$_" );
     }
 }
 
@@ -6687,7 +6685,7 @@ sub test_network {
     print "checking for listening tcp ports\n";
     my @listeners = `$netstat | grep -i listen`;
     foreach (qw( smtp http pop3 imap https submission pop3s imaps )) {
-        $log->test("  $_", scalar grep {/$_/} @listeners );
+        $toaster->test("  $_", scalar grep {/$_/} @listeners );
     }
 
     print "checking for udp listeners\n";
@@ -6695,7 +6693,7 @@ sub test_network {
     push @udps, "snmp" if $conf->{'install_snmp'};
 
     foreach ( @udps ) {
-        $log->test("  $_", `$netstat | grep $_` );
+        $toaster->test("  $_", `$netstat | grep $_` );
     }
 }
 
@@ -6705,17 +6703,17 @@ sub test_qmail {
 
     my $qdir = $conf->{'qmail_dir'};
     print "does qmail's home directory exist?\n";
-    $log->test("  $qdir", -d $qdir );
+    $toaster->test("  $qdir", -d $qdir );
 
     print "checking qmail directory contents\n";
     my @tests = qw(alias boot control man users bin doc queue);
     push @tests, "configure" if ( $OSNAME eq "freebsd" );    # added by the port
     foreach (@tests) {
-        $log->test("  $qdir/$_", -d "$qdir/$_" );
+        $toaster->test("  $qdir/$_", -d "$qdir/$_" );
     }
 
     print "is the qmail rc file executable?\n";
-    $log->test(  "  $qdir/rc", -x "$qdir/rc" );
+    $toaster->test(  "  $qdir/rc", -x "$qdir/rc" );
 
     print "do the qmail users exist?\n";
     foreach (
@@ -6728,20 +6726,20 @@ sub test_qmail {
         $conf->{'qmail_log_user'}    || 'qmaill',
       )
     {
-        $log->test("  $_", $self->user_exists($_) );
+        $toaster->test("  $_", $self->user_exists($_) );
     }
 
     print "do the qmail groups exist?\n";
     foreach ( $conf->{'qmail_group'}     || 'qmail',
               $conf->{'qmail_log_group'} || 'qnofiles',
         ) {
-        $log->test("  $_", scalar getgrnam($_) );
+        $toaster->test("  $_", scalar getgrnam($_) );
     }
 
     print "do the qmail alias files have contents?\n";
     my $q_alias = "$qdir/alias/.qmail";
     foreach ( qw/ postmaster root mailer-daemon / ) {
-        $log->test( "  $q_alias-$_", -s "$q_alias-$_" );
+        $toaster->test( "  $q_alias-$_", -s "$q_alias-$_" );
     }
 }
 
@@ -6750,11 +6748,11 @@ sub test_supervised_procs {
 
     print "do supervise directories exist?\n";
     my $q_sup = $conf->{'qmail_supervise'} || "/var/qmail/supervise";
-    $log->test("  $q_sup", -d $q_sup);
+    $toaster->test("  $q_sup", -d $q_sup);
 
     # check supervised directories
     foreach (qw/smtp send pop3 submit/) {
-        $log->test( "  $q_sup/$_",
+        $toaster->test( "  $q_sup/$_",
             $toaster->supervised_dir_test( prot => $_, debug=>1 ) );
     }
 
@@ -6769,20 +6767,20 @@ sub test_supervised_procs {
         push @active_service_dirs, $toaster->service_dir_get( prot => $_ );
     }
 
-    push @active_service_dirs, $toaster->service_dir_get( prot => "pop3" )
-        if $conf->{'pop3_daemon'} eq "qpop3d";
+    push @active_service_dirs, $toaster->service_dir_get( prot => 'pop3' )
+        if $conf->{'pop3_daemon'} eq 'qpop3d';
 
     push @active_service_dirs, $toaster->service_dir_get( prot => "submit" )
         if $conf->{'submit_enable'};
 
     foreach ( $q_ser, @active_service_dirs ) {
-        $log->test( "  $_", -d $_ );
+        $toaster->test( "  $_", -d $_ );
     }
 
     print "are the supervised services running?\n";
     my $svok = $util->find_bin( "svok", fatal => 0 );
     foreach ( @active_service_dirs ) {
-        $log->test( "  $_", system("$svok $_") ? 0 : 1 );
+        $toaster->test( "  $_", system("$svok $_") ? 0 : 1 );
     }
 };
 
@@ -6897,12 +6895,12 @@ sub ucspi_test {
 
     print "checking ucspi-tcp binaries...\n";
     foreach (qw( tcprules tcpserver rblsmtpd tcpclient recordio )) {
-        $log->test("  $_", $util->find_bin( $_, fatal => 0, debug=>0 ) );
+        $toaster->test("  $_", $util->find_bin( $_, fatal => 0, debug=>0 ) );
     }
 
     if ( $conf->{install_mysql} && $conf->{'vpopmail_mysql'} ) {
         my $tcpserver = $util->find_bin( "tcpserver", fatal => 0, debug=>0 );
-        $log->test( "  tcpserver mysql support",
+        $toaster->test( "  tcpserver mysql support",
             scalar `strings $tcpserver | grep sql`
         );
     }
@@ -7413,7 +7411,7 @@ sub vpopmail_test {
     print "do vpopmail directories exist...\n";
     my $vpdir = $conf->{'vpopmail_home_dir'};
     foreach ( "", "bin", "domains", "etc/", "include", "lib" ) {
-        $log->test("  $vpdir/$_", -d "$vpdir/$_" );
+        $toaster->test("  $vpdir/$_", -d "$vpdir/$_" );
     }
 
     print "checking vpopmail binaries...\n";
@@ -7429,17 +7427,17 @@ sub vpopmail_test {
         vsetuserquota   vuserinfo   /
       )
     {
-        $log->test("  $_", -x "$vpdir/bin/$_" );
+        $toaster->test("  $_", -x "$vpdir/bin/$_" );
     }
 
     print "do vpopmail libs exist...\n";
     foreach ("$vpdir/lib/libvpopmail.a") {
-        $log->test("  $_", -e $_ );
+        $toaster->test("  $_", -e $_ );
     }
 
     print "do vpopmail includes exist...\n";
     foreach (qw/ config.h vauth.h vlimits.h vpopmail.h vpopmail_config.h /) {
-        $log->test("  include/$_", -e "$vpdir/include/$_" );
+        $toaster->test("  include/$_", -e "$vpdir/include/$_" );
     }
 
     print "checking vpopmail etc files...\n";
@@ -7447,7 +7445,7 @@ sub vpopmail_test {
     push @vpetc, 'vpopmail.mysql' if $conf->{'vpopmail_mysql'};
 
     foreach ( @vpetc ) {
-        $log->test("  $_", (-e "$vpdir/etc/$_" && -s "$vpdir/etc/$_" ));
+        $toaster->test("  $_", (-e "$vpdir/etc/$_" && -s "$vpdir/etc/$_" ));
     }
 }
 
