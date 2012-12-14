@@ -883,7 +883,7 @@ sub courier_imap {
 
     my $ver = $conf->{'install_courier_imap'} or do {
         $log->audit( "courier: installing, skipping (disabled)" );
-        $self->courier_startup_freebsd() if $OSNAME eq 'freebsd'; # disable startup
+        $self->courier_startup_freebsd() if $OSNAME eq 'freebsd'; # enable startup
         return;
     };
 
@@ -6381,7 +6381,7 @@ sub startup_script_freebsd {
 
 sub test {
     my $self  = shift;
-    my %p = validate( @_, { %std_opts },);
+    my %p = validate( @_, { %std_opts } );
 
     print "testing...\n";
 
@@ -6667,7 +6667,7 @@ sub test_logging {
 }
 
 sub test_network {
-
+    my $self = shift;
     return if $util->yes_or_no( "skip the network listener tests?",
             timeout  => 10,
         );

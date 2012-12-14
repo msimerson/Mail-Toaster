@@ -1,4 +1,8 @@
 Mail Toaster Changes
+
+  5.36 - Dec 01, 2012
+         release (not fully tested, but certainly less broken than 5.35
+
   5.35 - Oct 23, 2012
         api change for get_dir_files, clean_tmp_dir, file_delete
         moved subs from Toaster to Utility: audit, error, dump_audit, dump_errors, has_module, find_config, find_readable, get_std_args, parse_config & parse_line

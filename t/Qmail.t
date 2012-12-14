@@ -114,7 +114,9 @@ $log->dump_audit( quiet => 1 );
 		ok ( $qmail->build_pop3_run(), 'build_pop3_run');
 		ok ( $qmail->build_send_run(), 'build_send_run');
 		ok ( $qmail->build_smtp_run(), 'build_smtp_run');
-		ok ( $qmail->build_submit_run(), 'build_submit_run');
+        if ( $conf->{submit_enable} ) {
+            ok ( $qmail->build_submit_run(), 'build_submit_run');
+        };
 	};
 
 # check_control
