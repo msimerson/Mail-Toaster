@@ -132,7 +132,7 @@ sub install_port {
 		my $path = "/usr/ports/$category/$port_dir";
 		-d $path && chdir $path or croak "couldn't cd to $path: $!\n";
 
-    $log->audit("install_port: installing $portname");
+    $util->audit("install_port: installing $portname");
 
     # these are the "make -DWITH_OPTION" flags
     if ( $p{flags} ) {
@@ -169,7 +169,7 @@ sub install_port {
 
     return 1 if $self->is_port_installed( $check, debug=>1 );
 
-    $log->audit( "install_port: $portname install, FAILED" );
+    $util->audit( "install_port: $portname install, FAILED" );
     $self->install_port_try_manual( $portname, $path );
 
     if ( $portname =~ /\Ap5\-(.*)\z/ ) {
@@ -201,7 +201,7 @@ sub is_port_installed {
 
     my ( $r, @args );
 
-    $log->audit( "  checking for port $port", debug=>0);
+    $util->audit( "  checking for port $port", debug=>0);
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
@@ -212,11 +212,11 @@ sub is_port_installed {
     if ( scalar @matches == 0 ) { @matches = grep {/^$alt\-/ } @packages; };
     if ( scalar @matches == 0 ) { @matches = grep {/^$alt/ } @packages; };
     return if scalar @matches == 0; # no matches
-    $toaster->audit( "WARN: found multiple matches for port $port",debug=>1)
+    $util->audit( "WARN: found multiple matches for port $port",debug=>1)
         if scalar @matches > 1;
 
     my ($installed_as) = split(/\s/, $matches[0]);
-    $toaster->audit( "found port $port installed as $installed_as",debug=>$p{debug} );
+    $util->audit( "found port $port installed as $installed_as",debug=>$p{debug} );
     return $installed_as;
 }
 
@@ -268,7 +268,7 @@ sub install_package {
 
     return $util->error("sorry, but I really need a package name!") if !$package;
 
-    $log->audit("install_package: checking if $package is installed");
+    $util->audit("install_package: checking if $package is installed");
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
@@ -449,7 +449,7 @@ sub conf_check {
     my $check = $p{check};
     my $line  = $p{line};
     my $file  = $p{file} || "/etc/rc.conf";
-    $log->audit("conf_check: looking for $check");
+    $util->audit("conf_check: looking for $check");
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
@@ -458,8 +458,8 @@ sub conf_check {
     @lines = $util->file_read( $file ) if -f $file;
     foreach ( @lines ) {
         next if $_ !~ /^$check\=/;
-        return $log->audit("\tno change") if $_ eq $line;
-        $log->audit("\tchanged:\n$_\n\tto:\n$line\n" );
+        return $util->audit("\tno change") if $_ eq $line;
+        $util->audit("\tchanged:\n$_\n\tto:\n$line\n" );
         $_ = $line;
         $changes++;
     };

@@ -3,7 +3,7 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.35';
+our $VERSION = '5.36';
 
 use Cwd;
 #use Data::Dumper;
@@ -1009,7 +1009,7 @@ sub service_symlinks {
     $r = $self->service_symlinks_submit();
     push @active_services, $r if $r;
 
-    if ( $conf->{'pop3_enable'} ) {
+    if ( $conf->{pop3_enable} || $conf->{'pop3_daemon'} eq 'qpop3d' ) {
         push @active_services, 'pop3';
     }
     else {
@@ -1041,7 +1041,7 @@ sub service_symlinks {
 sub service_symlinks_smtp {
     my $self = shift;
 
-    return 'smtp' if !  $conf->{smtpd_daemon};
+    return 'smtp' if ! $conf->{smtpd_daemon};
 
     if ( $conf->{smtpd_daemon} eq 'qmail' ) {
         $self->service_symlinks_cleanup( 'qpsmtpd' );
@@ -1052,17 +1052,21 @@ sub service_symlinks_smtp {
         $self->service_symlinks_cleanup( 'smtp' );
         return 'qpsmtpd';
     };
+
+    return 'smtp';
 }
 
 sub service_symlinks_submit {
     my $self = shift;
 
-    return 'submit' if ! $conf->{smtpd_daemon};
+    return 'submit' if ! $conf->{submit_daemon};
 
     if ( $conf->{submit_daemon} eq 'qpsmtpd' ) {
         $self->service_symlinks_cleanup( 'submit' );
         return 'qpsmtpd';
     };
+
+    return 'submit';
 }
 
 sub service_symlinks_cleanup {
@@ -1171,7 +1175,7 @@ sub supervise_dirs_create {
 
     my @sdirs = qw/ smtp send pop3 submit /;
     push @sdirs, 'vpopmaild' if $conf->{vpopmail_daemon};
-    if ( 'qpsmtpd' eq $conf->{smtpd_daemon} ) {
+    if ( $conf->{smtpd_daemon}  && 'qpsmtpd' eq $conf->{smtpd_daemon} ) {
         push @sdirs, 'qmail-deliverable';
         push @sdirs, 'qpsmtpd';
     };

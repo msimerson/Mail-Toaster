@@ -744,7 +744,7 @@ sub files_diff {
     );
 
     my ( $f1, $f2, $type ) = ( $p{f1}, $p{f2}, $p{type} );
-    my %args = $log->get_std_args(%p);
+    my %args = $self->get_std_args(%p);
 
     if ( !-e $f1 || !-e $f2 ) {
         $log->error( "$f1 or $f2 does not exist!", %args );
@@ -820,7 +820,7 @@ sub find_bin {
     );
 
     my $prefix = "/usr/local";
-    my %args = $log->get_std_args(%p);
+    my %args = $self->get_std_args(%p);
 
     if ( $bin =~ /^\// && -x $bin ) {  # we got a full path
         $log->audit( "find_bin: found $bin", %args );
@@ -1143,7 +1143,7 @@ sub get_the_date {
 sub get_mounted_drives {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
-    my %args = $log->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
 
     my $mount = $self->find_bin( 'mount', %args );
 
@@ -1175,7 +1175,7 @@ sub get_url {
     );
 
     my $dir = $p{dir};
-    my %args = $log->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
 
     my ($ua, $response);
     ## no critic ( ProhibitStringyEval )
@@ -1224,7 +1224,7 @@ sub get_url_system {
 
     my $dir      = $p{dir};
     my $debug    = $p{debug};
-    my %args = $log->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
 
     my ($fetchbin, $found);
     if ( $OSNAME eq "freebsd" ) {
@@ -2351,7 +2351,7 @@ sub syscmd {
         },
     );
 
-    my %args  = $log->get_std_args( %p );
+    my %args  = $self->get_std_args( %p );
 
     $log->audit("syscmd: $cmd");
 
