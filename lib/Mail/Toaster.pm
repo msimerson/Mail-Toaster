@@ -925,10 +925,11 @@ sub process_logfiles {
 
     my $pop3_logs = $conf->{pop3_log_method} || $conf->{'logs_pop3d'};
     my $smtpd = $conf->{'smtpd_daemon'} || 'qmail';
+    my $submit = $conf->{'submit_daemon'} || 'qmail';
 
     $self->supervised_log_rotate( prot => 'send' );
     $self->supervised_log_rotate( prot => 'smtp' ) if $smtpd eq 'qmail';
-    $self->supervised_log_rotate( prot => 'submit' ) if $conf->{submit_enable};
+    $self->supervised_log_rotate( prot => 'submit' ) if $conf->{submit_enable} && $submit eq 'qmail';
     $self->supervised_log_rotate( prot => 'pop3'   ) if $pop3_logs eq 'qpop3d';
 
     require Mail::Toaster::Logs;
@@ -1005,13 +1006,14 @@ sub service_symlinks {
     my $r = $self->service_symlinks_smtp();
     push @active_services, $r if $r;
 
-    foreach my $prot ( qw/ pop3 submit / ) {
-        if ( $conf->{$prot . '_enable'} ) {
-            push @active_services, $prot;
-        }
-        else {
-            $self->service_symlinks_cleanup( $prot );
-        };
+    $r = $self->service_symlinks_submit();
+    push @active_services, $r if $r;
+
+    if ( $conf->{'pop3_enable'} ) {
+        push @active_services, 'pop3';
+    }
+    else {
+        $self->service_symlinks_cleanup( 'pop3' );
     };
 
     foreach my $prot ( @active_services ) {
@@ -1048,6 +1050,17 @@ sub service_symlinks_smtp {
 
     if ( $conf->{smtpd_daemon} eq 'qpsmtpd' ) {
         $self->service_symlinks_cleanup( 'smtp' );
+        return 'qpsmtpd';
+    };
+}
+
+sub service_symlinks_submit {
+    my $self = shift;
+
+    return 'submit' if ! $conf->{smtpd_daemon};
+
+    if ( $conf->{submit_daemon} eq 'qpsmtpd' ) {
+        $self->service_symlinks_cleanup( 'submit' );
         return 'qpsmtpd';
     };
 }

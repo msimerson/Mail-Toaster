@@ -405,6 +405,7 @@ submit_enable                      = 1
 submit_listen_on_address           = all        # all, hostname, IP
 submit_listen_on_port              = submission # submission, port number
 submit_hostname                    = 0
+submit_daemon                      = qmail      # qpsmtpd, qmail
 
 # smtp-submit_hostname [ system | qmail | mail.example.com ]
 #
