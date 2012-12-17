@@ -4751,7 +4751,7 @@ sub refresh_config {
     warn "found: $file_path \n" if $self->{debug};
 
     # refresh our $conf
-    $conf = $toaster->parse_config( $file_path,
+    $conf = $util->parse_config( $file_path,
         debug => $self->{debug},
         fatal => $self->{fatal},
     );
