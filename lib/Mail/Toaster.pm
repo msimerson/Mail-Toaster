@@ -311,6 +311,7 @@ sub train_spamassassin {
 sub train_dspam {
     my ($self, $type, $file, $email) = @_;
     return if ! $conf->{install_dspam};
+    return if ! -f $file;  # file moved (due to user action)
     #$log->audit($file);
     my $cmd;
     my $dspam = '/usr/local/bin/dspamc';
