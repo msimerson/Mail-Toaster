@@ -670,7 +670,7 @@ sub config_tweaks {
         next if $line =~ /^#/;  # comment lines
         next if $line !~ /=/;   # not a key = value
 
-        my ( $key, $val ) = $toaster->parse_line( $line, strip => 0 );
+        my ( $key, $val ) = $util->parse_line( $line, strip => 0 );
 
         if ( defined $changes{$key} && $changes{$key} ne $val ) {
             $status = "changed";
