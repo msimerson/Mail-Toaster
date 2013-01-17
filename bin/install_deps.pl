@@ -115,7 +115,10 @@ sub install_app_freebsd {
 
     if (`/usr/sbin/pkg_info | /usr/bin/grep $name`) {
         return print "$app is installed.\n";
+    }elsif(`/usr/sbin/pkg info | /usr/bin/grep $name`) {
+        return print "$app is installed.\n";
     }
+
 
     print "installing $app";
 
@@ -209,7 +212,10 @@ sub install_module_freebsd {
 
     if (`/usr/sbin/pkg_info | /usr/bin/grep $portname`) {
         return print "$module is installed.\n";
+    } elsif(`/usr/sbin/pkg info | /usr/bin/grep $portname`) {
+        return print "$module is installed.\n";
     }
+
 
     print "installing $module";
 
