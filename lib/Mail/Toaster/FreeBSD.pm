@@ -202,19 +202,22 @@ sub is_port_installed {
     my $conf = $toaster->get_config;
     my $pkg_method = $conf->{'use_pkgng'} || 0;
 
+
     my ( $r, @args );
 
     $util->audit( "  checking for port $port", debug=>0);
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
+    my @packages;
+    my $pkg_info;
     if ( $pkg_method == 0) { 
-        my $pkg_info = $util->find_bin( 'pkg_info', debug => 0 );
-        my @packages = `pkg_info`; chomp @packages;
+        $pkg_info = $util->find_bin( 'pkg_info', debug => 0 );
+        @packages = `pkg_info`; chomp @packages;
     }
     else{ 
-        my $pkg_info = $util->find_bin( 'pkg', debug => 0 );
-        my @packages = `pkg info`; chomp @packages;
+        $pkg_info = $util->find_bin( 'pkg', debug => 0 );
+        @packages = `pkg info`; chomp @packages;
     } 
     
     my @matches = grep {/^$port\-/} @packages;
@@ -290,18 +293,23 @@ sub install_package {
     print "install_package: installing $package....\n";
     $ENV{"PACKAGESITE"} = $pkg_url if $pkg_url;
 
-    if ( $pkg_method == 0) { my $pkg_add = $util->find_bin( "pkg_add", %args );}
-    else                   { my $pkg_add = $util->find_bin( "pkg", %args );}
+    my $pkg_add;
+    if ( $pkg_method == 0) { 
+        $pkg_add = $util->find_bin( "pkg_add", %args );
+    } else { 
+        $pkg_add = $util->find_bin( "pkg", %args );
+    }
 
     
     
     return $log->error( "couldn't find pkg_add, giving up.",fatal=>0)
         if ( !$pkg_add || !-x $pkg_add );
 
+    my $r2;
     if ( $pkg_method == 0) {    
-        my $r2 = $util->syscmd( "$pkg_add -r $package", debug => 0 );
+        $r2 = $util->syscmd( "$pkg_add -r $package", debug => 0 );
     } else {
-        my $r2 = $util->syscmd( "$pkg_add add -r $package", debug => 0 );
+        $r2 = $util->syscmd( "$pkg_add add -r $package", debug => 0 );
     }
 
     if   ( !$r2 ) { print "\t pkg_add failed\t "; }
@@ -334,6 +342,7 @@ sub install_package {
                 } else {
                     $util->syscmd( "$pkg_add add -r $package", debug => 0 );
                 }
+            }
         }
     }
 
