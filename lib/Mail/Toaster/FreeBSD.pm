@@ -199,14 +199,27 @@ sub is_port_installed {
 
     my $alt = $p{'alt'} || $port;
 
+    my $conf = $toaster->get_config;
+    my $pkg_method = $conf->{'use_pkgng'} || 0;
+
+
     my ( $r, @args );
 
     $util->audit( "  checking for port $port", debug=>0);
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    my $pkg_info = $util->find_bin( 'pkg_info', debug => 0 );
-    my @packages = `pkg_info`; chomp @packages;
+    my @packages;
+    my $pkg_info;
+    if ( $pkg_method == 0) { 
+        $pkg_info = $util->find_bin( 'pkg_info', debug => 0 );
+        @packages = `pkg_info`; chomp @packages;
+    }
+    else{ 
+        $pkg_info = $util->find_bin( 'pkg', debug => 0 );
+        @packages = `pkg info`; chomp @packages;
+    } 
+    
     my @matches = grep {/^$port\-/} @packages;
     if ( scalar @matches == 0 ) { @matches = grep {/^$port/} @packages; };
     if ( scalar @matches == 0 ) { @matches = grep {/^$alt\-/ } @packages; };
@@ -265,6 +278,9 @@ sub install_package {
 
     my ( $alt, $pkg_url ) = ( $p{'alt'}, $p{'url'} );
     my %args = $toaster->get_std_args( %p );
+    
+    my $conf = $toaster->get_config;
+    my $pkg_method = $conf->{'use_pkgng'} || 0;
 
     return $util->error("sorry, but I really need a package name!") if !$package;
 
@@ -277,11 +293,24 @@ sub install_package {
     print "install_package: installing $package....\n";
     $ENV{"PACKAGESITE"} = $pkg_url if $pkg_url;
 
-    my $pkg_add = $util->find_bin( "pkg_add", %args );
+    my $pkg_add;
+    if ( $pkg_method == 0) { 
+        $pkg_add = $util->find_bin( "pkg_add", %args );
+    } else { 
+        $pkg_add = $util->find_bin( "pkg", %args );
+    }
+
+    
+    
     return $log->error( "couldn't find pkg_add, giving up.",fatal=>0)
         if ( !$pkg_add || !-x $pkg_add );
 
-    my $r2 = $util->syscmd( "$pkg_add -r $package", debug => 0 );
+    my $r2;
+    if ( $pkg_method == 0) {    
+        $r2 = $util->syscmd( "$pkg_add -r $package", debug => 0 );
+    } else {
+        $r2 = $util->syscmd( "$pkg_add add -r $package", debug => 0 );
+    }
 
     if   ( !$r2 ) { print "\t pkg_add failed\t "; }
     else          { print "\t pkg_add success\t " };
@@ -289,17 +318,30 @@ sub install_package {
     unless ( $self->is_port_installed( $package, alt => $alt, %args )) {
         print "Failure #1, trying alternate package site.\n";
         $ENV{"PACKAGEROOT"} = "ftp://ftp2.freebsd.org";
-        $util->syscmd( "$pkg_add -r $package", debug => 0 );
+        if ( $pkg_method == 0) {    
+            $util->syscmd( "$pkg_add -r $package", debug => 0 );
+        } else {
+            $util->syscmd( "$pkg_add add -r $package", debug => 0 );
+        }
+
 
         unless ( $self->is_port_installed( $package, alt => $alt, %args,)) {
             print "Failure #2, trying alternate package site.\n";
             $ENV{"PACKAGEROOT"} = "ftp://ftp3.freebsd.org";
-            $util->syscmd( "$pkg_add -r $package", debug => 0 );
+            if ( $pkg_method == 0) {    
+                $util->syscmd( "$pkg_add -r $package", debug => 0 );
+            } else {
+                $util->syscmd( "$pkg_add add -r $package", debug => 0 );
+            }
 
             unless ( $self->is_port_installed( $package, alt => $alt, %args,)) {
                 print "Failure #3, trying alternate package site.\n";
                 $ENV{"PACKAGEROOT"} = "ftp://ftp4.freebsd.org";
-                $util->syscmd( "$pkg_add -r $package", debug => 0 );
+                if ( $pkg_method == 0) {    
+                    $util->syscmd( "$pkg_add -r $package", debug => 0 );
+                } else {
+                    $util->syscmd( "$pkg_add add -r $package", debug => 0 );
+                }
             }
         }
     }

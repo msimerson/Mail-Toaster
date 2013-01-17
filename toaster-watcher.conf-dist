@@ -61,6 +61,7 @@ cvsup_supfile_ports                = portsnap        # portsnap or path to file
                                                      # ex: /etc/cvsup-ports
 cvsup_supfile_sources              = cvsup-sources
 toaster_pkg_site                   = ftp://ftp.freebsd.org
+use_pkgng                          = 1               # Use the new package format pkgng see https://wiki.freebsd.org/pkgng
 
 
 ######################################
