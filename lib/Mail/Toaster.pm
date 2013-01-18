@@ -310,16 +310,28 @@ sub train_spamassassin {
 
 sub train_dspam {
     my ($self, $type, $file, $email) = @_;
-    return if ! $conf->{install_dspam};
-    return if ! -f $file;  # file moved (due to user action)
+    if ( ! $conf->{install_dspam} ) {
+        $log->audit( "skipping dspam training, install_dspam is not set");
+        return;
+    };
+    if ( ! -f $file ) {   # file moved (due to user action)
+        $log->audit( "skipping dspam train of $file, it moved");
+        return;
+    };
     #$log->audit($file);
     my $cmd;
     my $dspam = '/usr/local/bin/dspamc';
-    -x $dspam or return;
+    if ( ! -x $dspam ) {
+        $log->audit("skipping, could not exec $dspam");
+        return;
+    };
     if ( $type eq 'ham' ) {
         $cmd = "$dspam --client --user $email --source=corpus --class=innocent --deliver=summary --stdout";
         my $dspam_class = $self->get_dspam_class( $file );
-        return if ( $dspam_class && $dspam_class eq 'innocent' ); # dspam correct
+        if ( $dspam_class && $dspam_class eq 'innocent' ) {
+            $log->audit("dpam tagged innocent correctly, skipping");
+            return;
+        };
         if ( $dspam_class && $dspam_class eq 'spam' ) {         # dspam miss
             $cmd = "$dspam --client --user $email --mode=toe --source=error --class=innocent --deliver=summary --stdout";
         };
@@ -327,7 +339,10 @@ sub train_dspam {
     elsif ( $type eq 'spam' ) {
         $cmd = "$dspam --client --user $email --source=corpus --class=spam --deliver=summary --stdout";
         my $dspam_class = $self->get_dspam_class( $file );
-        return if ( $dspam_class && $dspam_class eq 'innocent' );
+        if ( $dspam_class && $dspam_class eq 'spam' ) {
+            $log->audit("dpam tagged spam correctly, skipping");
+            return;
+        };
         if ( $dspam_class && $dspam_class eq 'innocent' ) {
             $cmd = "$dspam --client --user $email --mode=toe --source=error --class=spam --deliver=summary --stdout";
         };
