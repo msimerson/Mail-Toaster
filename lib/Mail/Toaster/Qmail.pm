@@ -1196,7 +1196,7 @@ sub install_qmail_control_log_files {
 
         $log->audit( "install_qmail_control_log_files: comparing $run_f");
 
-        my $notify = defined $conf->{'supervise_rebuilt_notice'} ? $conf->{'supervise_rebuilt_notice'} : 1;
+        my $notify = defined $conf->{'supervise_rebuild_notice'} ? $conf->{'supervise_rebuild_notice'} : 1;
 
         if ( -s $tmpfile ) {
             $util->install_if_changed(
