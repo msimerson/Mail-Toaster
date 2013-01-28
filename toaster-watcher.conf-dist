@@ -27,7 +27,7 @@ toaster_test_email                 = test@example.com
 toaster_test_email_pass            = cHanGeMe
 
 toaster_debug                      = 0
-supervise_rebuilt_notice           = 1       # email admin when a run file is updated
+supervise_rebuild_notice           = 1       # email admin when a run file is updated
 
 system_config_dir                  = /usr/local/etc
 
