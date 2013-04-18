@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # by Matt Simerson & Phil Nadeau
-# circa 2008, but based in installer in Mail::Toaster dating back to the 20th century
+# circa 2008, based on installer in Mail::Toaster dating back to the 20th century
 
 # v1.4 - 2012-10-23
 #      - improved yum & apt-get module installer
