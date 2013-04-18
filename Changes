@@ -1,5 +1,12 @@
 Mail Toaster Changes
 
+  5.37 - Apr 18, 2013
+         adding partial support for pkgng (R. Lensen)
+         added bin/email_restore.pl (restore mailboxes from backups)
+         numerous typo corrections
+         dspam learning fix
+         improved support for qpsmtpd
+
   5.36 - Dec 01, 2012
          release (not fully tested, but certainly less broken than 5.35
 
