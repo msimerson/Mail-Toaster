@@ -4,7 +4,8 @@ use warnings;
 
 use lib 'lib';
 
-use Test::More tests => 10;
+use Test::More tests => 11;
+use Test::NoWarnings;
 
 BEGIN {
     use_ok('Mail::Toaster');

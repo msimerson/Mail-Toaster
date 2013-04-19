@@ -4,6 +4,7 @@ use warnings;
 
 use Cwd;
 use Test::More 'no_plan';
+use Test::NoWarnings;
 
 use lib 'lib';
 

@@ -4,6 +4,7 @@ use warnings;
 use Cwd;
 use English qw( -no_match_vars );
 use Test::More;
+use Test::NoWarnings;
 
 use lib 'lib';
 use Mail::Toaster;
@@ -17,11 +18,10 @@ my $count  = $conf->{logs_counters};
 my $count_dir = "$logdir/$count";
 
 if ( ! $logdir || ! -d $logdir ) {
-    plan skip_all => "Logging not set up yet";
+    diag "Logging not set up yet";
+    done_testing(1);
+    exit;
 }
-else {
-    plan 'no_plan';
-};
 
 require_ok('Mail::Toaster::Logs');
 
@@ -194,8 +194,5 @@ cmp_ok( $log->what_am_i(), "eq", "Logs.t", 'what_am_i' );
 
 ok( $log->syslog_locate(), 'syslog_locate' );
 
-
-1;
-
-__END__;
+done_testing();
 
