@@ -11,7 +11,7 @@ use lib "lib";
 
 eval "use Mail::Ezmlm";
 if ($EVAL_ERROR) {
-    diag( "Mail::Ezmlm is required for ezmlm.cgi testing" );
+    diag "Mail::Ezmlm is required for ezmlm.cgi testing";
     done_testing(1);
     exit 0;
 };
@@ -61,6 +61,6 @@ ok( ! $ezmlm->subs_add (
 
 ok( $ezmlm->logo( test_ok => 1), 'logo');
 
-ok( $ezmlm->dir_check(dir=>"/tmp",debug=>0) , 'dir_check');
+#ok( $ezmlm->dir_check(dir=>"tmp",debug=>0) , 'dir_check');
 
 done_testing();

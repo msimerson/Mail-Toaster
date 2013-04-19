@@ -11,13 +11,13 @@ use Mail::Toaster;
 my $toaster = Mail::Toaster->new(debug=>0);
 
 if ( lc( $OSNAME ) ne "darwin" ) {
-    plan skip_all => "OS is not Darwin";
+    diag "OS is not Darwin";
+    done_testing(1);
+    exit 0;
 }
-else {
-    plan 'no_plan';
-};
 
 require_ok('Mail::Toaster::Darwin');
 
 ok( Mail::Toaster::Darwin->new( toaster => $toaster ), 'new darwin object' );
 
+done_testing();
