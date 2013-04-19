@@ -4,7 +4,6 @@ use warnings;
 
 use English qw( -no_match_vars );
 use Test::More 'no_plan';
-use Test::NoWarnings;
 
 use lib 'lib';
 use Mail::Toaster;

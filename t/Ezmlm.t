@@ -5,15 +5,15 @@ use warnings;
 use Cwd;
 use English qw( -no_match_vars );
 use Test::More;
-use Test::NoWarnings;
 
 use lib "lib";
 
 eval "use Mail::Ezmlm";
 if ($EVAL_ERROR) {
-    diag "Mail::Ezmlm is required for ezmlm.cgi testing";
-    done_testing(1);
-    exit 0;
+    plan skip_all => "Mail::Ezmlm is required for ezmlm.cgi testing",
+}
+else {
+    plan 'no_plan';
 };
 
 require_ok( 'Mail::Toaster' );
@@ -61,6 +61,6 @@ ok( ! $ezmlm->subs_add (
 
 ok( $ezmlm->logo( test_ok => 1), 'logo');
 
-#ok( $ezmlm->dir_check(dir=>"tmp",debug=>0) , 'dir_check');
+ok( $ezmlm->dir_check(dir=>"/tmp",debug=>0) , 'dir_check');
 
-done_testing();
+

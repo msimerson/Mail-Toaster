@@ -3,16 +3,16 @@ use warnings;
 
 use English qw( -no_match_vars );
 use Test::More;
-use Test::NoWarnings;
 
 use lib 'lib';
 use lib 'inc';
 
 if ( $OSNAME ne "freebsd" ) {
-    diag "OS is not FreeBSD";
-    done_testing(1);
-    exit 0;
+    plan skip_all => "OS is not FreeBSD";
 }
+else {
+    plan 'no_plan';
+};
 
 require_ok( 'Mail::Toaster' );
 require_ok( 'Mail::Toaster::FreeBSD' );
@@ -111,4 +111,3 @@ if ( -f '/usr/ports/Makefile' ) {
 	), 'conf_check' );
 
 
-done_testing(1);

@@ -4,23 +4,19 @@ use warnings;
 
 use English qw( -no_match_vars );
 use Test::More;
-use Test::NoWarnings;
 
 use lib "lib";
 
 my $mod = "Date::Parse";
 unless (eval "require $mod" )
 {
-    diag( "skipping tests, Date::Parse not installed yet");
-    done_testing(1);
-    exit 0;
+	Test::More::plan( skip_all => "skipping tests, Date::Parse not installed yet");
 }
 unless (-w "/var/log/mail")
 {
-	diag "skipping tests, /var/log/mail not writable";
-    done_testing(1);
-    exit 0;
+	Test::More::plan( skip_all => "skipping tests, /var/log/mail not writable");
 }
+plan 'no_plan';
 
 require_ok( 'Mail::Toaster' );
 
@@ -59,5 +55,3 @@ foreach my $type (@log_types) {
         );
     }
 }
-
-done_testing();

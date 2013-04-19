@@ -115,6 +115,9 @@ t/FreeBSD.t
 t/Logs.t
 t/maillogs.t
 t/Mysql.t
+t/perlcritic.t
+t/pod-coverage.t
+t/pod.t
 t/Qmail.t
 t/qqtool.t
 t/Setup.t
@@ -125,6 +128,3 @@ t/Utility.t
 toaster-watcher.conf-dist
 toaster.conf-dist
 TODO
-xt/perlcritic.t
-xt/pod-coverage.t
-xt/pod.t

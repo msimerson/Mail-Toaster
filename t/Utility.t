@@ -7,7 +7,6 @@ use lib "lib";
 use Cwd;
 use English qw( -no_match_vars );
 use Test::More 'no_plan';
-use Test::NoWarnings;
 
 my $deprecated = 0;    # run the deprecated tests.
 my $network    = 0;    # run tests that require network

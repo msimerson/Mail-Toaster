@@ -7,7 +7,6 @@ use lib "lib";
 use Config;
 use English qw( -no_match_vars );
 use Test::More 'no_plan';
-use Test::NoWarnings;
 
 require_ok( 'Mail::Toaster' );
 
