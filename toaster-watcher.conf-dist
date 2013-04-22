@@ -304,16 +304,13 @@ rbl_bl.spamcop.net                 = 1       # http://www.spamcop.net/
 rbl_dnsbl-1.uceprotect.net         = 1       # http://www.uceprotect.net/en/index.php?m=3&s=3
 rbl_rbl-plus.mail-abuse.org        = 0       # Subscription only!
 rbl_korea.services.net             = 1       # Block all of Korea
-rbl_opm.blitzed.org                = 0       # http://opm.blitzed.org/info (part of xbl)
 rbl_dnsbl.sorbs.net                = 1       # aggregate: includes all sorbs.net lists
 rbl_psbl.surriel.com               = 1       # http://psbl.surriel.com/
 #          new and not heavily tested as of 5/1/05
 rbl_dnsbl.ahbl.org                 = 0       # http://www.ahbl.org/
 rbl_multi.surbl.org                = 0       # http://www.surbl.org/
-rbl_cn-kr.blackholes.us            = 0       # block china & korea
 rbl_cbl.abuseat.org                = 0       # http://cbl.abuseat.org/ (part of sbl-xbl)
 #      individual lists included in combined lists above
-rbl_dnsbl.njabl.org                = 1       # http://www.dnsbl.njabl.org/
 rbl_sbl.spamhaus.org               = 0       # http://www.spamhaus.org/sbl/
 rbl_xbl.spamhaus.org               = 0       # http://www.spamhaus.org/xbl/
 rbl_pbl.spamhaus.org               = 0       # http://www.spamhaus.org/pbl/
@@ -324,6 +321,9 @@ rbl_blackholes.mail-abuse.org      = 0       # Subscription only!
 rbl_relays.mail-abuse.org          = 0       # Subscription only!
 rbl_dialups.mail-abuse.org         = 0       # Subscription only!
 #            deprecated/defunct RBLs
+rbl_opm.blitzed.org                = 0       # http://opm.blitzed.org/info
+rbl_cn-kr.blackholes.us            = 0       # block china & korea
+rbl_dnsbl.njabl.org                = 0       # http://www.dnsbl.njabl.org/  # dead: 3/1/13
 rbl_dsn.rfc-ignorant.org           = 0       # http://rfc-ignorant.org/
 rbl_whois.rfc-ignorant.org         = 0
 rbl_abuse.rfc-ignorant.org         = 0       # http://www.rfc-ignorant.org/policy-abuse.php
