@@ -6,7 +6,11 @@ use lib "lib";
 
 use Cwd;
 use English qw( -no_match_vars );
-use Test::More 'no_plan';
+use Test::More;
+
+if ( $OSNAME =~ /cygwin|win32|windows/i ) {
+    plan skip_all => "no windows support";
+};
 
 my $deprecated = 0;    # run the deprecated tests.
 my $network    = 0;    # run tests that require network
@@ -645,5 +649,4 @@ ok( $util->clean_tmp_dir( $tmp ), 'clean_tmp_dir' );
 # yes_or_no
 ok( $util->yes_or_no( "test", timeout => 5 ), 'yes_or_no' );
 
-
-
+done_testing();

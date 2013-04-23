@@ -1,8 +1,15 @@
 
-use Config qw/ myconfig /;
+use strict;
+use warnings;
+
+use Config;
 use Data::Dumper;
 use English qw/ -no_match_vars /;
-use Test::More tests => 23;
+use Test::More;
+
+if ( $OSNAME =~ /cygwin|win32|windows/i ) {
+    plan skip_all => "no windows support";
+};
 
 use lib 'lib';
 
@@ -12,12 +19,7 @@ my $this_perl = $Config{'perlpath'} || $EXECUTABLE_NAME;
 
 ok( $this_perl, "this_perl: $this_perl" );
 
-if ($OSNAME ne 'VMS' && $Config{_exe} ) {
-    $this_perl .= $Config{_exe}
-        unless $this_perl =~ m/$Config{_exe}$/i;
-}
-
-foreach ( <bin/*> ) {
+foreach ( glob "bin/*" ) {
     my $cmd = "$this_perl -c $_";
     my $r = system "$cmd 2>/dev/null >/dev/null";
     ok( $r == 0, "syntax $_");
@@ -35,3 +37,5 @@ foreach ( `find lib -name '*.pm'` ) {
 my $r = `$this_perl -c cgi_files/ezmlm.cgi 2>&1`;
 my $exit_code = sprintf ("%d", $CHILD_ERROR >> 8);
 ok( $exit_code == 0, "syntax ezmlm.cgi");
+
+done_testing();

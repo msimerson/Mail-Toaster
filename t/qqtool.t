@@ -1,12 +1,16 @@
 #!perl
 use strict;
-#use warnings;
+use warnings;
 
 use lib "lib";
 
 use Config;
 use English qw( -no_match_vars );
-use Test::More 'no_plan';
+use Test::More;
+
+if ( $OSNAME =~ /cygwin|win32|windows/i ) {
+    plan skip_all => "no windows support";
+};
 
 require_ok( 'Mail::Toaster' );
 
@@ -38,3 +42,5 @@ ok( $util->syscmd( "$this_perl $qqtool_location -a list -s matt -h From ",
         fatal   => 0,
         debug   => 0,
     ), 'qqtool.pl' );
+
+done_testing();

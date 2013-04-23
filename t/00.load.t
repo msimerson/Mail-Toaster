@@ -4,7 +4,12 @@ use warnings;
 
 use lib 'lib';
 
-use Test::More tests => 10;
+use English qw/ -no_match_vars /;
+use Test::More;
+
+if ( $OSNAME =~ /cygwin|win32|windows/i ) {
+    plan skip_all => "no windows support";
+};
 
 BEGIN {
     use_ok('Mail::Toaster');
@@ -17,7 +22,8 @@ BEGIN {
     use_ok('Mail::Toaster::FreeBSD');
     use_ok('Mail::Toaster::Mysql');
     use_ok('Mail::Toaster::Setup');
-}
+};
 
 diag( "Testing Mail::Toaster $Mail::Toaster::VERSION, Perl $], $^X" );
 
+done_testing();

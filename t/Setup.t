@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Cwd;
-use Test::More 'no_plan';
+use Test::More;
 
 use lib 'lib';
 
@@ -86,5 +86,4 @@ ok( !$setup->nictool( test_ok => 0, debug => 1, fatal=>0 ), 'nictool' );
 # set this back to where we started so subsequent testing scripts work
 chdir($initial_working_directory);
 
-
-1;
+done_testing();
