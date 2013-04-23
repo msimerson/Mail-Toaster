@@ -11,9 +11,8 @@ use English qw( -no_match_vars );
 
 $OUTPUT_AUTOFLUSH++;
 
-
 BEGIN {
-    if ( ! eval "require Params::Validate" ) {
+    if ( !eval "require Params::Validate" ) {
         print "\n\tRequired dependencies are not installed!\n\n";
         print "run 'make deps' to install them.\n\n";
     }
@@ -23,7 +22,7 @@ my $confdir = set_conf_dir();
 
 sub MY::postamble {
 
-'TNPITOASTER	=	html
+    'TNPITOASTER	=	html
 CONFDIR    =   ' . $confdir . '
 MODULES		=	doc/modules
 MT		=	Mail::Toaster
@@ -108,59 +107,55 @@ web:
 }
 
 WriteMakefile(
-	'NAME'           => 'Mail::Toaster',
-	'VERSION_FROM'   => 'lib/Mail/Toaster.pm', # finds $VERSION
-	'EXE_FILES'      => [ 'bin/toaster_setup.pl',
-                              'bin/toaster-watcher.pl',
-                              'bin/maillogs',
-                              'bin/qqtool.pl',
-                            ],
-	'INSTALLSCRIPT'  => '/usr/local/sbin',
+    'NAME'         => 'Mail::Toaster',
+    'VERSION_FROM' => 'lib/Mail/Toaster.pm',    # finds $VERSION
+    'EXE_FILES'    => [
+        'bin/toaster_setup.pl', 'bin/toaster-watcher.pl',
+        'bin/maillogs',         'bin/qqtool.pl',
+    ],
+    'INSTALLSCRIPT'    => '/usr/local/sbin',
     'MIN_PERL_VERSION' => 5.008001,
-    'BUILD_REQUIRES'  => {
-     },
-	'PREREQ_PM'      => {
-		'Date::Parse'        => 1,
-        'Data::Dumper'       => 0,
-		'DBI'                => 1,
-        'English'            => 0,
-        'File::stat'         => 0,
-        'Getopt::Long'       => 0,
-        'DateTime'           => 0.5,
-		'Params::Validate'   => .7,
-		'Net::DNS'           => 0.20,
-		'Email::Valid'       => 0,
-		'IO::Socket::SSL'    => 0,
-		'Mail::Ezmlm'        => 0,
-		'Mail::Send'         => 0,
-        'Pod::Usage'         => 0,
-        'Sys::Hostname'      => 0,
-         'URI'               => 0,
-        'version'            => 0,
-#		'vpopmail'           => 0,
-#		'HTML::Template'     => 1,  # no longer
+    'BUILD_REQUIRES'   => {},
+    'PREREQ_PM'        => {
+        'Date::Parse'      => 1,
+        'Data::Dumper'     => 0,
+        'DBI'              => 1,
+        'English'          => 0,
+        'File::stat'       => 0,
+        'Getopt::Long'     => 0,
+        'DateTime'         => 0.5,
+        'Params::Validate' => .7,
+        'Net::DNS'         => 0.20,
+        'Email::Valid'     => 0,
+        'IO::Socket::SSL'  => 0,
+        'Mail::Ezmlm'      => 0,
+        'Mail::Send'       => 0,
+        'Pod::Usage'       => 0,
+        'Sys::Hostname'    => 0,
+        'URI'              => 0,
+        'version'          => 0,
+
+        #		'vpopmail'           => 0,
+        #		'HTML::Template'     => 1,  # no longer
     },
     'TEST_REQUIRES' => {
         'Proc::ProcessTable' => 1,
-		'Test::Simple'       => 0,
+        'Test::Simple'       => 0,
     },
-	AUTHOR            => 'Matt Simerson (matt@tnpi.net)',
-	ABSTRACT          => 'Mail::Toaster perl programs and modules',
-	LICENSE           => 'bsd',
-	PL_FILES          => {},
-#	MAN1PODS          => [],
-    dist              => { COMPRESS => 'gzip -9f', },
-    clean            => {
-                            FILES => [  't/trash',
-                                        'pod2htm*',
-                                        'html',
-                                     ],
-                        },
+    AUTHOR   => 'Matt Simerson (matt@tnpi.net)',
+    ABSTRACT => 'Mail::Toaster perl programs and modules',
+    LICENSE  => 'bsd',
+    PL_FILES => {},
+
+    #	MAN1PODS          => [],
+    dist  => { COMPRESS => 'gzip -9f', },
+    clean => { FILES    => [ 't/trash', 'pod2htm*', 'html', ], },
 );
 
 sub set_conf_dir {
     my $dir = "/usr/local/etc";
-    if  ( $^O eq "darwin") { $dir = "/opt/local/etc" };  # Mac OS X
+    if ( $^O eq "darwin" ) { $dir = "/opt/local/etc" }
+    ;    # Mac OS X
     return $dir;
 }
 

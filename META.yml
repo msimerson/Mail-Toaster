@@ -3,7 +3,8 @@ abstract: 'Mail::Toaster perl programs and modules'
 author:
   - 'Matt Simerson (matt@tnpi.net)'
 build_requires:
-  ExtUtils::MakeMaker: 0
+  Proc::ProcessTable: 1
+  Test::Simple: 0
 configure_requires:
   ExtUtils::MakeMaker: 0
 dynamic_config: 0
@@ -19,14 +20,20 @@ no_index:
     - inc
 requires:
   DBI: 1
+  Data::Dumper: 0
   Date::Parse: 1
+  DateTime: 0.5
   Email::Valid: 0
+  English: 0
+  File::stat: 0
+  Getopt::Long: 0
   IO::Socket::SSL: 0
   Mail::Ezmlm: 0
   Mail::Send: 0
   Net::DNS: 0.2
   Params::Validate: 0.7
-  Test::Simple: 0
+  Pod::Usage: 0
+  Sys::Hostname: 0
   URI: 0
   perl: 5.008001
   version: 0
