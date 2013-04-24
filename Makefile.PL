@@ -120,9 +120,9 @@ WriteMakefile(
     },
     'PREREQ_PM'        => {
         'Date::Parse'      => 1,
-#       'Data::Dumper'     => 0,
+        'Data::Dumper'     => 0,
         'DBI'              => 1,
-#       'English'          => 0,
+        'English'          => 0,
 #       'File::stat'       => 0,
         'Getopt::Long'     => 0,
 #       'DateTime'         => 0.5,
@@ -131,7 +131,7 @@ WriteMakefile(
         'Email::Valid'     => 0,
         'IO::Socket::SSL'  => 0,
         'Mail::Send'       => 0,
-#       'Pod::Usage'       => 0,
+        'Pod::Usage'       => 0,
 #       'Sys::Hostname'    => 0,
         'URI'              => 0,
         'version'          => 0,
@@ -140,7 +140,7 @@ WriteMakefile(
         #		'HTML::Template'     => 1,  # no longer
     },
     'TEST_REQUIRES' => {
-        'Proc::ProcessTable' => 1,
+#       'Proc::ProcessTable' => 1,
         'Test::Simple'       => 0,
     },
     AUTHOR   => 'Matt Simerson (matt@tnpi.net)',
