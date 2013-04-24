@@ -116,31 +116,35 @@ WriteMakefile(
     'INSTALLSCRIPT'    => '/usr/local/sbin',
     'MIN_PERL_VERSION' => 5.008001,
     'BUILD_REQUIRES'   => {
-        'Mail::Ezmlm'      => 0,
     },
     'PREREQ_PM'        => {
-        'Date::Parse'      => 1,
+# typically included with perl
         'Data::Dumper'     => 0,
-        'DBI'              => 1,
         'English'          => 0,
         'File::stat'       => 0,
         'Getopt::Long'     => 0,
-        'DateTime'         => 0.5,
-        'Params::Validate' => .7,
-        'Net::DNS'         => 0.20,
-        'Email::Valid'     => 0,
-        'IO::Socket::SSL'  => 0,
-        'Mail::Send'       => 0,
         'Pod::Usage'       => 0,
         'Sys::Hostname'    => 0,
+
+# generally CPAN
+        'Date::Parse'      => 1,
+        'DateTime'         => 0.5,
+        'DBI'              => 1,
+        'Email::Valid'     => 0,
+        'IO::Socket::SSL'  => 0,
+        'Net::DNS'         => 0.20,
+        'Mail::Send'       => 0,
+        'Params::Validate' => .7,
         'URI'              => 0,
         'version'          => 0,
 
-#		'vpopmail'           => 0,
 #		'HTML::Template'     => 1,  # no longer
     },
+#   'ENABLES_ADDITIONAL_FEATURES' => {
+#      'vpopmail'         => 0,
+#      'Mail::Ezmlm'      => 0,
+#    },
     'TEST_REQUIRES' => {
-#       'Proc::ProcessTable' => 1,
         'Test::Simple'       => 0,
     },
     AUTHOR   => 'Matt Simerson (matt@tnpi.net)',

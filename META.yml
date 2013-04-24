@@ -3,7 +3,6 @@ abstract: 'Mail::Toaster perl programs and modules'
 author:
   - 'Matt Simerson (matt@tnpi.net)'
 build_requires:
-  Proc::ProcessTable: 1
   Test::Simple: 0
 configure_requires:
   ExtUtils::MakeMaker: 0
@@ -28,7 +27,6 @@ requires:
   File::stat: 0
   Getopt::Long: 0
   IO::Socket::SSL: 0
-  Mail::Ezmlm: 0
   Mail::Send: 0
   Net::DNS: 0.2
   Params::Validate: 0.7
