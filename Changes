@@ -1,5 +1,8 @@
 Mail Toaster Changes
 
+  5.38 - Apr 23, 2013
+         packaging and test changes only
+
   5.37 - Apr 18, 2013
          adding partial support for pkgng (R. Lensen)
          added bin/email_restore.pl (restore mailboxes from backups)
