@@ -125,7 +125,7 @@ WriteMakefile(
         'English'          => 0,
         'File::stat'       => 0,
         'Getopt::Long'     => 0,
-#       'DateTime'         => 0.5,
+        'DateTime'         => 0.5,
         'Params::Validate' => .7,
         'Net::DNS'         => 0.20,
         'Email::Valid'     => 0,
