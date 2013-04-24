@@ -123,7 +123,7 @@ WriteMakefile(
         'Data::Dumper'     => 0,
         'DBI'              => 1,
         'English'          => 0,
-#       'File::stat'       => 0,
+        'File::stat'       => 0,
         'Getopt::Long'     => 0,
 #       'DateTime'         => 0.5,
         'Params::Validate' => .7,
@@ -132,12 +132,12 @@ WriteMakefile(
         'IO::Socket::SSL'  => 0,
         'Mail::Send'       => 0,
         'Pod::Usage'       => 0,
-#       'Sys::Hostname'    => 0,
+        'Sys::Hostname'    => 0,
         'URI'              => 0,
         'version'          => 0,
 
-        #		'vpopmail'           => 0,
-        #		'HTML::Template'     => 1,  # no longer
+#		'vpopmail'           => 0,
+#		'HTML::Template'     => 1,  # no longer
     },
     'TEST_REQUIRES' => {
 #       'Proc::ProcessTable' => 1,
