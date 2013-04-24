@@ -115,7 +115,9 @@ WriteMakefile(
     ],
     'INSTALLSCRIPT'    => '/usr/local/sbin',
     'MIN_PERL_VERSION' => 5.008001,
-    'BUILD_REQUIRES'   => {},
+    'BUILD_REQUIRES'   => {
+        'Mail::Ezmlm'      => 0,
+    },
     'PREREQ_PM'        => {
         'Date::Parse'      => 1,
         'Data::Dumper'     => 0,
@@ -128,7 +130,6 @@ WriteMakefile(
         'Net::DNS'         => 0.20,
         'Email::Valid'     => 0,
         'IO::Socket::SSL'  => 0,
-        'Mail::Ezmlm'      => 0,
         'Mail::Send'       => 0,
         'Pod::Usage'       => 0,
         'Sys::Hostname'    => 0,
