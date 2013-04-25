@@ -1,3 +1,4 @@
+bin/email_restore.pl
 bin/install_deps.pl
 bin/maillogs
 bin/qqtool.pl

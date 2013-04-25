@@ -1,27 +1,38 @@
---- #YAML:1.0
-name:               Mail-Toaster
-version:            5.11
-abstract:           Mail::Toaster perl programs and modules
+---
+abstract: 'Mail::Toaster perl programs and modules'
 author:
-    - Matt Simerson (matt@tnpi.net)
-license:            bsd
-distribution_type:  module
+  - 'Matt Simerson (matt@tnpi.net)'
+build_requires:
+  Test::Simple: 0
 configure_requires:
-    ExtUtils::MakeMaker:  0
-requires:
-    Date::Parse:       1
-    DBI:               1
-    Email::Valid:      0
-    IO::Socket::SSL:   0
-    Mail::Ezmlm:       0
-    Net::DNS:          0.2
-    Params::Validate:  0.7
-    Test::Simple:      0
-no_index:
-    directory:
-        - t
-        - inc
-generated_by:       ExtUtils::MakeMaker version 6.46
+  ExtUtils::MakeMaker: 0
+dynamic_config: 0
+generated_by: 'ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.120921'
+license: bsd
 meta-spec:
-    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
-    version:  1.4
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Mail-Toaster
+no_index:
+  directory:
+    - t
+    - inc
+requires:
+  DBI: 1
+  Data::Dumper: 0
+  Date::Parse: 1
+  DateTime: 0.5
+  Email::Valid: 0
+  English: 0
+  File::stat: 0
+  Getopt::Long: 0
+  IO::Socket::SSL: 0
+  Mail::Send: 0
+  Net::DNS: 0.2
+  Params::Validate: 0.7
+  Pod::Usage: 0
+  Sys::Hostname: 0
+  URI: 0
+  perl: 5.008001
+  version: 0
+version: 5.37
