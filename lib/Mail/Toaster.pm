@@ -1982,9 +1982,9 @@ Patches are welcome.
 Matt Simerson (matt@tnpi.net)
 
 
-=head1 LICENCE AND COPYRIGHT
+=head1 COPYRIGHT AND LICENCE
 
-Copyright (c) 2004-2010, The Network People, Inc. C<< <matt@tnpi.net> >>. All rights reserved.
+Copyright (c) 2004-2013, The Network People, Inc. C<< <matt@tnpi.net> >>. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

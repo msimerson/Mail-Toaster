@@ -4,5 +4,7 @@
 ^.tar.gz
 ^.travis.yml
 ^html
+^Makefile$
 ^Mail-Toaster.tmproj
 ^MANIFEST.bak
+^MYMETA.
