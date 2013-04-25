@@ -3,7 +3,7 @@ package Mail::Toaster::Setup;
 use strict;
 use warnings;
 
-our $VERSION = '5.35';
+our $VERSION = '5.39';
 
 use vars qw/ $conf $log $freebsd $darwin $err $qmail $toaster $util %std_opts /;
 
@@ -18,7 +18,7 @@ use Params::Validate qw( :all );
 use Sys::Hostname;
 
 use lib 'lib';
-use Mail::Toaster       5.35;
+use Mail::Toaster       5.39;
 
 sub new {
     my $class = shift;
@@ -7747,50 +7747,9 @@ From there you can run any of the following methods via $setup->method as docume
 
 Many of the methods require $conf, which is a hashref containing the contents of toaster-watcher.conf.
 
-
-=item apache
-
-Calls $apache->install[1|2] which then builds and installs Apache for you based on how it was called. See Mail::Toaster::Apache for more details.
-
-  $setup->apache( ver=>22 );
-
-There are many popular Apache compile time options supported. To see what options are available, see toaster-watcher.conf.
-
- required arguments:
-   conf
-
- optional arguments:
-   ver - the version number of Apache to install
-   debug
-   fatal
-
-
-=item autorespond
-
-Install autorespond. Fetches sources from Inter7 web site and installs. Automatically patches the sources to compile correctly on Darwin.
-
-  $setup->autorespond( );
-
- required arguments:
-   conf
-
- optional arguments:
-   debug
-   fatal
-
-
 =item clamav
 
 Install ClamAV, configure the startup and config files, download the latest virus definitions, and start up the daemons.
-
-  $setup->clamav( );
-
- required arguments:
-   conf
-
- optional arguments:
-   debug
-   fatal
 
 
 =item config - personalize your toaster-watcher.conf settings
@@ -7809,81 +7768,9 @@ There are a subset of the settings in toaster-watcher.conf which must be persona
 
 Makes changes to the config file, dynamically based on detected circumstances such as a jailed hostname, or OS platform. Platforms like FreeBSD, Darwin, and Debian have package management capabilities. Rather than installing software via sources, we prefer to try using the package manager first. The toaster-watcher.conf file typically includes the latest stable version of each application to install. This subroutine will replace those version numbers with with 'port', 'package', or other platform specific tweaks.
 
-
-=item courier
-
-  $setup->courier( );
-
-Installs courier imap based on your settings in toaster-watcher.conf.
-
- required arguments:
-   conf
-
- optional arguments:
-   debug
-   fatal
-
- result:
-   1 - success
-   0 - failure
-
-
-=item courier_startup
-
-  $setup->courier_startup( );
-
-Does the post-install configuration of Courier IMAP.
-
-
-=item cpan
-
-  $setup->cpan( );
-
-Installs only the perl modules that are required for 'make test' to succeed. Useful for CPAN testers.
-
- Date::Parse
- HTML::Template
- Compress::Zlib
- Crypt::PasswdMD5
- Net::DNS
- Quota
- TimeDate
-
-
-=item cronolog
-
-Installs cronolog. If running on FreeBSD or Darwin, it will install from ports. If the port install fails for any reason, or you are on another platform, it will install from sources.
-
-required arguments:
-  conf
-
-optional arguments:
-  debug
-  fatal
-
-result:
-  1 - success
-  0 - failure
-
-
 =item daemontools
 
 Fetches sources from DJB's web site and installs daemontools, per his instructions.
-
- Usage:
-  $setup->daemontools( conf->$conf );
-
- required arguments:
-   conf
-
- optional arguments:
-   debug
-   fatal
-
- result:
-   1 - success
-   0 - failure
-
 
 =item dependencies
 
@@ -7953,19 +7840,6 @@ Installs SpamAssassin, ClamAV, simscan, QmailScanner, maildrop, procmail, and pr
   $setup->filtering();
 
 
-
-=item is_newer
-
-Checks a three place version string like 5.3.24 to see if the current version is newer than some value. Useful when you have various version of a program like vpopmail or mysql and the syntax you need to use for building it is different for differing version of the software.
-
-
-=item isoqlog
-
-Installs isoqlog.
-
-  $setup->isoqlog();
-
-
 =item maildrop
 
 Installs a maildrop filter in $prefix/etc/mail/mailfilter, a script for use with Courier-IMAP in $prefix/sbin/subscribeIMAP.sh, and sets up a filter debugging file in /var/log/mail/maildrop.log.
@@ -8004,107 +7878,6 @@ Installs mysql server for you, based on your settings in toaster-watcher.conf. T
   $setup->mysql( );
 
 
-=item phpmyadmin
-
-Installs PhpMyAdmin for you, based on your settings in toaster-watcher.conf. The actual code that does the work is in Mail::Toaster::Mysql (part of Mail::Toaster::Bundle) so read the man page for Mail::Toaster::Mysql for more info.
-
-  $setup->phpmyadmin($conf);
-
-
-=item ports
-
-Install the ports tree on FreeBSD or Darwin and update it with cvsup.
-
-On FreeBSD, it optionally uses cvsup_fastest to choose the fastest cvsup server to mirror from. Configure toaster-watch.conf to adjust it's behaviour. It can also install the portupgrade port to use for updating your legacy installed ports. Portupgrade is very useful, but be very careful about using portupgrade -a. I always use portupgrade -ai and skip the toaster related ports such as qmail since we have customized version(s) of them installed.
-
-  $setup->ports();
-
-
-=item qmailadmin
-
-Install qmailadmin based on your settings in toaster-watcher.conf.
-
-  $setup->qmailadmin();
-
-
-
-=item razor
-
-Install Vipul's Razor2
-
-  $setup->razor( );
-
-
-=item ripmime
-
-Installs ripmime
-
-  $setup->ripmime();
-
-
-=item simscan
-
-Install simscan from Inter7.
-
-  $setup->simscan();
-
-See toaster-watcher.conf to see how these settings affect the build and operations of simscan.
-
-
-=item simscan_conf
-
-Build the simcontrol and ssattach config files based on toaster-watcher.conf settings.
-
-
-=item simscan_test
-
-Send some test messages to the mail admin using simscan as a message scanner.
-
-    $setup->simscan_test();
-
-
-=item socklog
-
-	$setup->socklog( ip=>$ip );
-
-If you need to use socklog, then you'll appreciate how nicely this configures it. :)  $ip is the IP address of the socklog master server.
-
-
-=item socklog_qmail_control
-
-	socklog_qmail_control($service, $ip, $user, $supervisedir);
-
-Builds a service/log/run file for use with socklog.
-
-
-=item squirrelmail
-
-	$setup->squirrelmail
-
-Installs Squirrelmail using FreeBSD ports. Adjusts the FreeBSD port by passing along WITH_APACHE2 if you have Apache2 selected in your toaster-watcher.conf.
-
-
-=item sqwebmail
-
-	$setup->sqwebmail();
-
-install sqwebmail based on your settings in toaster-watcher.conf.
-
-
-=item supervise
-
-	$setup->supervise();
-
-One stop shopping: calls the following subs:
-
-  $qmail->control_create        ();
-  $setup->service_dir_create    ();
-  $toaster->supervise_dirs_create ();
-  $qmail->install_qmail_control_files ();
-  $qmail->install_qmail_control_log_files();
-  $toaster->service_symlinks    (debug=>$debug);
-
-
 =item startup_script
 
 Sets up the supervised mail services for Mail::Toaster
@@ -8127,43 +7900,6 @@ The services script allows you to run "services stop" or "services start" on you
 Run a variety of tests to verify that your Mail::Toaster installation is working correctly.
 
 
-=item ucspi_tcp
-
-Installs ucspi-tcp with my (Matt Simerson) MySQL patch.
-
-	$setup->ucspi_tcp( );
-
-
-=item vpopmail
-
-Vpopmail is great, but it has lots of options and remembering which option you used months or years ago to build a mail server is not always easy. So, store all the settings in toaster-watcher.conf and this sub will install vpopmail for you, honoring all your settings and passing the appropriate configure flags to vpopmail's configure.
-
-	$setup->vpopmail( );
-
-If you do not have toaster-watcher.conf installed, it will ask you a series of questions and then install based on your answers.
-
-
-=item vpopmail_etc
-
-
-Builds the ~vpopmail/etc/tcp.smtp file with a mess of sample entries and user specified settings.
-
-	$setup->vpopmail_etc( );
-
-
-=item vpopmail_mysql_privs
-
-Connects to MySQL server, creates the vpopmail table if it doesn't exist, and sets up a vpopmail user and password as set in $conf.
-
-    $setup->vpopmail_mysql_privs($conf);
-
-
-=item vqadmin
-
-	$setup->vqadmin($conf, $debug);
-
-Installs vqadmin from ports on FreeBSD and from sources on other platforms. It honors your cgi-bin and your htdocs directory as configured in toaster-watcher.conf.
-
 =back
 
 
@@ -8177,19 +7913,9 @@ Installs vqadmin from ports on FreeBSD and from sources on other platforms. It h
 Matt Simerson - matt@tnpi.net
 
 
-=head1 BUGS
-
-None known. Report to author. Patches welcome (diff -u preferred)
-
-
-=head1 TODO
-
-Better documentation. It is almost reasonable now.
-
-
 =head1 SEE ALSO
 
-The following are all man/perldoc pages:
+The following are all perldoc pages:
 
  Mail::Toaster
  Mail::Toaster::Conf
@@ -8197,21 +7923,5 @@ The following are all man/perldoc pages:
  toaster-watcher.conf
 
  http://mail-toaster.org/
-
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (c) 2004-2010, The Network People, Inc.  All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-
-Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 
 =cut
