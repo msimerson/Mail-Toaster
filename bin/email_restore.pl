@@ -144,14 +144,3 @@ Requires that you have backups accessible (mounted locally) to this script. This
  
 Matt Simerson  (matt@tnpi.net)
  
-
-=head1 LICENCE AND COPYRIGHT
- 
-Copyright (c) 2013 The Network People, Inc. (info@tnpi.net). All rights reserved.
-
-This module is free software; you can redistribute it and/or
-modify it under the same terms as Perl itself. See L<perlartistic>.
- 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

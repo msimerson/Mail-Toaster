@@ -3,7 +3,7 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.38';
+our $VERSION = '5.39';
 
 use Cwd;
 #use Data::Dumper;

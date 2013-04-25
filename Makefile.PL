@@ -132,6 +132,7 @@ WriteMakefile(
         'DBI'              => 1,
         'Email::Valid'     => 0,
         'IO::Socket::SSL'  => 0,
+        'LWP'              => 0,
         'Net::DNS'         => 0.20,
         'Mail::Send'       => 0,
         'Params::Validate' => .7,
@@ -141,8 +142,8 @@ WriteMakefile(
 #		'HTML::Template'     => 1,  # no longer
     },
 #   'ENABLES_ADDITIONAL_FEATURES' => {
-#      'vpopmail'         => 0,
-#      'Mail::Ezmlm'      => 0,
+#      'vpopmail'         => 0,   # requires vpopmail to be installed
+#      'Mail::Ezmlm'      => 0,   # requires ezmlm to be installed
 #    },
     'TEST_REQUIRES' => {
         'Test::Simple'       => 0,
