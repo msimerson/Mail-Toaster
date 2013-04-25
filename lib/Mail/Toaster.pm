@@ -235,7 +235,10 @@ sub learn_mailboxes {
     my $find = $util->find_bin( 'find', debug=>0 );
 
     foreach my $d ( $self->get_maildir_paths() ) {  # every email box
-        next if ! -d $d;
+        if  ( ! -d $d ) {
+            $log->audit("invalid path: $d");
+            next;
+        };
         my ($user,$domain) = (split('/', $d))[-1,-2];
         my $email = lc($user) . '@'. lc($domain);
 
@@ -251,7 +254,7 @@ sub learn_mailboxes {
             my $type = 'ham';
             $type = 'spam' if $dir =~ /spam|junk/i;
 
-            foreach my $message ( $self->get_maildir_messages($dir, $age, $find) ) {
+            foreach my $message ( $self->get_maildir_messages($dir, $age) ) {
                 $counter{$type}++;  # throttle learning for really big maildirs
                 next if $counter{$type} > 10000 && $counter{$type} % 50 != 0;
                 next if $counter{$type} >  5000 && $counter{$type} % 25 != 0;
@@ -277,15 +280,10 @@ sub learn_mailboxes {
 sub learn_mailboxes_setup {
     my $self = shift;
     my %p    = validate( @_, { %std_opts } );
-    #my %args = $util->get_std_args( %p );
-
-    my $log_base = $conf->{'qmail_log_base'} || '/var/log/mail';
-    my $learn_log = "$log_base/learn.log";
-    $log->audit( "learn log file is: $learn_log");
 
     my $days = $conf->{'maildir_learn_interval'}
         or return $log->error(
-        'learning is disabled because maildir_learn_interval is not set in \$conf', fatal => 0 );
+        'skip learning because maildir_learn_interval is disabled', fatal => 0 );
 
     return 1;
 };
@@ -319,35 +317,43 @@ sub train_dspam {
         return;
     };
     #$log->audit($file);
-    my $cmd;
     my $dspam = '/usr/local/bin/dspamc';
     if ( ! -x $dspam ) {
         $log->audit("skipping, could not exec $dspam");
         return;
     };
+    my $cmd = "$dspam --client --stdout --deliver=summary --user $email";
     if ( $type eq 'ham' ) {
-        $cmd = "$dspam --client --user $email --source=corpus --class=innocent --deliver=summary --stdout";
         my $dspam_class = $self->get_dspam_class( $file );
-        if ( $dspam_class && $dspam_class eq 'innocent' ) {
-            $log->audit("dpam tagged innocent correctly, skipping");
-            return;
-        };
-        if ( $dspam_class && $dspam_class eq 'spam' ) {         # dspam miss
-            $cmd = "$dspam --client --user $email --mode=toe --source=error --class=innocent --deliver=summary --stdout";
+        if ( $dspam_class ) {
+            if ( $dspam_class eq 'innocent' ) {
+                $log->audit("dpam tagged innocent correctly, skipping");
+                return;
+            };
+            if ( $dspam_class eq 'spam' ) {         # dspam miss
+                $cmd .= "--class=innocent --source=error --mode=toe";
+            };
+        }
+        else {
+            $cmd .= "--class=innocent --source=corpus";
         };
     }
     elsif ( $type eq 'spam' ) {
-        $cmd = "$dspam --client --user $email --source=corpus --class=spam --deliver=summary --stdout";
         my $dspam_class = $self->get_dspam_class( $file );
-        if ( $dspam_class && $dspam_class eq 'spam' ) {
-            $log->audit("dpam tagged spam correctly, skipping");
-            return;
-        };
-        if ( $dspam_class && $dspam_class eq 'innocent' ) {
-            $cmd = "$dspam --client --user $email --mode=toe --source=error --class=spam --deliver=summary --stdout";
+        if ( $dspam_class ) {
+            if ( $dspam_class eq 'spam' ) {
+                $log->audit("dpam tagged spam correctly, skipping");
+                return;
+            }
+            elsif ( $dspam_class eq 'innocent' ) {
+                $cmd .= "--class=spam --source=error --mode=toe";
+            };
+        }
+        else {
+            $cmd .= "--class=spam --source=corpus";
         };
     };
-    $log->audit( "$cmd" );
+    $log->audit( "$cmd < $file" );
     my $r = `$cmd < '$file'`;  # capture the stdout
     $log->audit( $r );
 };
@@ -817,13 +823,12 @@ sub get_maildir_folders {
 };
 
 sub get_maildir_messages {
-    my ($self, $dir, $age, $find) = @_;
+    my ($self, $dir, $age ) = @_;
 
     my @recents;
     my $oldest = time - $age;
 
     find( {wanted=> sub { -f && stat($_)->ctime > $oldest && push @recents, $File::Find::name; }, no_chdir=>1}, $dir);
-    #my @messages = `$find "$dir" -type f -ctime -${age}s`;
 
     #print "found " . @recents . " messages in $dir\n";
     chomp @recents;
