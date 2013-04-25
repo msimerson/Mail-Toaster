@@ -17,12 +17,8 @@ my $network    = 0;    # run tests that require network
 $network = 1 if $OSNAME =~ /freebsd|darwin/;
 my $r;
 
-BEGIN {
-    use_ok('Mail::Toaster');
-    use_ok('Mail::Toaster::Utility');
-}
-require_ok('Mail::Toaster');
-require_ok('Mail::Toaster::Utility');
+use_ok('Mail::Toaster');
+use_ok('Mail::Toaster::Utility');
 
 # let the testing begin
 my $toaster = Mail::Toaster->new();
