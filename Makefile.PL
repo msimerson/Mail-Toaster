@@ -155,7 +155,10 @@ WriteMakefile(
 
     #	MAN1PODS          => [],
     dist  => { COMPRESS => 'gzip -9f', },
-    clean => { FILES    => [ 't/trash', 'pod2htm*', 'html', ], },
+    clean => { FILES    => [
+                't/trash', 'pod2htm*', 'html', 'MANIFEST.bak'
+            ],
+    },
 );
 
 sub set_conf_dir {
