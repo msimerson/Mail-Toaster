@@ -7,12 +7,8 @@ use Test::More;
 
 use lib 'lib';
 
-BEGIN {
-    use_ok('Mail::Toaster');
-    use_ok('Mail::Toaster::Setup');
-}
-require_ok('Mail::Toaster');
-require_ok('Mail::Toaster::Setup');
+use_ok('Mail::Toaster');
+use_ok('Mail::Toaster::Setup');
 
 my $debug = 0;
 my %test_params = ( fatal => 0, debug => $debug );
@@ -43,13 +39,13 @@ foreach my $sub (@subs_to_test) {
     $conf->{$install_sub} = 1;                  # enable install in $conf
 
     # test to insure params and initial tests are passed
-    ok(  $setup->$sub( test_ok => 1, debug => $debug ), $sub );
-    ok( !$setup->$sub( test_ok => 0, debug => $debug ), $sub );
+    ok(  $setup->$sub( test_ok => 1, %test_params), $sub );
+    ok( !$setup->$sub( test_ok => 0, %test_params), $sub );
 
     $conf->{$install_sub} = 0;                  # disable install
 
     # and then make sure it refuses to install
-    ok( !$setup->$sub( debug => $debug, fatal=>0 ), $sub );
+    ok( !$setup->$sub( %test_params ), $sub );
 
     # set $conf->install_sub back to its initial state
     $conf->{$install_sub} = $before;
@@ -61,15 +57,13 @@ ok( !$setup->config( test_ok => 0, %test_params ), 'config' );
 
 # dependencies
 ok( $setup->dependencies( test_ok => 1 ), 'dependencies' );
-ok( !$setup->dependencies( test_ok => 0, debug => 1 ),
-    'dependencies' );
+ok( !$setup->dependencies( test_ok => 0, %test_params), 'dependencies' );
 
 #ok ( $setup->dependencies( debug=>1 ), 'dependencies' );
 
 # filtering
 ok( $setup->filtering( test_ok => 1 ), 'filtering' );
-ok( !$setup->filtering( test_ok => 0, debug => 1 ),
-    'filtering' );
+ok( !$setup->filtering( test_ok => 0, %test_params ), 'filtering' );
 
 # is_newer
     ok ($setup->is_newer( min=>"5.3.30", cur=>"5.3.31", debug=>0), 'is_newer third');
