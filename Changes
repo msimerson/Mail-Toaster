@@ -1,5 +1,9 @@
 Mail Toaster Changes
 
+  5.40 - Apr 26, 2013
+         updated bin/install_deps.pl
+         improve Setup.t for fewer fatal test errors
+
   5.39 - Apr 24, 2013
          updated swaks
          stripped out some less-than-useful POD and license blocks
