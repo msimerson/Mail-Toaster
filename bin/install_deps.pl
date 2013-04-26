@@ -1,23 +1,24 @@
 #!/usr/bin/perl
 
-# by Matt Simerson & Phil Nadeau
-# circa 2008, based on installer in Mail::Toaster dating back to the 20th century
-
-# v1.7 - 2013-04-20
+# v1.7 - 2013-04-20  - Matt
 #      - get list of modules from Makefile.PL or dist.ini
 #      - abstracted yum and apt into subs
-# v1.6 - 2013-04-01
+#
+# v1.6 - 2013-04-01  - Matt
 #      - improved error reporting for FreeBSD port installs
 #
-# v1.5 - 2013-03-27
+# v1.5 - 2013-03-27  - Matt
 #      - added option to specify port category
 #
-# v1.4 - 2012-10-23
+# v1.4 - 2012-10-23  - Matt
 #      - improved yum & apt-get module installer
 #
-# v1.3 - 2012-10-23
+# v1.3 - 2012-10-23  - Matt
 #      - added apt-get support
 #      - added app install support
+#
+# circa 2008, by Matt Simerson & Phil Nadeau
+#      - based on installer in Mail::Toaster dating back to the 20th century
 
 use strict;
 use warnings;
@@ -94,8 +95,9 @@ sub get_perl_modules_from_Makefile_PL {
         };
         next if ! $in;
         last if $line =~ /}/;
+        next if $line !~ /=/;  # no = char means not a module
         my ($mod,$ver) = split /\s*=\s*/, $line;
-        $mod =~ s/[\s'"]*//g;   # remove whitespace and quotes
+        $mod =~ s/[\s'"\#]*//g;   # remove whitespace and quotes
         next if ! $mod;
         push @modules, name_overrides($mod);
 #print "module: .$mod.\n";
