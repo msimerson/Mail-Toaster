@@ -3,8 +3,6 @@ use warnings;
 
 package Mail::Toaster::Ezmlm;
 
-our $VERSION = '5.40';
-
 use Params::Validate ':all';
 use Pod::Usage;
 use English qw( -no_match_vars );

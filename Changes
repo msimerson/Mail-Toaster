@@ -1,6 +1,7 @@
 Mail Toaster Changes
 
   5.41 - 
+         added Base.pm, all modules inherit it
          added build adjustment for vpopmail to support longer passwords
 
   5.40 - Apr 26, 2013

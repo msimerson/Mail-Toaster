@@ -3,8 +3,6 @@ package Mail::Toaster::Mysql;
 use strict;
 use warnings;
 
-our $VERSION = '5.40';
-
 use Carp;
 use Params::Validate ':all';
 use English '-no_match_vars';
@@ -13,16 +11,10 @@ use lib 'lib';
 use parent 'Mail::Toaster::Base';
 
 sub autocommit {
-
-    my ($dot) = @_;
-
-    if ( $dot->{'autocommit'} && $dot->{'autocommit'} ne "" ) {
-
-        return $dot->{'autocommit'};    #	SetAutocommit
-    }
-    else {
-        return 1;                       #  Default to autocommit.
-    }
+    my ($self,$dot) = @_;
+    return 1 if ! $dot->{autocommit};
+    return 1 if $dot->{autocommit} ne '';
+    return $dot->{'autocommit'};
 }
 
 sub backup {

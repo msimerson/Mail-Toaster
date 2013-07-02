@@ -3,8 +3,6 @@ package Mail::Toaster::Setup;
 use strict;
 use warnings;
 
-our $VERSION = '5.40';
-
 use Carp;
 use Config;
 use Cwd;

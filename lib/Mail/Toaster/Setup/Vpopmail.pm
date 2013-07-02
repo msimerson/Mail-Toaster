@@ -3,11 +3,9 @@ package Mail::Toaster::Setup::Vpopmail;
 use strict;
 use warnings;
 
-our $VERSION = '5.50';
-
 use Carp;
-use English qw( -no_match_vars );
-use Params::Validate qw( :all );
+use English '-no_match_vars';
+use Params::Validate ':all';
 
 use lib 'lib';
 use parent 'Mail::Toaster::Base';

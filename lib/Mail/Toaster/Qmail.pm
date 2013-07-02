@@ -3,8 +3,6 @@ package Mail::Toaster::Qmail;
 use strict;
 use warnings;
 
-our $VERSION = '5.40';
-
 use English qw( -no_match_vars );
 use File::Copy;
 use File::Path;

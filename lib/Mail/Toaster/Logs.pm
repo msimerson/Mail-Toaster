@@ -2,17 +2,15 @@ package Mail::Toaster::Logs;
 use strict;
 use warnings;
 
-our $VERSION = '5.40';
-
 # the output of warnings and diagnostics should not be enabled in production.
 # the SNMP daemon depends on the output of maillogs, so we need to return
 # nothing or valid counters.
 
 use Carp;
-use English qw( -no_match_vars );
+use English '-no_match_vars';
 use File::Path;
 use Getopt::Std;
-use Params::Validate qw( :all);
+use Params::Validate ':all';
 use Pod::Usage;
 
 use vars qw( $spam_ref $count_ref );

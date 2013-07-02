@@ -3,8 +3,6 @@ package Mail::Toaster::Apache;
 use strict;
 use warnings;
 
-our $VERSION = '5.40';
-
 use Carp;
 use English qw( -no_match_vars );
 use File::Copy;
@@ -1009,10 +1007,6 @@ Matt Simerson <matt@tnpi.net>
 =head1 BUGS
 
 None known. Report any to author.
-
-
-=head1 TODO
-
 
 =head1 SEE ALSO
 

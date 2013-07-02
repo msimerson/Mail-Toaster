@@ -2,6 +2,8 @@ package Mail::Toaster::Base;
 use strict;
 use warnings;
 
+our $VERSION = '5.41';
+
 use Params::Validate ':all';
 
 our (@audit, $last_audit, @errors, $last_error, $debug, $verbose); # package variables

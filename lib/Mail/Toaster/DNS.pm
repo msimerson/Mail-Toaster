@@ -2,8 +2,6 @@ package Mail::Toaster::DNS;
 use strict;
 use warnings;
 
-our $VERSION = '5.40';
-
 use Params::Validate ':all';
 
 use lib 'lib';
@@ -328,8 +326,6 @@ Matt Simerson <matt@tnpi.net>
 
 None known. Report any to author.
 
-
-=head1 TODO
 
 =head1 SEE ALSO
 

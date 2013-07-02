@@ -2,8 +2,6 @@ package Mail::Toaster::Darwin;
 use strict;
 use warnings;
 
-our $VERSION = '5.40';
-
 use Carp;
 use Params::Validate ':all';
 
@@ -234,8 +232,6 @@ Matt Simerson <matt@tnpi.net>
 =head1 BUGS
 
 None known. Report any to author.
-
-=head1 TODO
 
 Needs more documentation.
 
