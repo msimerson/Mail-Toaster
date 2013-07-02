@@ -17,7 +17,7 @@ my $toaster = Mail::Toaster->new(debug=>0);
 ok( defined $toaster, 'get Mail::Toaster object' );
 ok( $toaster->isa('Mail::Toaster'), 'check object class' );
 my $conf = $toaster->conf();
-ok( ref $conf, 'get_config');
+ok( ref $conf, 'conf');
 
 # audit
 $toaster->dump_audit( quiet => 1);

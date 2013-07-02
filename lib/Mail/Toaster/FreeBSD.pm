@@ -166,8 +166,6 @@ sub is_port_installed {
 
     my $alt = $p{'alt'} || $port;
 
-    my $conf = $self->toaster->get_config;
-
     my ( $r, @args );
 
     $self->util->audit( "  checking for port $port", debug=>0);
@@ -200,10 +198,9 @@ sub install_portupgrade {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my $conf = $self->toaster->get_config;
     my %args = $self->toaster->get_std_args( %p );
 
-    my $package = $conf->{'package_install_method'} || "packages";
+    my $package = $self->conf->{'package_install_method'} || "packages";
 
     if ( defined $p{'test_ok'} ) { return $p{'test_ok'}; }
 
@@ -242,8 +239,7 @@ sub install_package {
     my ( $alt, $pkg_url ) = ( $p{'alt'}, $p{'url'} );
     my %args = $self->toaster->get_std_args( %p );
 
-    my $conf = $self->toaster->get_config;
-    my $pkg_method = $conf->{'use_pkgng'} || 0;
+    my $pkg_method = $self->conf->{'use_pkgng'} || 0;
 
     return $self->util->error("sorry, but I really need a package name!") if !$package;
 
@@ -374,8 +370,7 @@ sub update_ports {
 
     return $self->error( "you do not have write permission to /usr/ports.",%args) if ! $self->util->is_writable('/usr/ports', %args);
 
-    my $conf = $self->toaster->get_config;
-    my $supfile = $conf->{'cvsup_supfile_ports'} || "portsnap";
+    my $supfile = $self->conf->{'cvsup_supfile_ports'} || "portsnap";
 
     return $self->portsnap( %args);
 
