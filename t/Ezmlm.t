@@ -11,10 +11,9 @@ use lib 'lib';
 eval 'use Mail::Ezmlm';
 if ($EVAL_ERROR) {
     plan skip_all => "Mail::Ezmlm is required for ezmlm.cgi testing",
-    exit;
 }
 
-require_ok( 'Mail::Toaster::Ezmlm' );
+use_ok 'Mail::Toaster::Ezmlm';
 
 # basic OO mechanism
 my $ezmlm = Mail::Toaster::Ezmlm->new;
