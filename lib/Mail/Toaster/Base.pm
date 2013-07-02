@@ -7,7 +7,8 @@ our $VERSION = '5.41';
 use Params::Validate ':all';
 
 our (@audit, $last_audit, @errors, $last_error, $debug, $verbose); # package variables
-our ($conf, $apache, $darwin, $dns, $freebsd, $log, $qmail, $setup, $toaster, $util );
+our ($conf, $log);
+our ($apache, $darwin, $dns, $freebsd, $qmail, $setup, $toaster, $util );
 
 our %std_opts = (
         test_ok => { type => BOOLEAN, optional => 1 },
@@ -33,7 +34,7 @@ sub new {
     bless( $self, $class );
 
     my @caller = caller;
-    warn sprintf( "Base.pm loaded by %s, %s, %s\n", @caller ) if $caller[0] ne 'main';
+#   warn sprintf( "Base.pm loaded by %s, %s, %s\n", @caller ) if $caller[0] ne 'main';
     return $self;
 }
 
