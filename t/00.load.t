@@ -11,6 +11,7 @@ if ( $OSNAME =~ /cygwin|win32|windows/i ) {
     plan skip_all => "no windows support";
 };
 
+use_ok('Mail::Toaster::Base');
 use_ok('Mail::Toaster');
 use_ok('Mail::Toaster::DNS');
 use_ok('Mail::Toaster::Ezmlm');

@@ -2,59 +2,49 @@
 use strict;
 use warnings;
 
-use English qw( -no_match_vars );
+use English '-no_match_vars';
 use Getopt::Long;
 use Pod::Usage;
 
 use lib 'lib';
-use Mail::Toaster          5.35; 
-use Mail::Toaster::Apache  5.35; 
-use Mail::Toaster::FreeBSD 5.35; 
-use Mail::Toaster::Qmail   5.35; 
-use Mail::Toaster::Setup   5.35; 
-use Mail::Toaster::Utility 5.35; 
+use Mail::Toaster 5.41;
 
 $OUTPUT_AUTOFLUSH++;
 
-my %command_line_options = (
-	'secti=s'   => \my $section,
+GetOptions (
+	'section=s' => \my $section,
 	'verbose'   => \my $debug,
-);
-GetOptions (%command_line_options);
+    );
 
 $debug = 0 unless defined $debug;
 
 my $toaster = Mail::Toaster->new( debug => $debug );
-my $apache  = Mail::Toaster::Apache->new( toaster =>$toaster );
-my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
-my $qmail   = Mail::Toaster::Qmail->new( toaster => $toaster );
-my $util = $toaster->get_util;
-my $conf = $toaster->get_config;
 
 print "verbose mode enabled\n\n" if $debug;
 
-if ( ! $section ) { 
-    pod2usage( { -verbose=>0, }); 
-    die "You must choose a section!\n"; 
+if ( ! $section ) {
+    pod2usage( { -verbose=>0, });
+    die "You must choose a section!\n";
 };
 
 # these sections do not require root privs to run
 my $root_agnostic = { help => 1, docs => 1, test2 => 1, };
 
 # everything else requires root
-if ( $UID != 0 && !$root_agnostic->{$section} ) { 
-	die "Thou shalt have root to proceed!\n"; 
+if ( $UID != 0 && !$root_agnostic->{$section} ) {
+	die "Thou shalt have root to proceed!\n";
 };
 
 if ( $debug ) {
-    $conf->{'toaster_debug'} = 1;
+    $toaster->conf->{'toaster_debug'} = 1;
     $toaster->{debug} = 1;
 }
 else {
     $toaster->{debug} = 0;
 };
 
-my $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf=>$conf);
+my $setup = $toaster->setup;
+my $qmail = $toaster->qmail;
 
   $section eq 'pre'        ? $setup->dependencies      ()
 : $section eq 'cpan'       ? $setup->cpan              ()
@@ -129,8 +119,8 @@ my $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf=>$conf);
 : $section eq 'rbltest'     ? $setup->test_rbls        ( )
 : $section eq 'test2'       ? exit 0
 
-#  misc 
-: $section eq 'toaster'     ? $util->mail_toaster      ( )
+#  misc
+: $section eq 'toaster'     ? $setup->util->mail_toaster( )
 : $section eq 'nictool'     ? $setup->nictool          ( )
 : $section eq 'webmail'     ? $setup->webmail          ( )
 : $section eq 'all'         ? all()
@@ -147,16 +137,16 @@ my $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf=>$conf);
 sub all {
 	$setup->config        ( );
 
-    # re-initialize $conf with new settings. 
-    $conf = $util->parse_config( "toaster-watcher.conf", debug => $debug );
+    # re-initialize $conf with new settings.
+    $setup->util->parse_config( "toaster-watcher.conf", debug => $debug );
     $toaster->{'debug'} = 1 if $debug;
-    $conf->{'toaster_debug'} = 1 if $debug;
-    $setup = Mail::Toaster::Setup->new(toaster=>$toaster, conf => $conf);
+    $toaster->conf->{'toaster_debug'} = 1 if $debug;
+    $setup = Mail::Toaster::Setup->new;
 
 	$setup->dependencies  ( );
 	$setup->openssl_conf  ( );
 	$setup->ports         ( );
-	$setup->mysql         ( ); 
+	$setup->mysql         ( );
 	$setup->apache        ( );
 	$setup->webmail       ( fatal=>0 );
 	$setup->phpmyadmin    ( );
@@ -212,14 +202,14 @@ The mail toaster is a collection of open-source software which provides a full-f
 
 The toaster is built around qmail, a robust mail transfer agent by Daniel J. Bernstein, and vpopmail, a virtual domain manager by Inter7 systems. Matt keeps up with releases of the core software, evaluates them, decides when they are stable, and then integrates them into the toaster. Matt has also added several patches which add functionality to these core programs.
 
-A complete set of instructions for building a mail toaster are on the toaster install page. There is a substantial amount of documentation available for the "Mail::Toaster" toaster. Much of it is also readable via "perldoc Mail::Toaster", and the subsequent pages. Don't forget to read the Install, Configure, and FAQ pages on the web site. If you still have questions, there is a Web Forum and mailing list. Both are browseable and searchable for your convenience. 
+A complete set of instructions for building a mail toaster are on the toaster install page. There is a substantial amount of documentation available for the "Mail::Toaster" toaster. Much of it is also readable via "perldoc Mail::Toaster", and the subsequent pages. Don't forget to read the Install, Configure, and FAQ pages on the web site. If you still have questions, there is a Web Forum and mailing list. Both are browseable and searchable for your convenience.
 
-  
+
 =head2 URLs
 
    http://mail-toaster.org/
    http://www.tnpi.net/internet/mail/toaster/
-   
+
 
 =head1 OPTIONS AND ARGUMENTS
 
@@ -232,7 +222,7 @@ A complete set of instructions for building a mail toaster are on the toaster in
                     Standard Daemons & Utilities
           mysql - installs MySQL
      phpmyadmin - installs phpMyAdmin
-         apache - installs Apache 
+         apache - installs Apache
       apachessl - installs self signed SSL certs for Apache
 
                      Qmail and related tools
@@ -245,7 +235,7 @@ A complete set of instructions for building a mail toaster are on the toaster in
         vqadmin - install vqadmin
           qmail - installs qmail with toaster patches
       qmailconf - configure various qmail control files
-       netqmail - installs netqmail 
+       netqmail - installs netqmail
     netqmailmac - installs netqmail with no patches
          djbdns - install the djbdns program
 
@@ -264,7 +254,7 @@ A complete set of instructions for building a mail toaster are on the toaster in
        maildrop - installs maildrop and mailfilter
          clamav - installs just ClamAV
         simscan - install simscan
-        simconf - configure simscan 
+        simconf - configure simscan
         simtest - run email tests to verify that simscan is working
    spamassassin - install and configure spamassassin
         allspam - activate spam filtering for all users
@@ -323,12 +313,12 @@ Patches welcome in "diff -u" format.
 The following are all man/perldoc pages:
 
   Mail::Toaster::Conf
-  toaster.conf 
+  toaster.conf
   toaster-watcher.conf
-  
+
   Mail::Toaster
   Mail::Toaster::Apache
-  Mail::Toaster::CGI 
+  Mail::Toaster::CGI
   Mail::Toaster::DNS
   Mail::Toaster::Darwin
   Mail::Toaster::Ezmlm

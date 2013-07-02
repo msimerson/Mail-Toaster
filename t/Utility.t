@@ -17,12 +17,10 @@ my $network    = 0;    # run tests that require network
 $network = 1 if $OSNAME =~ /freebsd|darwin/;
 my $r;
 
-use_ok('Mail::Toaster');
 use_ok('Mail::Toaster::Utility');
 
 # let the testing begin
-my $toaster = Mail::Toaster->new();
-my $log = my $util = $toaster->get_util();
+my $util = Mail::Toaster::Utility->new();
 ok( defined $util, 'get Mail::Toaster::Utility object' );
 isa_ok( $util, 'Mail::Toaster::Utility' );
 
@@ -97,8 +95,8 @@ SKIP: {
     ok( $util->file_delete( $archive, fatal => 0 ), 'file_delete' );
 }
 
-$log->dump_audit(quiet=>1);
-$log->{last_error} = scalar @{$log->{errors}};
+$util->dump_audit(quiet=>1);
+$util->dump_errors( fatal => 0 );
 
 #	TODO: { my $why = "extract_archive, requires a valid archive to expand";
 #			this is how to run them but not count them as failures
@@ -537,21 +535,21 @@ ok( my ( $up1dir, $userdir ) = $util->path_parse("$pr/$bi"), 'path_parse' );
 ok( $pr eq $up1dir,  'path_parse' );
 ok( $bi eq $userdir, 'path_parse' );
 
-$log->dump_audit(quiet=>1);
-$log->{last_error} = scalar @{$log->{errors}};
+$util->dump_audit(quiet=>1);
+$util->{last_error} = scalar @{$util->{errors}};
 
 # check_pidfile
 # will fail because the file is too new
 ok( !$util->check_pidfile( $rwtest, fatal => 0,debug=>0 ), 'check_pidfile' )
-    or $log->dump_audit();
+    or $util->dump_audit();
 
 # will fail because the file is a directory
 ok( !$util->check_pidfile( $tmp, fatal => 0,debug=>0 ), 'check_pidfile' )
-    or $log->dump_audit();
+    or $util->dump_audit();
 
 # proper invocation
 ok( $util->check_pidfile( "${rwtest}.pid", fatal => 0 ), 'check_pidfile')
-    or $log->error();
+    or $util->error();
 
 # verify the contents of the file contains our PID
 my ($pid) = $util->file_read( "${rwtest}.pid", fatal => 0 );
@@ -619,8 +617,8 @@ else {
     ok( !$util->sudo( fatal => 0 ), 'sudo' );
 }
 
-$log->dump_audit( quiet => 1 );
-$log->{last_error} = scalar @{$log->{errors}};
+$util->dump_audit( quiet => 1 );
+$util->dump_errors( fatal => 0 );
 
 # syscmd
 my $tmpfile = '/tmp/provision-unix-test';

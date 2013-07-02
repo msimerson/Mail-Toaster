@@ -2,69 +2,32 @@ package Mail::Toaster::Darwin;
 use strict;
 use warnings;
 
-our $VERSION = '5.35';
+our $VERSION = '5.40';
 
 use Carp;
-use Params::Validate qw(:all);
+use Params::Validate ':all';
 
 use lib 'lib';
-use Mail::Toaster 5.35;
-
-my ($toaster, $log, $util, %std_opts );
-
-sub new {
-    my $class = shift;
-    my %p     = validate( @_,
-        {  toaster=> { type => OBJECT,  optional => 1 },
-            fatal => { type => BOOLEAN, optional => 1, default => 1 },
-            debug => { type => BOOLEAN, optional => 1 },
-        }
-    );
-
-    $toaster = $p{toaster};
-    $log = $util = $toaster->get_util;
-
-    my $debug = $toaster->get_debug;  # inherit from our parent
-    my $fatal = $toaster->get_fatal;
-    $debug = $p{debug} if defined $p{debug};  # explicity overridden
-    $fatal = $p{fatal} if defined $p{fatal};
-
-    my $self = {
-        'log' => $log,
-        debug => $debug,
-        fatal => $fatal,
-    };
-    bless $self, $class;
-
-    # globally scoped hash, populated with defaults as requested by the caller
-    %std_opts = (
-        'test_ok' => { type => BOOLEAN, optional => 1 },
-        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
-        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
-        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
-    );
-
-    return $self;
-}
+use parent 'Mail::Toaster::Base';
 
 sub install_port {
     my $self = shift;
-    my $port_name = shift or return $log->error("missing port name", fatal => 0);
+    my $port_name = shift or return $self->error("missing port name", fatal => 0);
 
     my %p = validate( @_, {
             'opts'   => { type=>SCALAR,  optional=>1 },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
     my ( $opts ) = ( $p{'opts'} );
-    my %args = $toaster->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
 
     #	$self->ports_check_age("30");
 
     print "install_port: installing $port_name...";
 
-    my $port_bin = $util->find_bin( "port", %args );
+    my $port_bin = $self->util->find_bin( "port", %args );
 
     unless ( -x $port_bin ) {
         print "FAILED: please install DarwinPorts!\n";
@@ -74,7 +37,7 @@ sub install_port {
     my $cmd = "$port_bin install $port_name";
     $cmd .= " $opts" if (defined $opts && $opts);
     
-    return $util->syscmd( $cmd, %args  );
+    return $self->util->syscmd( $cmd, %args  );
 }
 
 sub ports_check_age {
@@ -93,7 +56,7 @@ sub ports_check_age {
 
 sub update_ports {
     my $self = shift;
-    my $cvsbin = $util->find_bin( "cvs",fatal=>0, debug=>0 );
+    my $cvsbin = $self->util->find_bin( "cvs",fatal=>0, debug=>0 );
 
     unless ( -x $cvsbin ) {
         die "FATAL: could not find cvs, please install Developer Tools!\n";
@@ -137,7 +100,7 @@ EO_NO_PORTS
 ;
 
     unless (
-        $util->yes_or_no(
+        $self->util->yes_or_no(
             q=>"May I try to set up darwin ports for you?")
         )
     {
@@ -145,37 +108,37 @@ EO_NO_PORTS
         return;
     }
 
-    $util->cwd_source_dir( "/usr", debug=>0 );
+    $self->util->cwd_source_dir( "/usr", debug=>0 );
 
     print "\n\nthe CVS password is blank, just hit return at the prompt\n\n";
 
     my $cmd =
 'cvs -d :pserver:anonymous@anoncvs.opendarwin.org:/Volumes/src/cvs/od login';
-    $util->syscmd( $cmd, debug=>0 );
+    $self->util->syscmd( $cmd, debug=>0 );
     
     $cmd =
 'cvs -d :pserver:anonymous@anoncvs.opendarwin.org:/Volumes/src/cvs/od co -P darwinports';
-    $util->syscmd( $cmd, debug=>0 );
+    $self->util->syscmd( $cmd, debug=>0 );
     
     chdir("/usr");
-    $util->syscmd( "mv darwinports dports", debug=>0 );
+    $self->util->syscmd( "mv darwinports dports", debug=>0 );
     
     unless ( -d "/etc/ports" ) { mkdir( "/etc/ports", oct('0755') ) };
     
-    $util->syscmd( "cp dports/base/doc/sources.conf /etc/ports/", debug=>0 );
-    $util->syscmd( "cp dports/base/doc/ports.conf /etc/ports/", debug=>0 );
+    $self->util->syscmd( "cp dports/base/doc/sources.conf /etc/ports/", debug=>0 );
+    $self->util->syscmd( "cp dports/base/doc/ports.conf /etc/ports/", debug=>0 );
         
-    $util->file_write( "/etc/ports/sources.conf",
+    $self->util->file_write( "/etc/ports/sources.conf",
         lines  => ["file:///usr/dports/dports"],
         append => 1,
         debug  => 0,
     );
 
-    my $portindex = $util->find_bin( "portindex",debug=>0 );
+    my $portindex = $self->util->find_bin( "portindex",debug=>0 );
     unless ( -x $portindex ) {
         print "compiling darwin ports base.\n";
         chdir("/usr/dports/base");
-        $util->syscmd( "./configure; make; make install", debug=>0 );
+        $self->util->syscmd( "./configure; make; make install", debug=>0 );
     }
 }
 
@@ -183,7 +146,7 @@ sub update_ports_sync {
     my $self = shift;
 
     print "\n\nupdate_ports: You might want to update your ports tree!\n\n";
-    if ( ! $util->yes_or_no(
+    if ( ! $self->util->yes_or_no(
             question=>"\n\nWould you like me to do it for you?" ) )
     {
         print "ok then, skipping update.\n";
@@ -191,8 +154,8 @@ sub update_ports_sync {
     }
 
     # the new way
-    my $bin = $util->find_bin( "port" );
-    return $util->syscmd( "$bin -d sync" );
+    my $bin = $self->util->find_bin( "port" );
+    return $self->util->syscmd( "$bin -d sync" );
 
     #	 the old way
     #chdir($portsdir);
@@ -200,13 +163,13 @@ sub update_ports_sync {
     #print "\n\nthe CVS password is blank, just hit return at the prompt)\n\n";
 
     #my $cmd = 'cvs -d :pserver:anonymous@anoncvs.opendarwin.org:/Volumes/src/cvs/od login';
-    #$util->syscmd( $cmd );
-    #$util->syscmd( 'cvs -q -z3 update -dP' );
+    #$self->util->syscmd( $cmd );
+    #$self->util->syscmd( 'cvs -q -z3 update -dP' );
 
     #	if ( -x "/opt/local/bin/portindex") { #
-    #		$util->syscmd( "/opt/local/bin/portindex" ); }
+    #		$self->util->syscmd( "/opt/local/bin/portindex" ); }
     #	elsif ( -x "/usr/local/bin/portindex" ) { #
-    #		$util->syscmd( "/usr/local/bin/portindex" );
+    #		$self->util->syscmd( "/usr/local/bin/portindex" );
     #	};
 }
 

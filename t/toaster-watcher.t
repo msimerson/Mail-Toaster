@@ -13,52 +13,39 @@ my $deprecated = 0;    # run the deprecated tests.
 my $r;
 my $initial_working_directory = cwd;
 
-BEGIN {
-    use_ok('Mail::Toaster');
-    use_ok('Mail::Toaster::Qmail');
-    use_ok('Mail::Toaster::DNS');
-    use_ok('Mail::Toaster::Setup');
-
-}
-require_ok('Mail::Toaster');
-require_ok('Mail::Toaster::Qmail');
+use_ok('Mail::Toaster');
 
 my $toaster = Mail::Toaster->new(debug=>0);
 ok( defined $toaster, 'get Mail::Toaster object' );
-ok( $toaster->isa('Mail::Toaster'), 'check object class' );
-
-my $util  = $toaster->get_util();
-my $conf  = $toaster->get_config();
-my $qmail = Mail::Toaster::Qmail->new(toaster=>$toaster);
-my $setup = Mail::Toaster::Setup->new(toaster=>$toaster,conf=>$conf);
+isa_ok( $toaster, 'Mail::Toaster', 'object class' );
 
 my $clean = 1;
 
 # only run these tests on installed toasters
 if (   !-w "/tmp"
-    || !-d $conf->{'qmail_dir'}
-    || !-d $conf->{'qmail_supervise'} )
+    || !-d $toaster->conf->{'qmail_dir'}
+    || !-d $toaster->conf->{'qmail_supervise'} )
 {
     exit 0;
 }
 
-$r = $qmail->build_pop3_run();
+$r = $toaster->qmail->build_pop3_run();
 ok( $r, 'build_pop3_run' ) if $r;
 
-$r = $qmail->build_submit_run();
+$r = $toaster->qmail->build_submit_run();
 ok( $r, 'build_submit_run' ) if $r;
 
-$r = $qmail->build_send_run();
+$r = $toaster->qmail->build_send_run();
 ok( $r, 'build_send_run' ) if $r;
 
-$r = $qmail->build_smtp_run();
+$r = $toaster->qmail->build_smtp_run();
 ok( $r, 'build_smtp_run' ) if $r;
 
-ok( $qmail->install_qmail_control_log_files( test_ok => 1 ),
+ok( $toaster->qmail->install_qmail_control_log_files( test_ok => 1 ),
     'created supervise/*/log/run'
 );
 
-ok( $setup->startup_script( test_ok=>1 ), 'startup_script' );
+ok( $toaster->setup->startup_script( test_ok=>1 ), 'startup_script' );
 
 ok( $toaster->service_symlinks(), 'service_symlinks' );
 

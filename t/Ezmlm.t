@@ -6,29 +6,21 @@ use Cwd;
 use English qw( -no_match_vars );
 use Test::More;
 
-use lib "lib";
+use lib 'lib';
 
-eval "use Mail::Ezmlm";
+eval 'use Mail::Ezmlm';
 if ($EVAL_ERROR) {
     plan skip_all => "Mail::Ezmlm is required for ezmlm.cgi testing",
+    exit;
 }
-else {
-    plan 'no_plan';
-};
 
-require_ok( 'Mail::Toaster' );
 require_ok( 'Mail::Toaster::Ezmlm' );
 
 # basic OO mechanism
-my $toaster = Mail::Toaster->new();
-my $ezmlm = Mail::Toaster::Ezmlm->new( toaster => $toaster );
+my $ezmlm = Mail::Toaster::Ezmlm->new;
+isa_ok( $ezmlm, 'Mail::Toaster::Ezmlm', 'object class' );
 
-ok ( defined $ezmlm, 'get Mail::Toaster::Ezmlm object' );
-ok ( $ezmlm->isa('Mail::Toaster::Ezmlm'), 'check object class' );
-
-my $conf = $toaster->get_config;
-my $util = $toaster->get_util;
-
+my $conf = $ezmlm->conf;
 ok( $conf, 'toaster-watcher.conf loaded');
 
 # process_shell
@@ -63,4 +55,5 @@ ok( $ezmlm->logo( test_ok => 1), 'logo');
 
 ok( $ezmlm->dir_check(dir=>"/tmp",debug=>0) , 'dir_check');
 
-
+done_testing();
+exit;

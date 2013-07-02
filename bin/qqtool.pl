@@ -14,13 +14,10 @@ use Pod::Usage;
 getopts('a:h:q:s:v');
 
 use lib 'lib';
-use Mail::Toaster        5.35;
-use Mail::Toaster::Qmail 5.35;
+use Mail::Toaster 5.40;
 
 my $debug   = $opt_v ? 1 : 0;
 my $toaster = Mail::Toaster->new( debug => $debug );
-my $util    = $toaster->get_util;
-my $qmail   = Mail::Toaster::Qmail->new( toaster => $toaster );
 
 print "           Qmail Queue Tool   v $VERSION\n\n";
 print "NOTICE: only the root user has permission to read the email queues.
@@ -32,7 +29,7 @@ pod2usage() if ! $opt_a;
 my $qcontrol = $toaster->service_dir_get( prot => "send" );
 
 # Make sure the qmail queue directory is set correctly
-my $qdir = $qmail->queue_check( debug => $debug, fatal=>0 );
+my $qdir = $toaster->qmail->queue_check( debug => $debug, fatal=>0 );
 exit 0 unless $qdir;
 
 # if a queue is specified, only check it.
@@ -99,9 +96,9 @@ sub message_delete {
 }
 
 sub messages_delete {
-    $qmail->check_control( dir => $qcontrol );
+    $toaster->qmail->check_control( dir => $qcontrol );
 
-    my $r = $qmail->send_stop();
+    my $r = $toaster->qmail->send_stop();
     die "qmail-send wouldn't die!\n" if ($r);
 
     # we'll get passed an array of the local, remote, or both queues
@@ -129,7 +126,7 @@ sub messages_delete {
         }
     }
 
-    $qmail->send_start();
+    $toaster->qmail->send_start();
 }
 
 sub message_expire {
@@ -170,7 +167,7 @@ sub messages_expire {
         }
     }
 
-    $qmail->queue_process();
+    $toaster->qmail->queue_process();
 
     print "NOTICE: Expiring the messages does not remove them from the queue.
 	It merely alters their expiration time. The messages will be removed from
@@ -240,7 +237,7 @@ sub message_print {
             print "CC:        $header->{'CC'}\n";
         }
         print "Date:      $header->{'Date'}\n";
-        my @lines = $util->file_read( "$qdir/info/$id" );
+        my @lines = $toaster->util->file_read( "$qdir/info/$id" );
         chop $lines[0];
         print "Return Path: $lines[0]\n";
     }
@@ -263,7 +260,7 @@ sub headers_get {
     my ( $tree, $id ) = @_;
     my %hash;
 
-#    foreach my $line ( $util->file_read( "$qdir/mess/$tree/$id", max_lines  => 40, max_length => 256, ) )
+#    foreach my $line ( $toaster->util->file_read( "$qdir/mess/$tree/$id", max_lines  => 40, max_length => 256, ) )
 
     my ($FILE, $header);
 
@@ -310,17 +307,17 @@ sub messages_get {
     }
 
     # eache queue has "buckets" within it that we need to iterate over
-    foreach my $queue_buckets ( $util->get_dir_files( $queue ) ) {
+    foreach my $queue_buckets ( $toaster->util->get_dir_files( $queue ) ) {
 
         # within each bucket is files that contain the email address we
         # are trying to deliver to.
 
-        foreach my $file ( $util->get_dir_files( $queue_buckets ) ) {
+        foreach my $file ( $toaster->util->get_dir_files( $queue_buckets ) ) {
 
             # id is the message id
-            ( $up1dir, $id )     = $util->path_parse($file);
-            ( $up1dir, $bucket ) = $util->path_parse($up1dir);
-            ( $up1dir, $queu )   = $util->path_parse($up1dir);
+            ( $up1dir, $id )     = $toaster->util->path_parse($file);
+            ( $up1dir, $bucket ) = $toaster->util->path_parse($up1dir);
+            ( $up1dir, $queu )   = $toaster->util->path_parse($up1dir);
 
             print "messages_get: id: $id\n" if ($opt_v);
 

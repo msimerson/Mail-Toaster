@@ -6,22 +6,15 @@ use Cwd;
 use Test::More;
 
 use lib 'lib';
-
-use_ok('Mail::Toaster');
 use_ok('Mail::Toaster::Setup');
 
 my $debug = 0;
 my %test_params = ( fatal => 0, debug => $debug );
 
-my $toaster = Mail::Toaster->new(debug=>0);
-my $util = $toaster->get_util();
-my $conf = $toaster->get_config();
 
 # basic OO mechanism
-my $setup = Mail::Toaster::Setup->new( toaster => $toaster, conf => $conf );
-ok( defined $setup, 'new Mail::Toaster::Setup object)' );
-ok( $setup->isa('Mail::Toaster::Setup'), 'setup object class' );
-# 6 tests completed
+my $setup = Mail::Toaster::Setup->new;
+isa_ok( $setup, 'Mail::Toaster::Setup', 'setup object class' );
 
 my $initial_working_directory = cwd;
 my @subs_to_test = qw/ apache autorespond clamav courier_imap cronolog
@@ -34,21 +27,21 @@ my @subs_to_test = qw/ apache autorespond clamav courier_imap cronolog
 foreach my $sub (@subs_to_test) {
 
     my $install_sub = "install_$sub";
-    my $before      = $conf->{$install_sub};    # preserve initial settings
+    my $before      = $setup->conf->{$install_sub};    # preserve initial settings
 
-    $conf->{$install_sub} = 1;                  # enable install in $conf
+    $setup->conf->{$install_sub} = 1;                  # enable install in $conf
 
     # test to insure params and initial tests are passed
     ok(  $setup->$sub( test_ok => 1, %test_params), $sub );
     ok( !$setup->$sub( test_ok => 0, %test_params), $sub );
 
-    $conf->{$install_sub} = 0;                  # disable install
+    $setup->conf->{$install_sub} = 0;                  # disable install
 
     # and then make sure it refuses to install
     ok( !$setup->$sub( %test_params ), $sub );
 
-    # set $conf->install_sub back to its initial state
-    $conf->{$install_sub} = $before;
+    # set $setup->conf->install_sub back to its initial state
+    $setup->conf->{$install_sub} = $before;
 }
 
 # config

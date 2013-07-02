@@ -1,52 +1,13 @@
 package Mail::Toaster::DNS;
-
 use strict;
 use warnings;
 
-our $VERSION = '5.35';
+our $VERSION = '5.40';
 
-use Carp;
-use Params::Validate qw( :all );
+use Params::Validate ':all';
 
 use lib 'lib';
-use Mail::Toaster 5.35;
-
-my ( $log, $toaster, $util, %std_opts );
-
-sub new {
-    my $class = shift;
-    my %p     = validate( @_,
-        {  toaster=> { type => OBJECT,  optional => 1 },
-            fatal => { type => BOOLEAN, optional => 1, default => 1 },
-            debug => { type => BOOLEAN, optional => 1 },
-        }
-    );
-
-    $toaster = $p{toaster};
-    $log = $util = $toaster->get_util;
-
-    my $debug = $toaster->get_debug;  # inherit from our parent
-    my $fatal = $toaster->get_fatal;
-    $debug = $p{debug} if defined $p{debug};  # explicity overridden
-    $fatal = $p{fatal} if defined $p{fatal};
-
-    my $self = {
-        'log' => $log,
-        debug => $debug,
-        fatal => $fatal,
-    };
-    bless $self, $class;
-
-    # globally scoped hash, populated with defaults as requested by the caller
-    %std_opts = (
-        'test_ok' => { type => BOOLEAN, optional => 1 },
-        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
-        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
-        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
-    );
-
-    return $self;
-}
+use parent 'Mail::Toaster::Base';
 
 sub is_ip_address {
     my $self = shift;
@@ -54,15 +15,15 @@ sub is_ip_address {
         @_,
         {   'ip'  => { type => SCALAR, },
             'rbl' => { type => SCALAR, },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
-    my %args = $toaster->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
     my ( $ip, $rbl ) = ( $p{'ip'}, $p{'rbl'} );
 
     $ip =~ /^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/
-        or return $log->error( "invalid IP address format: $ip", %args);
+        or return $self->error( "invalid IP address format: $ip", %args);
 
     return "$4.$3.$2.$1.$rbl";
 }
@@ -103,23 +64,24 @@ sub rbl_test_ns {
     my %p = validate( @_, {   
             'rbl'   => SCALAR,
             'conf'  => { type => HASHREF, optional => 1, },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
     my ( $conf, $rbl ) = ( $p{'conf'}, $p{'rbl'} );
-    my %args = $toaster->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
 
     my $testns = $rbl;
 
     # overrides for dnsbl's where the NS doesn't match the dnsbl name
     if    ( $rbl =~ /rbl\.cluecentral\.net$/ ) { $testns = "rbl.cluecentral.net"; }
-    elsif ( $rbl eq "spews.blackhole.us" ) { $testns = "ls.spews.dnsbl.sorbs.net"; }
-    elsif ( $rbl =~ /\.dnsbl\.sorbs\.net$/ ) { $testns = "dnsbl.sorbs.net" }
-
+    elsif ( $rbl eq 'spews.blackhole.us'     ) { $testns = "ls.spews.dnsbl.sorbs.net"; }
+    elsif ( $rbl eq 'list.dnswl.org'         ) { $testns = "dnswl.org" }
+    elsif ( $rbl eq 'bl.spamcop.net'         ) { $testns = "spamcop.net" }
+    elsif ( $rbl =~ /\.dnsbl\.sorbs\.net$/   ) { $testns = "dnsbl.sorbs.net" }
     my $ns = $self->resolve(record=>$testns, type=>'NS', %args ) || 0;
 
-    $log->audit( "found $ns NS servers");
+    $self->audit( "found $ns NS servers");
     return $ns;
 }
 
@@ -129,11 +91,11 @@ sub rbl_test_positive_ip {
         @_,
         {   'conf' => { type => HASHREF, optional => 1, },
             'rbl'  => { type => SCALAR, },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
-    my %args = $toaster->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
     my ( $conf, $rbl ) = ( $p{'conf'}, $p{'rbl'} );
 
     # an IP that should always return an A record
@@ -147,20 +109,20 @@ sub rbl_test_positive_ip {
                 : "127.0.0.2";
 
     return if ! $test_ip;
-    $log->audit( "rbl_test_positive_ip: testing with ip $test_ip");
+    $self->audit( "rbl_test_positive_ip: testing with ip $test_ip");
 
     my $test = $self->is_ip_address( ip => $test_ip, rbl => $rbl, %args ) or return;
-    $log->audit( "\tquerying $test..." );
+    $self->audit( "\tquerying $test..." );
 
     my @rrs = $self->resolve( record => $test, type => 'A' );
 
     foreach my $rr ( @rrs ) {
         next unless $rr =~ /127\.[0-1]\.[0-9]{1,3}/;
         $ip++;
-        $log->audit( " from $rr matched.");
+        $self->audit( " from $rr matched.");
     }
 
-    $log->audit( "rbl_test_positive_ip: we have $ip addresses.");
+    $self->audit( "rbl_test_positive_ip: we have $ip addresses.");
     return $ip;
 }
 
@@ -169,11 +131,11 @@ sub rbl_test_negative_ip {
     my %p = validate( @_, {   
             'rbl'   => SCALAR,
             'conf'  => { type => HASHREF, optional => 1, },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
-    my %args = $toaster->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
     my ( $conf, $rbl ) = ( $p{'conf'}, $p{'rbl'} );
 
     my $test_ip = $rbl eq "korea.services.net"     ? "208.75.177.127"
@@ -183,14 +145,14 @@ sub rbl_test_negative_ip {
                 : "208.75.177.127";
 
     my $test = $self->is_ip_address( ip => $test_ip, rbl => $rbl, %args ) or return;
-    $log->audit( "querying $test" );
+    $self->audit( "querying $test" );
 
     my @rrs = $self->resolve( record => $test, type => 'A', %args );
     return 1 if scalar @rrs == 0;
 
     foreach my $rr ( @rrs ) {
         next unless $rr =~ /127\.0\.0/;
-        $log->audit( " from $rr matched.");
+        $self->audit( " from $rr matched.");
     }
     return 0;
 }
@@ -202,26 +164,26 @@ sub resolve {
             type   => SCALAR,
             timeout=> { type=>SCALAR,  optional=>1, default=>5  },
             conf   => { type=>HASHREF, optional=>1, },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
     my ( $conf, $record, $type ) = ( $p{'conf'}, $p{'record'}, $p{'type'} );
-    #my %args = $toaster->get_std_args( %p );
+    #my %args = $self->get_std_args( %p );
 
     return $self->resolve_dig($record, $type ) 
         if ( $conf 
             && $conf->{'rbl_enable_lookup_using'}
             && $conf->{'rbl_enable_lookup_using'} eq "dig" );
 
-    return $self->resolve_dig($record, $type ) if ! $util->has_module("Net::DNS");
+    return $self->resolve_dig($record, $type ) if ! $self->util->has_module("Net::DNS");
     return $self->resolve_net_dns($record, $type, $p{timeout} );
 };
 
 sub resolve_net_dns {
     my ($self, $record, $type, $timeout) = @_;
 
-    $log->audit("resolving $record type $type with Net::DNS");
+    $self->audit("resolving $record type $type with Net::DNS");
 
     require Net::DNS;
     my $net_dns = Net::DNS::Resolver->new;
@@ -231,24 +193,24 @@ sub resolve_net_dns {
     $net_dns->udp_timeout($timeout);
 
     my $query = $net_dns->query( $record, $type ) or
-        return $log->error( "resolver query failed for $record: " . $net_dns->errorstring, fatal => 0);
+        return $self->error( "resolver query failed for $record: " . $net_dns->errorstring, fatal => 0);
 
     my @records;
     foreach my $rr (grep { $_->type eq $type } $query->answer ) {
         if ( $type eq "NS" ) {
-            $log->audit("\t$record $type: ". $rr->nsdname );
+            $self->audit("\t$record $type: ". $rr->nsdname );
             push @records, $rr->nsdname;
         } 
         elsif ( $type eq "A" ) {
-            $log->audit("\t$record $type: ". $rr->address );
+            $self->audit("\t$record $type: ". $rr->address );
             push @records, $rr->address;
         }
         elsif ( $type eq "PTR" ) {
             push @records, $rr->rdatastr;
-            $log->audit("\t$record $type: ". $rr->rdatastr );
+            $self->audit("\t$record $type: ". $rr->rdatastr );
         }
         else {
-            $log->error("unknown record type: $type", fatal => 0);
+            $self->error("unknown record type: $type", fatal => 0);
         };
     }
     return @records;
@@ -257,15 +219,15 @@ sub resolve_net_dns {
 sub resolve_dig {
     my ($self, $record, $type) = @_;
 
-    $log->audit("resolving $record type $type with dig");
+    $self->audit("resolving $record type $type with dig");
 
-    my $dig = $util->find_bin( 'dig' );
+    my $dig = $self->util->find_bin( 'dig' );
 
     my @records;
     foreach (`$dig $type $record +short`) {
         chomp;
         push @records, $_;
-        $log->audit("found $_");
+        $self->audit("found $_");
     }
     return @records;
 };
@@ -299,8 +261,7 @@ Create a new DNS method:
 
    use Mail::Toaster;
    use Mail::Toaster::DNS;
-   my $toaster = Mail::Toaster->new();
-   my $dns     = Mail::Toaster::DNS->new(toaster=>$toaster);
+   my $dns     = Mail::Toaster::DNS->new;
 
 
 =item rbl_test

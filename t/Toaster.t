@@ -16,18 +16,16 @@ require_ok('Mail::Toaster');
 my $toaster = Mail::Toaster->new(debug=>0);
 ok( defined $toaster, 'get Mail::Toaster object' );
 ok( $toaster->isa('Mail::Toaster'), 'check object class' );
-my $conf = $toaster->get_config();
+my $conf = $toaster->conf();
 ok( ref $conf, 'get_config');
 
-my $util = my $log = $toaster->get_util;
-
 # audit
-$log->dump_audit( quiet => 1);
-$log->audit("line one");
+$toaster->dump_audit( quiet => 1);
+$toaster->audit("line one");
 #$toaster->dump_audit();
-$log->audit("line two");
-$log->audit("line three");
-$log->dump_audit( quiet=>1);
+$toaster->audit("line two");
+$toaster->audit("line three");
+$toaster->dump_audit( quiet=>1);
 
 # check
 ok( $toaster->check( debug => 0, test_ok=> 1 ), 'check' );
@@ -110,7 +108,7 @@ ok ( $toaster->supervise_dir_get( prot=>"send" ), 'supervise_dir_get');
 # supervise_dirs_create
 ok( $toaster->supervise_dirs_create( test_ok => 1 ), 'supervise_dirs_create' );
 
-$log->dump_audit(quiet => 1);
+$toaster->dump_audit(quiet => 1);
 
 # supervised_dir_test
 ok(
@@ -153,8 +151,8 @@ ok( $toaster->get_toaster_cgibin(), 'get_toaster_cgibin' );
 ok( $toaster->supervised_do_not_edit_notice(),
     'supervised_do_not_edit_notice' );
 
-$log->dump_audit(quiet=>1);
-my $setuidgid = $util->find_bin( "setuidgid", fatal=>0, debug=>0 );
+$toaster->dump_audit(quiet=>1);
+my $setuidgid = $toaster->util->find_bin( "setuidgid", fatal=>0, debug=>0 );
 foreach ( qw/ smtpd pop3 submit / ) {
 
 # supervised_hostname

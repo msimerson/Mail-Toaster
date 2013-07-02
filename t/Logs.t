@@ -9,8 +9,7 @@ use lib 'lib';
 use Mail::Toaster;
 
 my $toaster = Mail::Toaster->new(debug=>0);
-my $util = $toaster->{util};
-my $conf = $util->parse_config( "toaster.conf", debug => 0 );
+my $conf = $toaster->util->parse_config( "toaster.conf", debug => 0 );
 
 my $logdir = $conf->{logs_base};
 my $count  = $conf->{logs_counters};
@@ -61,7 +60,7 @@ SKIP: {
 
 # rbl_count
     #skip "rbl_count, needs root permissions", 1 if ( $UID != 0 );
-    if ( $util->has_module("Date::Format") ) {
+    if ( $toaster->util->has_module("Date::Format") ) {
         ok( $log->rbl_count(), 'rbl_count');
     };
 
@@ -72,7 +71,7 @@ SKIP: {
 
 
 # send_count
-    if ( $util->has_module("Date::Format") ) {
+    if ( $toaster->util->has_module("Date::Format") ) {
         ok( $log->send_count(), 'send_count');
     };
 
@@ -113,7 +112,7 @@ SKIP: {
 ###### end of STDIN subs ########
 
 # compress_yesterdays_logs
-    if ( $util->has_module("Date::Format") ) {
+    if ( $toaster->util->has_module("Date::Format") ) {
         ok( $log->compress_yesterdays_logs( file=>"sendlog" ), 'compress_yesterdays_logs');
 
 # purge_last_months_logs
@@ -165,7 +164,7 @@ SKIP: {
 
     my $countfile = $log->set_countfile(prot=>"pop3");
 # counter_read
-    my ( $path, $file ) = $util->path_parse($countfile);
+    my ( $path, $file ) = $toaster->util->path_parse($countfile);
     if ( -w $path ) {
         ok( $log->counter_read(file=>$countfile, debug=>0), 'counter_read');
     }

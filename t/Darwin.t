@@ -5,18 +5,16 @@ use warnings;
 use English qw( -no_match_vars );
 use Test::More;
 
-use lib 'lib';
-use Mail::Toaster;
-my $toaster = Mail::Toaster->new(debug=>0);
-
-if ( lc( $OSNAME ) ne "darwin" ) {
+if ( lc $OSNAME ne 'darwin' ) {
     plan skip_all => "OS is not Darwin";
 }
-else {
-    plan 'no_plan';
-};
+
+use lib 'lib';
+require Mail::Toaster::Darwin;
 
 require_ok('Mail::Toaster::Darwin');
 
-ok( Mail::Toaster::Darwin->new( toaster => $toaster ), 'new darwin object' );
+ok( Mail::Toaster::Darwin->new, 'new darwin object' );
 
+done_testing();
+exit;

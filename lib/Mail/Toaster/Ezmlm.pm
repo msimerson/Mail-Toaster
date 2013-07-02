@@ -3,71 +3,35 @@ use warnings;
 
 package Mail::Toaster::Ezmlm;
 
-our $VERSION = '5.35';
+our $VERSION = '5.40';
 
-use Params::Validate qw( :all );;
+use Params::Validate ':all';
 use Pod::Usage;
 use English qw( -no_match_vars );
 
 use lib 'lib';
-use Mail::Toaster  5.35;
-
-my ( $log, $util, %std_opts );
-
-sub new {
-    my $class = shift;
-    my %p     = validate( @_,
-        {  toaster  => { type => OBJECT  },
-            fatal   => { type => BOOLEAN, optional => 1 },
-            debug   => { type => BOOLEAN, optional => 1 },
-            test_ok => { type => BOOLEAN, optional => 1 },
-        }
-    );
-
-    $log = $util = $p{toaster}->get_util;
-    my $debug = $p{toaster}->get_debug;  # inherit from our parent
-    my $fatal = $p{toaster}->get_fatal;
-    $debug = $p{debug} if defined $p{debug};  # explicity overridden
-    $fatal = $p{fatal} if defined $p{fatal};
-
-    my $self = {
-        'log' => $log,
-        debug => $debug,
-        fatal => $fatal,
-    };
-    bless $self, $class;
-
-    # globally scoped hash, populated with defaults as requested by the caller
-    %std_opts = (
-        'test_ok' => { type => BOOLEAN, optional => 1 },
-        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
-        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
-        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
-    );
-
-    return $self;
-}
+use parent 'Mail::Toaster::Base';
 
 sub authenticate {
     my $self = shift;
 	my %p = validate ( @_, {
 	        'domain'   => SCALAR,
 	        'password' => SCALAR,
-            %std_opts,
+            $self->get_std_opts,
         },
 	);
 
 	my ($domain, $password ) = ( $p{domain}, $p{password} );
-    my %args = $log->get_std_args( %p );
+    my %args = $self->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
-    $util->install_module( "vpopmail", %args );
+    $self->util->install_module( "vpopmail", %args );
 
     require vpopmail;
 
     if ( vpopmail::vauth_user( 'postmaster', $domain, $password, undef ) ) {
-        $log->audit( "authenticated postmaster\@$domain (ok)", %args);
+        $self->audit( "authenticated postmaster\@$domain (ok)", %args);
         return 1;
     }
 
@@ -93,7 +57,7 @@ sub dir_check {
     my %p = validate( @_, {
             'dir' => SCALAR,
             'br'  => { type=>SCALAR,  optional=>1, default=>'<br>' },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
@@ -101,11 +65,11 @@ sub dir_check {
         = ( $p{'dir'}, $p{'br'}, $p{'fatal'}, $p{'debug'} );
 
     unless ( -d $dir && -r $dir ) {
-        $log->error( "no read perms to $dir: $! $br",fatal=>0);
+        $self->error( "no read perms to $dir: $! $br",fatal=>0);
         return 0;
     };
 
-    $log->audit( "dir_check: checking: $dir" );
+    $self->audit( "dir_check: checking: $dir" );
     return 1;
 }
 
@@ -129,7 +93,7 @@ sub lists_get {
     my %p = validate( @_, {
             'domain'  => { type=>SCALAR, },
             'br'      => { type=>SCALAR,  optional=>1, default=>'<br>' },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
@@ -138,7 +102,7 @@ sub lists_get {
 
     my %lists;
 
-    $util->install_module( "vpopmail", debug => $debug,);
+    $self->util->install_module( "vpopmail", debug => $debug,);
 
     require vpopmail;
 
@@ -154,14 +118,14 @@ sub lists_get {
 
     print "now fetching a list of ezmlm lists..." if $debug;
 
-    foreach my $all ( $util->get_dir_files( $dir ) ) {
+    foreach my $all ( $self->util->get_dir_files( $dir ) ) {
         next unless ( -d $all );
 
-        foreach my $second ( $util->get_dir_files( $all ) ) {
+        foreach my $second ( $self->util->get_dir_files( $all ) ) {
             next unless ( -d $second );
             if ( $second =~ /subscribers$/ ) {
                 print "found one: $all, $second $br" if $debug;
-                my ( $path, $list_dir ) = $util->path_parse($all);
+                my ( $path, $list_dir ) = $self->util->path_parse($all);
                 print "list name: $list_dir $br" if $debug;
                 $lists{$list_dir} = $all;
             }
@@ -182,7 +146,7 @@ sub logo {
             'conf'         => { type=>HASHREF, optional=>1, },
 	        'web_logo_url' => { type=>SCALAR,  optional=>1, },
 	        'web_logo_alt' => { type=>SCALAR,  optional=>1, },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
@@ -201,7 +165,7 @@ sub process_cgi {
     my %p = validate( @_, {
             'list_dir' => { type=>SCALAR,  optional=>1, },
             'br'       => { type=>SCALAR,  optional=>1, default=>'<br>' },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
@@ -214,9 +178,9 @@ sub process_cgi {
     use CGI::Carp qw( fatalsToBrowser );
     print header('text/html');
 
-    $util->install_module( "HTML::Template", debug => $debug,);
+    $self->util->install_module( "HTML::Template", debug => $debug,);
 
-    my $conf = $util->parse_config( "toaster.conf", debug => 0 );
+    my $conf = $self->util->parse_config( "toaster.conf", debug => 0 );
 
     $debug = 0;
 
@@ -281,10 +245,10 @@ sub process_cgi {
             exit 0;
         }
 
-        $util->install_module( "vpopmail", debug => $debug,);
+        $self->util->install_module( "vpopmail", debug => $debug,);
         print "running vpopmail v", vpopmail::vgetversion(), "<br>" if $debug;
 
-        $util->install_module( "Mail::Ezmlm", debug => $debug,);
+        $self->util->install_module( "Mail::Ezmlm", debug => $debug,);
         require Mail::Ezmlm;
 
         $list_dir = $ezlists->{$list_sel};
@@ -313,11 +277,11 @@ sub process_cgi {
 
 sub process_shell {
     my $self = shift;
-    my %p     = validate( @_, { %std_opts } );
+    my %p     = validate( @_, { $self->get_std_opts } );
     use vars qw($opt_a $opt_d $opt_f $opt_v $list );
     my $debug = $p{debug};
 
-    $util->install_module( "Mail::Ezmlm", %p );
+    $self->util->install_module( "Mail::Ezmlm", %p );
     require Mail::Ezmlm;
 
     use Getopt::Std;
@@ -361,7 +325,7 @@ sub process_shell {
     }
 
     if ( -r $list_file ) {
-        my @lines = $util->file_read($list_file, debug=>$debug);
+        my @lines = $self->util->file_read($list_file, debug=>$debug);
         $requested = \@lines;
     }
     else {
@@ -385,7 +349,7 @@ sub subs_add {
             'list_dir'  => { type=>SCALAR,   },
 	        'requested' => { type=>ARRAYREF, },
             'br'        => { type=>SCALAR,   },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 
@@ -451,7 +415,7 @@ sub subs_list {
 	        'list'      => { type=>HASHREF,   },
             'list_dir'  => { type=>SCALAR,   },
             'br'        => { type=>SCALAR,  optional=>1, default=>'\n' },
-            %std_opts,
+            $self->get_std_opts,
         },
     );
 

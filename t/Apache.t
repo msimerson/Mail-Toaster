@@ -16,13 +16,9 @@ require_ok( 'Mail::Toaster' );
 require_ok( 'Mail::Toaster::Apache' );
 
 my $toaster = Mail::Toaster->new(debug=>0);
-my $conf = $toaster->get_config();
-my $util = $toaster->get_util();
 
-my $apache = Mail::Toaster::Apache->new( 'toaster' => $toaster );
-ok ( defined $apache, 'get Mail::Toaster::Apache object' );
-ok ( $apache->isa('Mail::Toaster::Apache'), 'check object class' );
-
+my $apache = Mail::Toaster::Apache->new;
+isa_ok( $apache, 'Mail::Toaster::Apache', 'object class' );
 
 # install_apache1
 
@@ -33,31 +29,30 @@ ok ( $apache->isa('Mail::Toaster::Apache'), 'check object class' );
 
 # freebsd_extras
 
-    my $apachectl = $util->find_bin( "apachectl", fatal=>0,debug=>0);
+    my $apachectl = $apache->util->find_bin( "apachectl", fatal=>0,debug=>0);
     if ( $apachectl && -x $apachectl ) {
         ok ( -x $apachectl, 'apachectl exists' );
 
 # apache2_fixups
     # icky...this sub needs to be cleaned up
-        #$apache->apache2_fixups($conf, "apache22");
+        #$apache->apache2_fixups("apache22");
 
 
 # conf_get_dir
-        my $httpd_conf = $apache->conf_get_dir(conf=>$conf);
+        my $httpd_conf = $apache->conf_get_dir();
         if ( -f $httpd_conf ) {
             print "httpd.conf: $httpd_conf \n";
             ok ( -f $httpd_conf, 'find httpd.conf' );
 
 # apache_conf_patch
             ok( $apache->apache_conf_patch(
-                conf    => $conf, 
                 test_ok => 1, 
                 debug   => 0,
             ), 'apache_conf_patch');
         };
 
 # install_ssl_certs
-        ok( $apache->install_ssl_certs(conf=>$conf, test_ok=>1, debug=>0), 'install_ssl_certs');
+        ok( $apache->install_ssl_certs(test_ok=>1, debug=>0), 'install_ssl_certs');
 
     };
 

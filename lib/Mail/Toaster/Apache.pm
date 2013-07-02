@@ -3,7 +3,7 @@ package Mail::Toaster::Apache;
 use strict;
 use warnings;
 
-our $VERSION = '5.35';
+our $VERSION = '5.40';
 
 use Carp;
 use English qw( -no_match_vars );
@@ -11,80 +11,44 @@ use File::Copy;
 use Params::Validate qw( :all );
 
 use lib 'lib';
-my ( $log, $util, $toaster, %std_opts );
-
-sub new {
-    my $class = shift;
-    my %p = validate( @_,
-        {   toaster => { type => OBJECT },
-            fatal => { type => BOOLEAN, optional => 1, default => 1 },
-            debug => { type => BOOLEAN, optional => 1 },
-        }
-    );
-
-    $toaster  = $p{toaster};
-    $util = $log = $toaster->get_util;
-
-    my $debug = $toaster->get_debug;    # inherit from our parent
-    my $fatal = $toaster->get_fatal;
-    $debug = $p{debug} if defined $p{debug};  # explicity overridden
-    $fatal = $p{fatal} if defined $p{fatal};
-
-    my $self = {
-        'log' => $log,
-        debug => $debug,
-        fatal => $fatal,
-    };
-    bless $self, $class;
-
-# globally scoped hash, populated with defaults requested by the caller
-    %std_opts = (
-        'test_ok' => { type => BOOLEAN, optional => 1 },
-        'fatal'   => { type => BOOLEAN, optional => 1, default => $fatal },
-        'debug'   => { type => BOOLEAN, optional => 1, default => $debug },
-        'quiet'   => { type => BOOLEAN, optional => 1, default => 0 },
-    );
-
-    return $self;
-}
+use parent 'Mail::Toaster::Base';
 
 sub install_apache1 {
-    my $self = shift;
-    my ( $src, $conf ) = @_;
+    my ( $self, $src ) = @_;
 
     return if $OSNAME eq "darwin";
     return $self->install_1_freebsd() if $OSNAME eq "freebsd";
 
-    $self->install_1_source($conf);
+    $self->install_1_source;
 };
 
 sub install_1_source {
-    my ($self, $conf) = @_;
+    my ($self) = @_;
 
     my $apache   = "apache_1.3.34";
     my $mod_perl = "mod_perl-1.29";
     my $mod_ssl  = "mod_ssl-2.8.24-1.3.34";
     my $layout   = "FreeBSD.layout";
 
-    my $prefix   = $conf->{'toaster_prefix'}  || "/usr/local";
-    my $src      = $conf->{'toaster_src_dir'} || "$prefix/src";
+    my $prefix   = $self->conf->{'toaster_prefix'}  || "/usr/local";
+    my $src      = $self->conf->{'toaster_src_dir'} || "$prefix/src";
 
-    $util->cwd_source_dir( "$src/www", debug=>0 );
+    $self->util->cwd_source_dir( "$src/www", debug=>0 );
 
     unless ( -e "$apache.tar.gz" ) {
-        $util->get_file("http://www.apache.org/dist/httpd/$apache.tar.gz");
+        $self->util->get_file("http://www.apache.org/dist/httpd/$apache.tar.gz");
     }
 
     unless ( -e "$mod_perl.tar.gz" ) {
-        $util->get_file("http://perl.apache.org/dist/$mod_perl.tar.gz");
+        $self->util->get_file("http://perl.apache.org/dist/$mod_perl.tar.gz");
     }
 
     unless ( -e "$mod_ssl.tar.gz" ) {
-        $util->get_file("http://www.modssl.org/source/$mod_ssl.tar.gz");
+        $self->util->get_file("http://www.modssl.org/source/$mod_ssl.tar.gz");
     }
 
     unless ( -e $layout ) {
-        $util->get_file("http://www.tnpi.net/internet/www/apache.layout");
+        $self->util->get_file("http://www.tnpi.net/internet/www/apache.layout");
         move( "apache.layout", $layout );
     }
 
@@ -92,43 +56,43 @@ sub install_1_source {
 
     foreach my $package ( $apache, $mod_perl, $mod_ssl ) {
         if ( -d $package ) {
-            my $r = $util->source_warning( $package, 1 );
+            my $r = $self->util->source_warning( $package, 1 );
             unless ($r) { croak "sorry, I can't continue.\n" }
         }
-        $util->extract_archive( "$package.tar.gz" );
+        $self->util->extract_archive( "$package.tar.gz" );
     }
 
     chdir($mod_ssl);
     if ( $OSNAME eq "darwin" ) {
-        $util->syscmd( "./configure --with-apache=../$apache" );
+        $self->util->syscmd( "./configure --with-apache=../$apache" );
     }
     else {
-        $util->syscmd(
+        $self->util->syscmd(
 "./configure --with-apache=../$apache --with-ssl=/usr --enable-shared=ssl --with-mm=/usr/local"
         );
     };
 
     chdir("../$mod_perl");
     if ( $OSNAME eq "darwin" ) {
-        $util->syscmd(
+        $self->util->syscmd(
 "perl Makefile.PL APACHE_SRC=../$apache NO_HTTPD=1 USE_APACI=1 PREP_HTTPD=1 EVERYTHING=1"
         );
     }
     else {
-        $util->syscmd(
+        $self->util->syscmd(
 "perl Makefile.PL DO_HTTPD=1 USE_APACI=1 APACHE_PREFIX=/usr/local EVERYTHING=1 APACI_ARGS='--server-uid=www, --server-gid=www, --enable-module=so --enable-module=most, --enable-shared=max --disable-shared=perl, --enable-module=perl, --with-layout=../$layout:FreeBSD, --without-confadjust'"
         );
     }
 
-    $util->syscmd( "make" );
+    $self->util->syscmd( "make" );
 
     if ( $OSNAME eq "darwin" ) {
-        $util->syscmd( "make install" );
+        $self->util->syscmd( "make install" );
         chdir("../$apache");
-        $util->syscmd( "./configure --with-layout=Darwin --enable-module=so --enable-module=ssl --enable-shared=ssl --activate-module=src/modules/perl/libperl.a --disable-shared=perl --without-execstrip"
+        $self->util->syscmd( "./configure --with-layout=Darwin --enable-module=so --enable-module=ssl --enable-shared=ssl --activate-module=src/modules/perl/libperl.a --disable-shared=perl --without-execstrip"
         );
-        $util->syscmd( "make" );
-        $util->syscmd( "make install" );
+        $self->util->syscmd( "make" );
+        $self->util->syscmd( "make install" );
     }
 
     if ( -e "../$apache/src/httpd" ) {
@@ -159,59 +123,50 @@ For re-installs:
 }
 
 sub install_1_freebsd {
-    my ($self, $conf) = @_;
+    my ($self ) = @_;
 
-    require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
-
-    if ( $conf->{'package_install_method'} eq "packages" ) {
-        $freebsd->install_package( "mm" );
-        $freebsd->install_package( "gettext" );
-        $freebsd->install_package( "libtool" );
-        $freebsd->install_package( "apache" );
-        $freebsd->install_package( "p5-libwww" );
+    if ( $self->conf->{'package_install_method'} eq "packages" ) {
+        $self->freebsd->install_package( "mm" );
+        $self->freebsd->install_package( "gettext" );
+        $self->freebsd->install_package( "libtool" );
+        $self->freebsd->install_package( "apache" );
+        $self->freebsd->install_package( "p5-libwww" );
     }
     else {
-        $freebsd->install_port( "mm",      );
-        $freebsd->install_port( "gettext", );
-        $freebsd->install_port( "libtool", );
-        $freebsd->install_port( "apache", dir => "apache13");
-        $freebsd->install_port( "p5-libwww" );
+        $self->freebsd->install_port( "mm",      );
+        $self->freebsd->install_port( "gettext", );
+        $self->freebsd->install_port( "libtool", );
+        $self->freebsd->install_port( "apache", dir => "apache13");
+        $self->freebsd->install_port( "p5-libwww" );
     }
-    $freebsd->install_port( "cronolog", );
+    $self->freebsd->install_port( "cronolog", );
 
-    my $log = "/var/log/apache";
-    unless ( -d $log ) {
-        mkdir( $log, oct('0755') ) or croak "Couldn't create $log: $!\n";
-        $util->chown( $log, uid=>'www', gid=>'www' );
-    }
-
-    unless ( $freebsd->is_port_installed( "apache" ) ) {
-        $freebsd->install_package( "apache" );
+    my $logdir = "/var/log/apache";
+    unless ( -d $logdir ) {
+        mkdir( $logdir, oct('0755') ) or croak "Couldn't create $logdir: $!\n";
+        $self->util->chown( $logdir, uid=>'www', gid=>'www' );
     }
 
-    $freebsd->conf_check( check=>"apache_enable", line=>'apache_enable="YES"' );
+    unless ( $self->freebsd->is_port_installed( "apache" ) ) {
+        $self->freebsd->install_package( "apache" );
+    }
+
+    $self->freebsd->conf_check( check=>"apache_enable", line=>'apache_enable="YES"' );
 }
 
 sub install_2 {
     my $self = shift;
+    my %p = validate( @_, { $self->get_std_opts, },);
+    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
 
-    my %p = validate( @_, {
-            'conf' => { type=>HASHREF, },
-            %std_opts,
-        },
-    );
-
-    my ( $conf, $fatal, $debug ) = ( $p{'conf'}, $p{'fatal'}, $p{'debug'} );
-
-    my $prefix = $conf->{'toaster_prefix'}  || "/usr/local";
-    my $src    = $conf->{'toaster_src_dir'} || "$prefix/src";
+    my $prefix = $self->conf->{'toaster_prefix'}  || "/usr/local";
+    my $src    = $self->conf->{'toaster_src_dir'} || "$prefix/src";
     $src .= "/www";
 
-    $util->cwd_source_dir( $src, debug=>0 );
+    $self->util->cwd_source_dir( $src, debug=>0 );
 
     if ( $OSNAME eq "freebsd" ) {
-        return $self->install_2_freebsd( $conf , $debug );
+        return $self->install_2_freebsd( $debug );
     }
 
     if ( $OSNAME eq "darwin" ) {
@@ -222,62 +177,56 @@ sub install_2 {
             return;
         }
 
-        require Mail::Toaster::Darwin;
-        my $darwin = Mail::Toaster::Darwin->new( toaster => $toaster );
-
-        $darwin->install_port( "apache2" );
-        $darwin->install_port( "php5", opts => "+apache2" );
+        $self->darwin->install_port( "apache2" );
+        $self->darwin->install_port( "php5", opts => "+apache2" );
         return 1;
     }
 
-    $log->error("sorry, no apache build support on OS $OSNAME", fatal => 0);
+    $self->error("sorry, no apache build support on OS $OSNAME", fatal => 0);
 };
 
 sub install_2_freebsd {
-    my ($self, $conf, $debug ) = @_;
+    my ($self, $debug ) = @_;
 
     my $ports_dir = "apache22";
-    my $ver = $conf->{'install_apache'}  || 22;
+    my $ver = $self->conf->{'install_apache'}  || 22;
 
     if    ( $ver eq  "2" ) { $ports_dir = "apache20"; }
     elsif ( $ver eq "20" ) { $ports_dir = "apache20"; }
     elsif ( $ver eq "21" ) { $ports_dir = "apache21"; }  # defunct
     elsif ( $ver eq "22" ) { $ports_dir = "apache22"; }
 
-    $log->audit( "install_2: v$ver from www/$ports_dir on FreeBSD");
-
-    require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
+    $self->audit( "install_2: v$ver from www/$ports_dir on FreeBSD");
 
     # if some variant of apache 2 is installed
-    my $r = $freebsd->is_port_installed( "apache-2", debug=>$debug );
+    my $r = $self->freebsd->is_port_installed( "apache-2", debug=>$debug );
     if ( $r ) {
-        $log->audit( "install_2: installing v$ver, ok ($r)" );
+        $self->audit( "install_2: installing v$ver, ok ($r)" );
 
         # fixup Apache 2 installs
-        $self->apache2_fixups( $conf, $ports_dir );
-        $self->freebsd_extras( $conf, $freebsd );
-        $self->install_ssl_certs(conf=>$conf );
-        $self->apache_conf_patch(conf=>$conf );
-        $self->startup(conf=>$conf );
+        $self->apache2_fixups( $ports_dir );
+        $self->freebsd_extras;
+        $self->install_ssl_certs;
+        $self->apache_conf_patch;
+        $self->startup;
         return 1;
     }
 
-    if ( $conf->{'package_install_method'} eq "packages" ) {
-        if (   $conf->{'install_apache_proxy'}
-            || $conf->{'install_apache_suexec'} )
+    if ( $self->conf->{'package_install_method'} eq "packages" ) {
+        if (   $self->conf->{'install_apache_proxy'}
+            || $self->conf->{'install_apache_suexec'} )
         {
-            $log->audit( "skipping package install because custom options are selected.");
+            $self->audit( "skipping package install because custom options are selected.");
         }
         else {
             print "install_2: attempting package install.\n";
-            $freebsd->install_package( $ports_dir, alt => "apache-2" );
-            $freebsd->install_package( "p5-libwww" );
+            $self->freebsd->install_package( $ports_dir, alt => "apache-2" );
+            $self->freebsd->install_package( "p5-libwww" );
         }
     }
 
     # building m4 with options suppresses an dialog
-    $freebsd->install_port( 'm4',
+    $self->freebsd->install_port( 'm4',
         options => "# This file is generated by mail-toaster
 # No user-servicable parts inside!
 # Options for m4-1.4.14_1,1
@@ -285,7 +234,7 @@ _OPTIONS_READ=m4-1.4.14_1,1
 WITHOUT_LIBSIGSEGV=true",
     );
 
-    $freebsd->install_port( 'apr',
+    $self->freebsd->install_port( 'apr',
         dir      => 'apr1',
         category => 'devel',
         options  => "# This file is generated by mail-toaster
@@ -303,112 +252,108 @@ WITHOUT_SQLITE=true
 WITH_DEVRANDOM=true",
     );
 
-    $log->audit( "trying port install from /usr/ports/www/$ports_dir");
-    $freebsd->install_port( $ports_dir,
+    $self->audit( "trying port install from /usr/ports/www/$ports_dir");
+    $self->freebsd->install_port( $ports_dir,
         check => "apache",
-        flags => $self->install_2_freebsd_flags($conf),
+        flags => $self->install_2_freebsd_flags,
     );
 
     # fixup Apache 2 installs
-    $self->apache2_fixups( $conf, $ports_dir ) if ( $ver =~ /2/ );
-    $self->freebsd_extras( $conf, $freebsd );
-    $self->install_ssl_certs( conf=>$conf );
-    $self->apache_conf_patch( conf=>$conf );
-    $self->startup(conf=>$conf );
+    $self->apache2_fixups( $ports_dir ) if $ver =~ /2/;
+    $self->freebsd_extras;
+    $self->install_ssl_certs;
+    $self->apache_conf_patch;
+    $self->startup;
     return 1;
 }
 
 sub install_2_freebsd_flags {
-    my ($self, $conf) = @_;
+    my ($self) = @_;
 
     my $flags = "WITH_OPENSSL_PORT=yes";
-    $flags .= ",WITH_PROXY_MODULES=yes" if $conf->{'install_apache_proxy'};
-#   $flags .= ",WITH_BERKELEY_DB=42" if $conf->{'install_apache_bdb'};
+    $flags .= ",WITH_PROXY_MODULES=yes" if $self->conf->{'install_apache_proxy'};
+#   $flags .= ",WITH_BERKELEY_DB=42" if $self->conf->{'install_apache_bdb'};
 
-    return $flags if ! $conf->{'install_apache_suexec'};
+    return $flags if ! $self->conf->{'install_apache_suexec'};
 
     $flags .= ",WITH_SUEXEC=yes";
-    $flags .= ",SUEXEC_DOCROOT=$conf->{'apache_suexec_docroot'}"
-        if $conf->{'apache_suexec_docroot'};
-    $flags .= ",SUEXEC_USERDIR=$conf->{'apache_suexec_userdir'}"
-        if $conf->{'apache_suexec_userdir'};
-    $flags .= ",SUEXEC_SAFEPATH=$conf->{'apache_suexec_safepath'}"
-        if $conf->{'apache_suexec_safepath'};
-    $flags .= ",SUEXEC_LOGFILE=$conf->{'apache_suexec_logfile'}"
-        if $conf->{'apache_suexec_logfile'};
-    $flags .= ",SUEXEC_UIDMIN=$conf->{'apache_suexec_uidmin'}"
-        if $conf->{'apache_suexec_uidmin'};
-    $flags .= ",SUEXEC_GIDMIN=$conf->{'apache_suexec_gidmin'}"
-        if $conf->{'apache_suexec_gidmin'};
-    $flags .= ",SUEXEC_CALLER=$conf->{'apache_suexec_caller'}"
-        if $conf->{'apache_suexec_caller'};
-    $flags .= ",SUEXEC_UMASK=$conf->{'apache_suexec_umask'}"
-        if $conf->{'apache_suexec_umask'};
+    $flags .= ",SUEXEC_DOCROOT=$self->conf->{'apache_suexec_docroot'}"
+        if $self->conf->{'apache_suexec_docroot'};
+    $flags .= ",SUEXEC_USERDIR=$self->conf->{'apache_suexec_userdir'}"
+        if $self->conf->{'apache_suexec_userdir'};
+    $flags .= ",SUEXEC_SAFEPATH=$self->conf->{'apache_suexec_safepath'}"
+        if $self->conf->{'apache_suexec_safepath'};
+    $flags .= ",SUEXEC_LOGFILE=$self->conf->{'apache_suexec_logfile'}"
+        if $self->conf->{'apache_suexec_logfile'};
+    $flags .= ",SUEXEC_UIDMIN=$self->conf->{'apache_suexec_uidmin'}"
+        if $self->conf->{'apache_suexec_uidmin'};
+    $flags .= ",SUEXEC_GIDMIN=$self->conf->{'apache_suexec_gidmin'}"
+        if $self->conf->{'apache_suexec_gidmin'};
+    $flags .= ",SUEXEC_CALLER=$self->conf->{'apache_suexec_caller'}"
+        if $self->conf->{'apache_suexec_caller'};
+    $flags .= ",SUEXEC_UMASK=$self->conf->{'apache_suexec_umask'}"
+        if $self->conf->{'apache_suexec_umask'};
 
     return $flags;
 }
 
 sub startup {
     my $self = shift;
-    my %p = validate( @_, { 'conf' => { type=>HASHREF }, %std_opts } );
+    my %p = validate( @_, { $self->get_std_opts } );
 
-    my ( $conf, $fatal, $debug ) = ( $p{'conf'}, $p{'fatal'}, $p{'debug'} );
+    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
 
-    if ( $util->is_process_running("httpd") ) {
-        $log->audit( "apache->startup: starting Apache, ok  (already started)" );
+    if ( $self->util->is_process_running("httpd") ) {
+        $self->audit( "apache->startup: starting Apache, ok  (already started)" );
         return 1;
     }
 
     if ( $OSNAME eq "freebsd" ) {
-        $self->startup_freebsd($conf, $debug);
+        $self->startup_freebsd( $debug);
     };
 
-    if ( $util->is_process_running("httpd") ) {
-        $log->audit( "apache->startup: starting Apache, ok" );
+    if ( $self->util->is_process_running("httpd") ) {
+        $self->audit( "apache->startup: starting Apache, ok" );
         return 1;
     };
 
-    my $apachectl = $util->find_bin( "apachectl", debug=>0 );
+    my $apachectl = $self->util->find_bin( "apachectl", debug=>0 );
     return if ! -x $apachectl;
 
-    $util->syscmd( "$apachectl start", debug=>0 );
+    $self->util->syscmd( "$apachectl start", debug=>0 );
 }
 
 sub startup_freebsd {
-    my $self = shift;
-    my ($conf, $debug) = @_;
+    my ($self, $debug) = @_;
 
-    require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new( toaster => $toaster );
-
-    $freebsd->conf_check( check=>"apache2_enable", line=>'apache2_enable="YES"' );
-    $freebsd->conf_check( check=>"apache22_enable", line=>'apache22_enable="YES"' );
-    $freebsd->conf_check(
+    $self->freebsd->conf_check( check=>"apache2_enable", line=>'apache2_enable="YES"' );
+    $self->freebsd->conf_check( check=>"apache22_enable", line=>'apache22_enable="YES"' );
+    $self->freebsd->conf_check(
         check=>"apache2ssl_enable", line=>'apache2ssl_enable="YES"' );
 
-    my $etcdir = $conf->{'system_config_dir'} || "/usr/local/etc";
+    my $etcdir = $self->conf->{'system_config_dir'} || "/usr/local/etc";
     my @rcs = qw/ apache22 apache2 apache apache22.sh apache2.sh apache.sh /;
     foreach ( @rcs ) {
-        $util->syscmd( "$etcdir/rc.d/$_ start" ) if -x "$etcdir/rc.d/$_";
+        $self->util->syscmd( "$etcdir/rc.d/$_ start" ) if -x "$etcdir/rc.d/$_";
     };
 }
 
 sub apache2_fixups {
-    my ( $self, $conf, $ports_dir ) = @_;
+    my ( $self, $ports_dir ) = @_;
 
-    my $prefix = $conf->{'toaster_prefix'}    || "/usr/local";
-    my $htdocs = $conf->{'toaster_http_docs'} || "/usr/local/www/toaster";
-    my $cgibin = $conf->{'toaster_cgi_bin'}   || "/usr/local/www/cgi-bin";
-    my $ver    = $conf->{'install_apache'};
+    my $prefix = $self->conf->{'toaster_prefix'}    || "/usr/local";
+    my $htdocs = $self->conf->{'toaster_http_docs'} || "/usr/local/www/toaster";
+    my $cgibin = $self->conf->{'toaster_cgi_bin'}   || "/usr/local/www/cgi-bin";
+    my $ver    = $self->conf->{'install_apache'};
 
     unless ( -d $htdocs ) {    # should exist
         print "ERROR: Interesting. What happened to your $htdocs directory? Since it does not exist, I will create it. Verify that the path in toaster-watcher.conf (toaster_http_docs) is set correctly.\n";
-        $util->mkdir_system(dir=>$htdocs, debug=>0,fatal=>0);
+        $self->util->mkdir_system(dir=>$htdocs, debug=>0,fatal=>0);
     }
 
     unless ( -d $cgibin ) {    # should exist
         print "ERROR: What happened to your $cgibin directory? Since it does not exist, I will create it. Check to verify Is the path in toaster-watcher.conf (toaster_cgi_bin) set correctly?\n";
-        $util->mkdir_system(dir=>$cgibin, debug=>0,fatal=>0);
+        $self->util->mkdir_system(dir=>$cgibin, debug=>0,fatal=>0);
     }
 
     if ( $OSNAME eq "freebsd" && $ver eq "22" && ! -d "$prefix/www/$ports_dir" ) {
@@ -417,18 +362,18 @@ sub apache2_fixups {
         return;
     }
 
-    return 1 if ! $conf->{'toaster_apache_vhost'};
-    $self->apache2_install_vhost( $conf );
+    return 1 if ! $self->conf->{'toaster_apache_vhost'};
+    $self->apache2_install_vhost;
 };
 
 sub apache2_install_vhost {
-    my ($self, $conf) = @_;
+    my ($self) = @_;
 
-    my $ver    = $conf->{'install_apache'};
-    my $htdocs = $conf->{'toaster_http_docs'} || "/usr/local/www/toaster";
-    my $cgibin = $conf->{'toaster_cgi_bin'}   || "/usr/local/www/cgi-bin";
-    my $httpd_conf = $self->conf_get_dir(conf=>$conf);
-    my ($apache_conf_dir) = $util->path_parse($httpd_conf);
+    my $ver    = $self->conf->{'install_apache'};
+    my $htdocs = $self->conf->{'toaster_http_docs'} || "/usr/local/www/toaster";
+    my $cgibin = $self->conf->{'toaster_cgi_bin'}   || "/usr/local/www/cgi-bin";
+    my $httpd_conf = $self->conf_get_dir;
+    my ($apache_conf_dir) = $self->util->path_parse($httpd_conf);
 
     my $file_to_write = "mail-toaster.conf";
     my $full_path;
@@ -450,15 +395,12 @@ sub apache2_install_vhost {
 
     open my $MT_CONF, ">", "/tmp/$file_to_write";
 
-    my $hostname = $conf->{'toaster_hostname'};
-    my $ips      = $util->get_my_ips(only=>"first", debug=>0);
+    my $hostname = $self->conf->{'toaster_hostname'};
+    my $ips      = $self->util->get_my_ips(only=>"first", debug=>0);
     my $local_ip = $ips->[0];
     my $redirect_host = $hostname;
 
-    require Mail::Toaster::DNS;
-    my $dns = Mail::Toaster::DNS->new( toaster => $toaster );
-
-    if ( ! $dns->resolve(type=>"A", record=>$hostname) ) {
+    if ( ! $self->dns->resolve(type=>"A", record=>$hostname) ) {
         $redirect_host = $local_ip;
     };
 
@@ -655,7 +597,7 @@ EO_MAIL_TOASTER_CONF
 
     close $MT_CONF;
 
-    $util->install_if_changed(
+    $self->util->install_if_changed(
         newfile  => "/tmp/$file_to_write",
         existing => $full_path,
         clean    => 1,
@@ -664,13 +606,13 @@ EO_MAIL_TOASTER_CONF
 }
 
 sub freebsd_extras {
-    my ( $self, $conf, $freebsd ) = @_;
+    my $self = shift;
 
-    $freebsd->install_port( "cronolog" );
+    $self->freebsd->install_port( "cronolog" );
 
     # libwww requires this, so we preemptively install it to supress
     # the dialog box it opens
-    $freebsd->install_port( "p5-Authen-SASL",
+    $self->freebsd->install_port( "p5-Authen-SASL",
         options => "#
 # This file was generated by mail-toaster
 # Options for p5-Authen-SASL-2.10_1
@@ -678,25 +620,23 @@ _OPTIONS_READ=p5-Authen-SASL-2.10_1
 WITHOUT_KERBEROS=true\n",
     );
 
-    $freebsd->install_port( "p5-libwww" );
-    $freebsd->install_port( "bison" );
-    $freebsd->install_port( "gd"    );
-    $freebsd->install_port( "php5",
+    $self->freebsd->install_port( "p5-libwww" );
+    $self->freebsd->install_port( "bison" );
+    $self->freebsd->install_port( "gd"    );
+    $self->freebsd->install_port( "php5",
         flags => "WITH_APACHE=yes WITH_APACHE2=yes BATCH=yes",
     );
 }
 
 sub conf_get_dir {
     my $self = shift;
-    my %p = validate( @_, { 'conf' => HASHREF, %std_opts } );
+    my %p = validate( @_, { $self->get_std_opts } );
 
-    my $conf = $p{'conf'};
-
-    my $prefix = $conf->{'toaster_prefix'} || "/usr/local";
+    my $prefix = $self->conf->{'toaster_prefix'} || "/usr/local";
     my $apachectl = "$prefix/sbin/apachectl";
 
     if ( ! -x $apachectl ) {
-        $apachectl = $util->find_bin( "apachectl" );
+        $apachectl = $self->util->find_bin( "apachectl" );
     }
 
     # the -V flag to apachectl returns this string:
@@ -707,7 +647,7 @@ sub conf_get_dir {
         # and return a fully qualified path to httpd.conf
         return "$prefix/$1" if ( -f "$prefix/$1" && -s "$prefix/$1" );
 
-        $log->error( "apachectl returned $1 as the location of your httpd.conf file but $prefix/$1 does not exist! I'm sorry but I cannot go on like this. Please fix your Apache install and try again.");
+        $self->error( "apachectl returned $1 as the location of your httpd.conf file but $prefix/$1 does not exist! I'm sorry but I cannot go on like this. Please fix your Apache install and try again.");
     };
 
     # apachectl did not return anything useful from -V, must be apache 1.x
@@ -728,24 +668,23 @@ sub conf_get_dir {
 
 sub apache_conf_patch {
     my $self = shift;
-    my %p = validate(@_, { 'conf' => HASHREF, %std_opts } );
+    my %p = validate(@_, { $self->get_std_opts} );
 
-    my $conf   = $p{'conf'};
-    my $prefix = $conf->{'toaster_prefix'}    || "/usr/local";
-    my $etcdir = $conf->{'system_config_dir'} || "/usr/local/etc";
+    my $prefix = $self->conf->{'toaster_prefix'}    || "/usr/local";
+    my $etcdir = $self->conf->{'system_config_dir'} || "/usr/local/etc";
     my $patchdir   = "$etcdir/apache";
-    my $apacheconf = $self->conf_get_dir(conf=>$conf);
+    my $apacheconf = $self->conf_get_dir;
     my ($apacheetc) = $apacheconf =~ /(.*)\/httpd\.conf$/;
 
-    $log->audit( "apache_conf_patch: updating httpd.conf for Mail-Toaster");
+    $self->audit( "apache_conf_patch: updating httpd.conf for Mail-Toaster");
 
-    if ( $conf->{'install_apache'} == "21" ) {
+    if ( $self->conf->{'install_apache'} == "21" ) {
         return 1;
     };
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    if ( $conf->{'install_apache'} == 2 && $OSNAME eq "darwin" ) {
+    if ( $self->conf->{'install_apache'} == 2 && $OSNAME eq "darwin" ) {
         $apacheconf = "/etc/httpd/httpd.conf";
     }
 
@@ -757,7 +696,7 @@ sub apache_conf_patch {
         return;
     };
 
-    my @lines = $util->file_read($apacheconf);
+    my @lines = $self->util->file_read($apacheconf);
     foreach my $line ( @lines ) {
         if ( $line =~ q{#Include etc/apache22/extra/httpd-default.conf} ) {
             $line = "Include etc/apache22/extra/httpd-default.conf";
@@ -775,43 +714,42 @@ sub apache_conf_patch {
             $line = '#ScriptAlias /cgi-bin/ "/usr/local/www/apache22/cgi-bin/"';
         };
     };
-    $util->file_write( $apacheconf, lines=>\@lines );
+    $self->util->file_write( $apacheconf, lines=>\@lines );
 }
 
 sub install_ssl_certs {
     my $self = shift;
     my %p = validate (@_, {
-            'conf'  => { type => HASHREF, },
             'type'  => { type => SCALAR, optional=>1, },
-            %std_opts,
+            $self->get_std_opts,
         }
     );
 
-    my ( $conf, $type ) = ( $p{'conf'}, $p{'type'} );
+    my ( $type ) = ( $p{'type'} );
 
-    $log->audit( "install_ssl_certs: installing self-signed SSL certs for Apache.");
+    $self->audit( "install_ssl_certs: installing self-signed SSL certs for Apache.");
 
-    my $prefix = $conf->{'toaster_prefix'}    || "/usr/local";
-    my $etcdir = $conf->{'system_config_dir'} || "/usr/local/etc";
+    my $prefix = $self->conf->{'toaster_prefix'}    || "/usr/local";
+    my $etcdir = $self->conf->{'system_config_dir'} || "/usr/local/etc";
 
-    my $apacheconf = $self->conf_get_dir(conf=>$conf);
-    my ($apacheetc) = $util->path_parse($apacheconf);
+    my $apacheconf = $self->conf_get_dir;
+    my ($apacheetc) = $self->util->path_parse($apacheconf);
 
-    $log->audit( "   detected apache config dir $apacheetc.");
+    $self->audit( "   detected apache config dir $apacheetc.");
 
     my $crtdir = "$apacheetc/ssl.crt";
     my $keydir = "$apacheetc/ssl.key";
 
-    my $ver = $conf->{'install_apache'};
+    my $ver = $self->conf->{'install_apache'};
     $crtdir = $keydir = $apacheetc if ( $ver =~ /^21|22$/ );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    $util->mkdir_system( dir => $crtdir ) if ! -d $crtdir;
-    $util->mkdir_system( dir => $keydir ) if ! -d $crtdir;
+    $self->util->mkdir_system( dir => $crtdir ) if ! -d $crtdir;
+    $self->util->mkdir_system( dir => $keydir ) if ! -d $crtdir;
 
     if ( $type && $type eq "dsa" ) {
-        install_dsa_cert($crtdir, $keydir);
+        $self->install_dsa_cert($crtdir, $keydir);
     }
     else {
         $self->install_rsa_cert( crtdir=>$crtdir, keydir=>$keydir );
@@ -822,7 +760,7 @@ sub install_ssl_certs {
 sub restart {
     my $self = shift;
 
-    my $sudo = $util->sudo();
+    my $sudo = $self->util->sudo();
     my $etc  = "/usr/local/etc";
     $etc = "/opt/local/etc" if ! -d $etc;
     $etc = "/etc" if ! -d $etc;
@@ -831,15 +769,15 @@ sub restart {
     foreach my $apa ( qw/ apache apache2 apache.sh apache2.sh / ) {
         next if ! -x "$etc/rc.d/$apa";
 
-        $util->syscmd( "$sudo $etc/rc.d/$apa restart" );
+        $self->util->syscmd( "$sudo $etc/rc.d/$apa restart" );
         $restarted++;
     }
 
     if ( ! $restarted ) {
-        my $apachectl = $util->find_bin( "apachectl" )
-            or return $log->error( "couldn't restart Apache!");
+        my $apachectl = $self->util->find_bin( "apachectl" )
+            or return $self->error( "couldn't restart Apache!");
 
-        $util->syscmd( "$sudo $apachectl graceful" );
+        $self->util->syscmd( "$sudo $apachectl graceful" );
     }
 }
 
@@ -858,7 +796,7 @@ sub RemoveOldApacheSources {
 }
 
 sub openssl_config_note {
-
+    my $self = shift;
     print "\n\t\tATTENTION! ATTENTION!
 
 If you don't like the default values being offered to you, or you
@@ -878,7 +816,7 @@ edit your openssl.cnf file. ";
 
     print "\n You can also run 'toaster_setup.pl -s ssl' to update your openssl.cnf file.\n\n";
 
-    if ( $util->is_interactive ) {
+    if ( $self->util->is_interactive ) {
         print chr(7);  # bell
         sleep 3;
     };
@@ -887,25 +825,24 @@ edit your openssl.cnf file. ";
 }
 
 sub install_dsa_cert {
-
-    my ( $crtdir, $keydir ) = @_;
+    my ( $self, $crtdir, $keydir ) = @_;
 
     if ( -e "$crtdir/server-dsa.crt" ) {
         print "install_ssl_certs: $crtdir/server-dsa.crt is installed!\n";
         return 1;
     }
 
-    openssl_config_note();
+    $self->openssl_config_note();
 
     my $crt = "server-dsa.crt";
     my $key = "server-dsa.key";
     my $csr = "server-dsa.csr";
 
-#$util->syscmd( "openssl gendsa 1024 > $keydir/$key" );
-#$util->syscmd( "openssl req -new -key $keydir/$key -out $crtdir/$csr" );
-#$util->syscmd( "openssl req -x509 -days 999 -key $keydir/$key -in $crtdir/$csr -out $crtdir/$crt" );
+#$self->util->syscmd( "openssl gendsa 1024 > $keydir/$key" );
+#$self->util->syscmd( "openssl req -new -key $keydir/$key -out $crtdir/$csr" );
+#$self->util->syscmd( "openssl req -x509 -days 999 -key $keydir/$key -in $crtdir/$csr -out $crtdir/$crt" );
 
-#	$util->install_module( "Crypt::OpenSSL::DSA" );
+#	$self->util->install_module( "Crypt::OpenSSL::DSA" );
 #	require Crypt::OpenSSL::DSA;
 #	my $dsa = Crypt::OpenSSL::DSA->generate_parameters( 1024 );
 #	$dsa->generate_key;
@@ -919,19 +856,19 @@ sub install_rsa_cert {
     my %p = validate (@_, {
             'crtdir' => { type=>SCALAR },
             'keydir' => { type=>SCALAR },
-            %std_opts
+            $self->get_std_opts,
         },
     );
 
     my ( $crtdir, $keydir, $debug ) = ($p{'crtdir'}, $p{'keydir'}, $p{'debug'} );
 
-    return $log->error( "keydir ($keydir) is required and missing!" ) if ! $keydir;
-    return $log->error( "crtdir ($crtdir) is required and missing!") if ! $crtdir;
+    return $self->error( "keydir ($keydir) is required and missing!" ) if ! $keydir;
+    return $self->error( "crtdir ($crtdir) is required and missing!") if ! $crtdir;
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    $util->mkdir_system(dir=>$keydir, debug=>$debug) if ! -d $keydir;
-    $util->mkdir_system(dir=>$crtdir, debug=>$debug) if ! -d $crtdir;
+    $self->util->mkdir_system(dir=>$keydir, debug=>$debug) if ! -d $keydir;
+    $self->util->mkdir_system(dir=>$crtdir, debug=>$debug) if ! -d $crtdir;
 
     my $csr = "server.csr";
     my $crt = "server.crt";
@@ -943,20 +880,20 @@ sub install_rsa_cert {
     };
 
     if ( -f "$crtdir/$crt" && -f "$keydir/$key" ) {
-        $log->audit( "   installing server.crt, ok (already done)" );
+        $self->audit( "   installing server.crt, ok (already done)" );
         return;
     }
-    openssl_config_note();
+    $self->openssl_config_note();
 
     system "openssl genrsa 1024 > $keydir/$key" if ! -e "$keydir/$key";
-    $log->error( "ssl cert key generation failed!") if ! -e "$keydir/$key";
+    $self->error( "ssl cert key generation failed!") if ! -e "$keydir/$key";
 
     system "openssl req -new -key $keydir/$key -out $crtdir/$csr" if ! -e "$crtdir/$csr";
-    return $log->error( "cert sign request ($crtdir/$csr) generation failed!") if ! -e "$crtdir/$csr";
+    return $self->error( "cert sign request ($crtdir/$csr) generation failed!") if ! -e "$crtdir/$csr";
 
     system "openssl req -x509 -days 999 -key $keydir/$key -in $crtdir/$csr -out $crtdir/$crt"
         if ! -e "$crtdir/$crt";
-    $log->error( "cert generation ($crtdir/$crt) failed!") if ! -e "$crtdir/$crt";
+    $self->error( "cert generation ($crtdir/$crt) failed!") if ! -e "$crtdir/$crt";
 
     return 1;
 }
@@ -988,7 +925,7 @@ Perl methods for working with Apache. See METHODS.
    use Mail::Toaster;
    use Mail::Toaster::Apache
    my $log = Mail::Toaster->new(debug=>0)
-   my $apache = Mail::Toaster::Apache->new( toaster => $toaster );
+   my $apache = Mail::Toaster::Apache->new;
 
 use this function to create a new apache object. From there you can use all the functions
 included in this document.
@@ -1014,7 +951,7 @@ Also installs mod_php4 and mod_ssl.
 	use Mail::Toaster::Apache;
 	my $apache = new Mail::Toaster::Apache;
 
-	$apache->install_2($conf);
+	$apache->install_2();
 
 Builds Apache from sources with DSO for all modules. Also installs mod_perl2 and mod_php4.
 
@@ -1027,7 +964,7 @@ Values in $conf are set in toaster-watcher.conf. Please refer to that file to se
 
 =item apache_conf_patch
 
-	$apache->apache_conf_patch(conf=>$conf);
+	$apache->apache_conf_patch();
 
 Patch apache's default httpd.conf file. See the patch in contrib of Mail::Toaster to see what changes are being made.
 
@@ -1057,14 +994,6 @@ On FreeBSD, we use the rc.d script if it's available because it's smarter than a
 =item install_dsa_cert
 
 Builds and installs a DSA Certificate.
-
-
-
-
-
-
-
-
 
 =back
 

@@ -1,30 +1,20 @@
 use strict;
 use warnings;
 
-use English qw( -no_match_vars );
+use English '-no_match_vars';
 use Test::More;
 
 use lib 'lib';
-use lib 'inc';
 
 if ( $OSNAME ne "freebsd" ) {
     plan skip_all => "OS is not FreeBSD";
+    exit;
 }
-else {
-    plan 'no_plan';
-};
 
-require_ok( 'Mail::Toaster' );
 require_ok( 'Mail::Toaster::FreeBSD' );
 
-my $toaster = Mail::Toaster->new(debug=>0);
-my $freebsd = Mail::Toaster::FreeBSD->new(toaster=>$toaster);
-ok ( defined $freebsd, 'Mail::Toaster::FreeBSD is an object' );
-ok ( $freebsd->isa('Mail::Toaster::FreeBSD'), 'check object class' );
-
-
-my $conf = $toaster->get_config;
-my $util = $toaster->get_util;
+my $freebsd = Mail::Toaster::FreeBSD->new();
+isa_ok( $freebsd, 'Mail::Toaster::FreeBSD', 'check object class' );
 
 # drive_spin_down
 	# how exactly do I test this? 
@@ -110,4 +100,5 @@ if ( -f '/usr/ports/Makefile' ) {
         test_ok => 1,
 	), 'conf_check' );
 
-
+done_testing();
+exit;

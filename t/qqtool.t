@@ -18,15 +18,12 @@ my $toaster = Mail::Toaster->new(debug=>0);
 ok ( defined $toaster, 'Mail::Toaster object' );
 ok ( $toaster->isa('Mail::Toaster'), 'check object class' );
 
-my $conf = $toaster->get_config;
-my $util = $toaster->get_util;
-
 my $qqtool_location = "bin/qqtool.pl";
 
 ok( -e $qqtool_location, 'found qqtool.pl');
 ok( -x $qqtool_location, 'is executable');
 
-my $queue = $conf->{'qmail_dir'} . "/queue";
+my $queue = $toaster->conf->{'qmail_dir'} . "/queue";
 
 ### $queue
 ### require: -d $queue
@@ -38,7 +35,7 @@ if ($OSNAME ne 'VMS')
     {$this_perl .= $Config{_exe}
         unless $this_perl =~ m/$Config{_exe}$/i;}
 
-ok( $util->syscmd( "$this_perl $qqtool_location -a list -s matt -h From ",
+ok( $toaster->util->syscmd( "$this_perl $qqtool_location -a list -s matt -h From ",
         fatal   => 0,
         debug   => 0,
     ), 'qqtool.pl' );

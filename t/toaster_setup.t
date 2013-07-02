@@ -16,7 +16,6 @@ if ( $OSNAME =~ /cygwin|win32|windows/i ) {
 use_ok( 'Mail::Toaster' );
 
 my $toaster = Mail::Toaster->new(debug=>0);
-my $util = $toaster->get_util;
 
 my $setup_location = "bin/toaster_setup.pl";
 
@@ -27,6 +26,6 @@ my $this_perl = $Config{'perlpath'} || $EXECUTABLE_NAME;
 
 #use Data::Dumper; warn Dumper(@INC) and exit;
 my $cmd = "$this_perl $setup_location -s test2";
-ok( $util->syscmd( $cmd, fatal => 0, debug => 0 ), 'toaster_setup.pl',);
+ok( $toaster->util->syscmd( $cmd, fatal => 0, debug => 0 ), "$cmd" );
 
 done_testing();

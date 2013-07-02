@@ -4,7 +4,7 @@ package Mail::Toaster::Utility;
 use strict;
 use warnings;
 
-our $VERSION = '5.36';
+our $VERSION = '5.37';
 
 use Cwd;
 use Carp;
@@ -20,6 +20,7 @@ use Scalar::Util qw( openhandle );
 use URI;
 
 use lib 'lib';
+use parent 'Mail::Toaster::Base';
 use vars qw/ $log %std_opts /;
 
 sub new {
@@ -130,6 +131,7 @@ PROMPT:
 }
 
 sub audit {
+    # TODO: delete this
     my $self = shift;
     my $mess = shift;
 
@@ -399,6 +401,7 @@ sub cwd_source_dir {
 }
 
 sub dump_audit {
+    # TODO: delete this
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
 
@@ -421,6 +424,7 @@ sub dump_audit {
 };
 
 sub dump_errors {
+    # TODO: delete this
     my $self = shift;
     my $last_line = $log->{last_error} or return;
 
@@ -451,6 +455,7 @@ sub _try_mkdir {
 }
 
 sub error {
+    # TODO: delete this
     my $self = shift;
     my $message = shift;
     my %p = validate( @_,
@@ -1633,7 +1638,9 @@ sub install_package {
         my $portname = $info->{port}
             or return $log->error( "skipping install of $app b/c port dir not set.", fatal => 0);
 
-        if (`/usr/sbin/pkg_info | /usr/bin/grep $app`) {
+        require Mail::Toaster::FreeBSD;
+        my $freebsd = Mail::Toaster::FreeBSD->new;
+        if ( $freebsd->is_port_installed( $app ) ) {
             print "$app is installed.\n";
             return 1;
         }
@@ -1738,7 +1745,9 @@ sub install_module_freebsd {
         $portname =~ s/::/-/g;
     };
 
-    my $r = `/usr/sbin/pkg_info | /usr/bin/grep $portname`;
+    require Mail::Toaster::FreeBSD;
+    my $freebsd = Mail::Toaster::FreeBSD->new;
+    my $r = $freebsd->is_port_installed( $portname );
     return $log->audit( "$module is installed as $r") if $r;
 
     my $portdir = glob("/usr/ports/*/$portname");
