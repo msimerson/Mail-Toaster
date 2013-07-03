@@ -18,12 +18,12 @@ my $conf = $qmail->conf;
 
 # get_list_of_rwls
     $qmail->conf( { 'rwl_list.dnswl.org'=> 1} );
-	$r = $qmail->get_list_of_rwls(debug=>0 );
-	ok( @$r[0], 'get_list_of_rwls'); 
+	$r = $qmail->get_list_of_rwls(verbose=>0 );
+	ok( @$r[0], 'get_list_of_rwls');
     $qmail->conf( $conf );
 
 # test_each_rbl
-    $r = $qmail->test_each_rbl( rbls=>$r, debug=>0, fatal=>0 );
+    $r = $qmail->test_each_rbl( rbls=>$r, verbose=>0, fatal=>0 );
     if ( $r ) {
         ok( @$r[0], 'test_each_rbl');
     }
@@ -36,37 +36,37 @@ my $conf = $qmail->conf;
 
 # get_list_of_rbls
     $qmail->conf( {'rbl_bl.spamcop.net'=> 1} );
-	$r = $qmail->get_list_of_rbls(debug=>0,fatal=>0 );
+	$r = $qmail->get_list_of_rbls(verbose=>0,fatal=>0 );
     # some folks have problems resolving bl.spamcop.net
-    if ( $r ) {  
-        cmp_ok( $r, "eq", " \\\n\t\t-r bl.spamcop.net", 'get_list_of_rbls'); 
+    if ( $r ) {
+        cmp_ok( $r, "eq", " \\\n\t\t-r bl.spamcop.net", 'get_list_of_rbls');
 
         # test one with a sort order
         $qmail->conf(  {'rbl_bl.spamcop.net'=> 2} );
-        $r = $qmail->get_list_of_rbls( debug=>0, fatal=>0 );
-        cmp_ok( $r, "eq", " \\\n\t\t-r bl.spamcop.net", 'get_list_of_rbls'); 
+        $r = $qmail->get_list_of_rbls( verbose=>0, fatal=>0 );
+        cmp_ok( $r, "eq", " \\\n\t\t-r bl.spamcop.net", 'get_list_of_rbls');
     };
 
 	# no enabled rbls!
     $qmail->conf( {'rbl_bl.spamcop.net'=> 0} );
-	ok( ! $qmail->get_list_of_rbls( debug=>0, fatal=>0 ), 
+	ok( ! $qmail->get_list_of_rbls( verbose=>0, fatal=>0 ),
         'get_list_of_rbls nok');
 	#cmp_ok( $r, "eq", "", 'get_list_of_rbls nok');
 
 	# ignore custom error messages
     $qmail->conf( {'rbl_bl.spamcop.net_message'=> 2} );
-	$r = $qmail->get_list_of_rbls( debug=>0, fatal=>0 );
+	$r = $qmail->get_list_of_rbls( verbose=>0, fatal=>0 );
 	ok( ! $r, 'get_list_of_rbls nok');
 
 
 # get_list_of_rwls
     $qmail->conf( {'rwl_list.dnswl.org'=> 1} );
-	$r = $qmail->get_list_of_rwls( debug=>0 );
-	ok( @$r[0] eq "list.dnswl.org", 'get_list_of_rwls'); 
+	$r = $qmail->get_list_of_rwls( verbose=>0 );
+	ok( @$r[0] eq "list.dnswl.org", 'get_list_of_rwls');
 
 	# no enabled rwls!
     $qmail->conf( {'rwl_list.dnswl.org'=> 0} );
-	$r = $qmail->get_list_of_rwls( debug=>0 );
+	$r = $qmail->get_list_of_rwls( verbose=>0 );
 	ok( ! @$r[0], 'get_list_of_rwls nok');
 
 $qmail->dump_audit( quiet => 1 );
@@ -94,11 +94,11 @@ $qmail->dump_audit( quiet => 1 );
 
 
 # supervised_hostname_qmail
-	ok( $qmail->supervised_hostname_qmail( prot=>'pop3' ), 
+	ok( $qmail->supervised_hostname_qmail( prot=>'pop3' ),
 		'supervised_hostname_qmail' );
 
 	# invalid type
-#	ok( ! $qmail->supervised_hostname_qmail( prot=>['invalid'] ), 
+#	ok( ! $qmail->supervised_hostname_qmail( prot=>['invalid'] ),
 #        'supervised_hostname_qmail' );
 
 
@@ -119,8 +119,8 @@ $qmail->dump_audit( quiet => 1 );
 	my $qmail_control_dir = $qmail_dir . "/control";
 
 	if ( -d $qmail_control_dir ) {
-		ok( $qmail->check_control( dir=> $qmail_control_dir, debug=>0 ) , 'check_control' );
-		ok( ! $qmail->check_control( dir=>"/should-not-exist", debug=>0 ) , 'check_control' );
+		ok( $qmail->check_control( dir=> $qmail_control_dir, verbose=>0 ) , 'check_control' );
+		ok( ! $qmail->check_control( dir=>"/should-not-exist", verbose=>0 ) , 'check_control' );
 	};
 
 
@@ -132,7 +132,7 @@ $qmail->dump_audit( quiet => 1 );
 
 
 # config
-	# 
+	#
 	ok( $qmail->config( test_ok=>1 ), 'config' );
 	ok( ! $qmail->config( test_ok=>0 ), 'config' );
 
@@ -173,22 +173,22 @@ $qmail->dump_audit( quiet => 1 );
 
 
 # netqmail
-	ok( $qmail->netqmail( debug=>0, test_ok=>1  ), 'netqmail');
-	ok( ! $qmail->netqmail( debug=>0, test_ok=>0 ), 'netqmail');
+	ok( $qmail->netqmail( verbose=>0, test_ok=>1  ), 'netqmail');
+	ok( ! $qmail->netqmail( verbose=>0, test_ok=>0 ), 'netqmail');
 
 
 # netqmail_virgin
-	ok( $qmail->netqmail_virgin( debug=>0, test_ok=>1  ), 'netqmail_virgin');
-	ok( ! $qmail->netqmail_virgin( debug=>0, test_ok=>0 ), 'netqmail_virgin');
+	ok( $qmail->netqmail_virgin( verbose=>0, test_ok=>1  ), 'netqmail_virgin');
+	ok( ! $qmail->netqmail_virgin( verbose=>0, test_ok=>0 ), 'netqmail_virgin');
 
 # queue_check
 	if ( -d $qmail_dir ) {
-		ok( $qmail->queue_check( debug=>0 ), 'queue_check');
+		ok( $qmail->queue_check( verbose=>0 ), 'queue_check');
 	};
 
 # rebuild_ssl_temp_keys
 	if ( -d $qmail_control_dir ) {
-		ok( $qmail->rebuild_ssl_temp_keys( debug=>0, fatal=>0, test_ok=>1 ), 'rebuild_ssl_temp_keys');
+		ok( $qmail->rebuild_ssl_temp_keys( verbose=>0, fatal=>0, test_ok=>1 ), 'rebuild_ssl_temp_keys');
 	}
 
 # restart
@@ -200,10 +200,10 @@ $qmail->dump_audit( quiet => 1 );
 	if ( $qmail->toaster->supervised_dir_test( prot=>"send", fatal=>0 ) ) {
 
 # send_start
-        ok( $qmail->send_start( test_ok=>1, debug=>0, fatal=>0 ) , 'send_start');
+        ok( $qmail->send_start( test_ok=>1, verbose=>0, fatal=>0 ) , 'send_start');
 
 # send_stop
-        ok( $qmail->send_stop( test_ok=>1, debug=>0, fatal=>0 ) , 'send_start');
+        ok( $qmail->send_stop( test_ok=>1, verbose=>0, fatal=>0 ) , 'send_start');
 	}
 
 # restart
@@ -225,9 +225,9 @@ $qmail->dump_audit( quiet => 1 );
         $qmail->conf( $conf );
 
 # _test_smtpd_config_values
-        my $sup_dir = $qmail->toaster->supervised_dir_test( prot=>"send", debug=>0,fatal=>0 );
+        my $sup_dir = $qmail->toaster->supervised_dir_test( prot=>"send", verbose=>0,fatal=>0 );
         if ( -d $conf->{'vpopmail_home_dir'} && $sup_dir && -d $sup_dir ) {
-		    ok( $qmail->_test_smtpd_config_values( test_ok=>1 ), 
+		    ok( $qmail->_test_smtpd_config_values( test_ok=>1 ),
 		    	'_test_smtpd_config_values');
         };
 	};

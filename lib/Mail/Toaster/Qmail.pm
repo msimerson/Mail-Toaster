@@ -190,7 +190,7 @@ sub check_control {
 
     # used in qqtool.pl
 
-    my ( $dir, $fatal, $debug ) = ( $p{'dir'}, $p{'fatal'}, $p{'debug'} );
+    my ( $dir, $fatal, $verbose ) = ( $p{dir}, $p{fatal}, $p{verbose} );
 
     if ( -d $dir ) {
         $self->audit( "check_control: checking $dir, ok" );
@@ -200,12 +200,11 @@ sub check_control {
     my $qcontrol = $self->toaster->service_dir_get( prot => "send" );
 
     $self->audit( "check_control: checking $qcontrol/$dir, FAILED" );
-    if ($debug) {
-        print "
+    $self->audit( "
 	HEY! The control directory for qmail-send is not
 	in $dir where I expected. Please edit this script
-	and set $qcontrol to the appropriate directory!\n\n";
-    }
+	and set $qcontrol to the appropriate directory!\n\n"
+    );
 
     return;
 }
@@ -434,7 +433,7 @@ sub config_write {
             existing => "$qdir/$file",
             clean    => 1,
             notify   => 1,
-            debug    => 0
+            verbose  => 0
         );
         if ($r) { $r = $r == 1 ? "ok" : "ok (same)"; }
         else    { $r = "FAILED"; }
@@ -458,7 +457,7 @@ sub control_create {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my ( $fatal, $debug ) = ($p{'fatal'}, $p{'debug'} );
+    my ( $fatal, $verbose ) = ( $p{fatal}, $p{verbose} );
 
     my $dl_site = $self->conf->{'toaster_dl_site'} || "http://www.tnpi.net";
     my $dl_url  = $self->conf->{'toaster_dl_url'}  || "/internet/mail/toaster";
@@ -490,7 +489,7 @@ sub control_create {
     else { $r = "FAILED"; }
     $self->audit( "control_create: installed $qmaildir/bin/qmailctl, $r" );
 
-    $self->util->syscmd( "$qmailctl cdb", debug=>0 );
+    $self->util->syscmd( "$qmailctl cdb", verbose=>0 );
 
     # create aliases
     foreach my $shortcut ( "$prefix/sbin/qmail", "$prefix/sbin/qmailctl" ) {
@@ -679,10 +678,10 @@ sub get_domains_from_assign {
         },
     );
 
-    my ( $assign, $match, $value, $fatal, $debug )
-        = ( $p{'assign'}, $p{'match'}, $p{'value'}, $p{'fatal'}, $p{'debug'} );
+    my ( $assign, $match, $value, $fatal, $verbose )
+        = ( $p{assign}, $p{match}, $p{value}, $p{fatal}, $p{verbose} );
 
-    return $p{'test_ok'} if defined $p{'test_ok'};
+    return $p{test_ok} if defined $p{test_ok};
 
     return $self->error( "the file $assign is missing or empty!", fatal => $fatal)
         if ! -s $assign;
@@ -803,10 +802,10 @@ sub get_qmailscanner_virus_sender_ips {
     my $self = shift;
     my @ips;
 
-    my $debug      = $self->conf->{'debug'};
-    my $block      = $self->conf->{'qs_block_virus_senders'};
-    my $clean      = $self->conf->{'qs_quarantine_clean'};
-    my $quarantine = $self->conf->{'qs_quarantine_dir'};
+    my $verbose      = $self->conf->{verbose};
+    my $block      = $self->conf->{qs_block_virus_senders};
+    my $clean      = $self->conf->{qs_quarantine_clean};
+    my $quarantine = $self->conf->{qs_quarantine_dir};
 
     unless ( -d $quarantine ) {
         $quarantine = "/var/spool/qmailscan/quarantine"
@@ -826,11 +825,11 @@ sub get_qmailscanner_virus_sender_ips {
             chomp $ipline;
 
             next unless ($ipline);
-            print " $ipline  - " if $debug;
+            print " $ipline  - " if $verbose;
 
             my @lines = split( /Received/, $ipline );
             foreach my $line (@lines) {
-                print $line if $debug;
+                print $line if $verbose;
 
                 # Received: from unknown (HELO netbible.org) (202.54.63.141)
                 my ($ip) = $line =~ /([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/;
@@ -839,11 +838,11 @@ sub get_qmailscanner_virus_sender_ips {
                 # a virus that was blocked, not an admin testing
                 # (Matt 4/3/2004)
 
-                if ( $ip =~ /\s+/ or !$ip ) { print "$line\n" if $debug; }
+                if ( $ip =~ /\s+/ or !$ip ) { print "$line\n" if $verbose; }
                 else { push @ips, $ip; }
-                print "\t$ip" if $debug;
+                print "\t$ip" if $verbose;
             }
-            print "\n" if $debug;
+            print "\n" if $verbose;
         }
         unlink $file if $clean;
     }
@@ -1104,7 +1103,7 @@ sub install_supervise_run {
         mode     => '0755',        clean    => 1,
         notify   => $self->conf->{'supervise_rebuild_notice'} || 1,
         email    => $self->conf->{'toaster_admin_email'} || 'postmaster',
-        debug    => $self->{debug},
+        verbose    => $self->{verbose},
         fatal    => 0,
     );
 }
@@ -1659,7 +1658,7 @@ sub queue_check {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
+    my ( $fatal, $verbose ) = ( $p{'fatal'}, $p{'verbose'} );
 
     my $base  = $self->conf->{'qmail_dir'};
     unless ( $base ) {
@@ -1669,7 +1668,7 @@ sub queue_check {
 
     my $queue = "$base/queue";
 
-    print "queue_check: checking $queue..." if $debug;
+    print "queue_check: checking $queue..." if $verbose;
 
     unless ( $queue && -d $queue ) {
         my $err = "\tHEY! The queue directory for qmail is missing!\n";
@@ -1679,7 +1678,7 @@ sub queue_check {
         return $self->error( $err, fatal => $fatal );
     }
 
-    print "ok.\n" if $debug;
+    print "ok.\n" if $verbose;
     return "$base/queue";
 }
 
@@ -1755,7 +1754,7 @@ sub send_start {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = ( verbose => $p{verbose}, fatal => $p{fatal} );
 
     my $qcontrol = $self->toaster->service_dir_get( prot => "send" );
 
@@ -1771,8 +1770,8 @@ sub send_start {
     return $self->error( "Only root can control supervised daemons, and you aren't root!",
         %args ) if $UID != 0;
 
-    my $svc    = $self->util->find_bin( "svc", debug=>0 );
-    my $svstat = $self->util->find_bin( "svstat", debug=>0 );
+    my $svc    = $self->util->find_bin( "svc", verbose=>0 );
+    my $svstat = $self->util->find_bin( "svstat", verbose=>0 );
 
     # Start the qmail-send (and related programs)
     system "$svc -u $qcontrol";
@@ -1794,12 +1793,12 @@ sub send_stop {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = ( verbose => $p{verbose}, fatal => $p{fatal} );
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    my $svc    = $self->util->find_bin( "svc", debug=>0 );
-    my $svstat = $self->util->find_bin( "svstat", debug=>0 );
+    my $svc    = $self->util->find_bin( "svc", verbose=>0 );
+    my $svstat = $self->util->find_bin( "svstat", verbose=>0 );
 
     my $qcontrol = $self->toaster->service_dir_get( prot => "send" );
 
@@ -1833,7 +1832,7 @@ sub send_stop {
             # processes that are forcing us to wait.
 
             if ( $i > 100 ) {
-                $self->util->syscmd( "killall qmail-remote", debug=>0 );
+                $self->util->syscmd( "killall qmail-remote", verbose=>0 );
             }
             print "$r\n";
         }
@@ -2013,13 +2012,13 @@ sub UpdateVirusBlocks {
 
     my @lines;
 
-    my $debug = 0;
+    my $verbose = 0;
     my $in     = 0;
     my $done   = 0;
     my $now    = time;
     my $expire = time + ( $time * 3600 );
 
-    print "now: $now   expire: $expire\n" if $debug;
+    print "now: $now   expire: $expire\n" if $verbose;
 
     my @userlines = $self->util->file_read( $relay );
   USERLINES: foreach my $line (@userlines) {
@@ -2044,21 +2043,21 @@ sub UpdateVirusBlocks {
         if ($in) {
             my ($timestamp) = $line =~ /\(([0-9]+)\)"$/;
             unless ($timestamp) {
-                print "ERROR: malformed line: $line\n" if $debug;
+                print "ERROR: malformed line: $line\n" if $verbose;
             }
 
             if ( $now > $timestamp ) {
-                print "removing $timestamp\t" if $debug;
+                print "removing $timestamp\t" if $verbose;
             }
             else {
-                print "leaving $timestamp\t" if $debug;
+                print "leaving $timestamp\t" if $verbose;
                 push @lines, $line;
             }
         }
     }
 
     if ($done) {
-        if ($debug) {
+        if ($verbose) {
             foreach (@lines) { print "$_\n"; };
         }
         $self->util->file_write( $relay, lines => \@lines );
@@ -2160,7 +2159,7 @@ sub _test_smtpd_config_values {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
+    my ( $fatal, $verbose ) = ( $p{fatal}, $p{verbose} );
 
     my $file = $self->util->find_config( "toaster.conf" );
 
@@ -2285,10 +2284,6 @@ If it succeeds in building the file, it will install it. You should restart the 
  arguments required:
     file - the temp file to construct
 
- arguments optional:
-    debug
-    fatal
-
  results:
     0 - failure
     1 - success
@@ -2303,8 +2298,6 @@ Installs the files that control your supervised processes logging. Typically thi
  arguments optional:
     prots - an arrayref list of protocols to build run files for.
            Defaults to [pop3,smtp,send,submit]
-	debug
-	fatal
 
  Results:
     qmail_supervise/pop3/log/run
@@ -2330,12 +2323,10 @@ Installs a new supervise/run file for a supervised service. It first builds a ne
 Builds and installs a pristine netqmail. This is necessary to resolve a chicken and egg problem. You can't apply the toaster patches (specifically chkuser) against netqmail until vpopmail is installed, and you can't install vpopmail without qmail being installed. After installing this, and then vpopmail, you can rebuild netqmail with the toaster patches.
 
  Usage:
-   $qmail->netqmail_virgin( debug=>1);
+   $qmail->netqmail_virgin( verbose=>1);
 
  arguments optional:
     package  - the name of the programs tarball, defaults to "netqmail-1.05"
-    debug
-    fatal
 
  result:
     qmail installed.
@@ -2383,15 +2374,12 @@ Gets/sets the qmail hostname for use in supervise/run scripts. It dynamically cr
 
 =item  test_each_rbl
 
-	my $available = $qmail->test_each_rbl( rbls=>$selected, debug=>1 );
+	my $available = $qmail->test_each_rbl( rbls=>$selected, verbose=>1 );
 
 We get a list of RBL's in an arrayref, run some tests on them to determine if they are working correctly, and pass back the working ones in an arrayref.
 
  arguments required:
    rbls - an arrayref with a list of RBL zones
-
- arguments optional:
-   debug - print status messages
 
  result:
    an arrayref with the list of the correctly functioning RBLs.
@@ -2411,10 +2399,6 @@ If it succeeds in building the file, it will install it. You can optionally rest
  arguments required:
    file - the temp file to construct
 
- arguments optional:
-   debug
-   fatal
-
  results:
    0 - failure
    1 - success
@@ -2432,10 +2416,6 @@ If it succeeds in building the file, it will install it. You can optionally rest
 
  arguments required:
     file - the temp file to construct
-
- arguments optional:
-    debug
-    fatal
 
  results:
     0 - failure
@@ -2455,10 +2435,6 @@ If it succeeds in building the file, it will install it. You can optionally rest
  arguments required:
     file - the temp file to construct
 
- arguments optional:
-    debug
-    fatal
-
  results:
     0 - failure
     1 - success
@@ -2470,10 +2446,6 @@ Verify the existence of the qmail control directory (typically /var/qmail/contro
 
  arguments required:
     dir - the directory whose existence we test for
-
- arguments optional:
-    debug
-    fatal
 
  results:
     0 - failure
@@ -2522,10 +2494,6 @@ You should not manually edit these files. Instead, make changes in toaster-watch
  Usage:
    $qmail->config();
 
- arguments optional:
-    debug
-    fatal
-
  results:
     0 - failure
     1 - success
@@ -2553,10 +2521,6 @@ To make managing qmail a bit easier, we install a control script that allows the
 	        alrm -- same as doqueue
 	        hup -- same as reload
 
- arguments optional:
-    debug
-    fatal
-
  results:
     0 - failure
     1 - success
@@ -2566,14 +2530,13 @@ To make managing qmail a bit easier, we install a control script that allows the
 
 Fetch a list of domains from the qmaildir/users/assign file.
 
-  $qmail->get_domains_from_assign( assign=>$assign, debug=>$debug );
+  $qmail->get_domains_from_assign( assign=>$assign, verbose=>$verbose );
 
  arguments required:
     none
 
  arguments optional:
     assign - the path to the assign file (default: /var/qmail/users/assign)
-    debug
     match - field to match (dom, uid, dir)
     value - the pattern to  match
 
@@ -2585,10 +2548,7 @@ Fetch a list of domains from the qmaildir/users/assign file.
 
 Gets passed a hashref of values and extracts all the RBLs that are enabled in the file. See the toaster-watcher.conf file and the rbl_ settings therein for the format expected. See also the t/Qmail.t for examples of usage.
 
-  my $r = $qmail->get_list_of_rbls( debug => $debug );
-
- arguments optional:
-    debug
+  my $r = $qmail->get_list_of_rbls( verbose => $verbose );
 
  result:
    an arrayref of values
@@ -2596,13 +2556,9 @@ Gets passed a hashref of values and extracts all the RBLs that are enabled in th
 
 =item  get_list_of_rwls
 
-  my $selected = $qmail->get_list_of_rwls( debug=>$debug);
+  my $selected = $qmail->get_list_of_rwls( verbose=>$verbose);
 
 Here we collect a list of the RWLs from the configuration file that gets passed to us and return them.
-
- arguments optional:
-   debug
-   fatal
 
  result:
    an arrayref with the enabled rwls.
@@ -2613,12 +2569,10 @@ Here we collect a list of the RWLs from the configuration file that gets passed 
 Builds qmail and installs qmail with patches (based on your settings in toaster-watcher.conf), installs the SSL certs, adjusts the permissions of several files that need it.
 
  Usage:
-   $qmail->install_qmail( debug=>1);
+   $qmail->install_qmail( verbose=>1);
 
  arguments optional:
      package  - the name of the programs tarball, defaults to "qmail-1.03"
-     debug
-     fatal
 
  result:
      one kick a55 mail server.
@@ -2651,7 +2605,7 @@ Working examples of the usage of these methods can be found in  t/Qmail.t, toast
 
 =head1 DIAGNOSTICS
 
-All functions include debugging output which is enabled by default. You can disable the status/debugging messages by calling the functions with debug=>0. The default behavior is to die upon errors. That too can be overriddent by setting fatal=>0. See the tests in t/Qmail.t for code examples.
+All functions include verbose output which is enabled by default. You can disable the status/verbose messages by calling the functions with verbose=>0. The default behavior is to die upon errors. That too can be overriddent by setting fatal=>0. See the tests in t/Qmail.t for code examples.
 
 
   #=head1 COMMON USAGE MISTAKES

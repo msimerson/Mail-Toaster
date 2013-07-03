@@ -24,10 +24,10 @@ sub install {
     my $version = $self->conf->{'install_vpopmail'} || "5.4.33";
 
     if ( $OSNAME eq "freebsd" && $version eq 'port' ) {
-        return 1 if $self->freebsd->is_port_installed( "vpopmail", debug=>1 );
+        return 1 if $self->freebsd->is_port_installed( "vpopmail", verbose=>1 );
 
         $self->install_freebsd_port();
-        return 1 if $self->freebsd->is_port_installed( "vpopmail", debug=>1 );
+        return 1 if $self->freebsd->is_port_installed( "vpopmail", verbose=>1 );
     };
 
     return $self->install_from_source( %p );
@@ -133,7 +133,7 @@ sub install_from_source {
         $conf_args .= " --enable-libdir=/opt/local/lib/mysql";
     }
 
-    my $tcprules = $self->util->find_bin( "tcprules", debug=>0 );
+    my $tcprules = $self->util->find_bin( "tcprules", verbose=>0 );
     $conf_args .= " --enable-tcprules-prog=$tcprules";
 
     my $src = $self->conf->{'toaster_src_dir'} || "/usr/local/src";
@@ -191,13 +191,13 @@ sub install_from_source {
     chdir($package);
     print "running configure with $conf_args\n\n";
 
-    $self->util->syscmd( "./configure $conf_args", debug => 0 );
-    $self->util->syscmd( "make",                   debug => 0 );
-    $self->util->syscmd( "make install-strip",     debug => 0 );
+    $self->util->syscmd( "./configure $conf_args", verbose => 0 );
+    $self->util->syscmd( "make",                   verbose => 0 );
+    $self->util->syscmd( "make install-strip",     verbose => 0 );
 
     if ( -e "vlimits.h" ) {
         # this was needed due to a bug in vpopmail 5.4.?(1-2) installer
-        $self->util->syscmd( "cp vlimits.h $vpopdir/include/", debug => 0);
+        $self->util->syscmd( "cp vlimits.h $vpopdir/include/", verbose => 0);
     }
 
     $self->vpopmail_post_install();
@@ -233,7 +233,7 @@ sub vpopmail_default_domain {
         my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
         $self->util->file_write( "$vpopdir/etc/defaultdomain",
             lines => [ $default_domain ],
-            debug => 0,
+            verbose => 0,
         );
 
         $self->util->chown( "$vpopdir/etc/defaultdomain",
@@ -271,7 +271,7 @@ sub vpopmail_etc {
     my $qmail_control = "$qdir/bin/qmailctl";
     if ( -x $qmail_control ) {
         print " vpopmail_etc: rebuilding tcp.smtp.cdb\n";
-        $self->util->syscmd( "$qmail_control cdb", debug => 0 );
+        $self->util->syscmd( "$qmail_control cdb", verbose => 0 );
     }
 }
 
@@ -579,7 +579,7 @@ sub vpopmail_mysql_privs {
 
     $self->util->file_write( "$vpopdir/etc/vpopmail.mysql",
         lines => \@lines,
-        debug => 1,
+        verbose => 1,
     );
 
     my $dot = $self->mysql->parse_dot_file( ".my.cnf", "[mysql]", 0 )

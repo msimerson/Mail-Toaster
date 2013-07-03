@@ -15,7 +15,7 @@ my $initial_working_directory = cwd;
 
 use_ok('Mail::Toaster');
 
-my $toaster = Mail::Toaster->new(debug=>0);
+my $toaster = Mail::Toaster->new(verbose=>0);
 ok( defined $toaster, 'get Mail::Toaster object' );
 isa_ok( $toaster, 'Mail::Toaster', 'object class' );
 

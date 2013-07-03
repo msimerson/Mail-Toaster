@@ -4,7 +4,7 @@
 <head>
 <title>toaster_setup.pl - runs various build and testing functions for Mail::Toaster</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@mattbook.simerson.net" />
+<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -20,13 +20,17 @@
 	<li><a href="#name">NAME</a></li>
 	<li><a href="#synopsis">SYNOPSIS</a></li>
 	<li><a href="#description">DESCRIPTION</a></li>
+	<ul>
+
+		<li><a href="#urls">URLs</a></li>
+	</ul>
+
 	<li><a href="#options_and_arguments">OPTIONS AND ARGUMENTS</a></li>
 	<li><a href="#methods">METHODS</a></li>
 	<li><a href="#author">AUTHOR</a></li>
 	<li><a href="#bugs">BUGS</a></li>
 	<li><a href="#todo">TODO</a></li>
 	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#copyright">COPYRIGHT</a></li>
 </ul>
 
 -->
@@ -48,7 +52,7 @@
    toaster_setup.pl -s &lt;help&gt; [-d]</pre>
 <pre>
       -s[ection] - see OPTIONS AND ARGUMENTS section for choices
-      -d[ebug]   - enable verbose debugging</pre>
+      -v[erbose] - enable verbose output</pre>
 <p>A really good place to start is:</p>
 <pre>
    toaster_setupl.pl -s help | less</pre>
@@ -59,9 +63,9 @@
 <p>The mail toaster is a collection of open-source software which provides a full-featured mail server running on FreeBSD, Mac OS X, and Linux. The system is built around the qmail mail transport agent, with many additions and modifications. Matt Simerson is the primary author and maintainer of the toaster. There is an active and friendly community of toaster owners which supports the toaster on a mailing list and web forum.</p>
 <p>The toaster is built around qmail, a robust mail transfer agent by Daniel J. Bernstein, and vpopmail, a virtual domain manager by Inter7 systems. Matt keeps up with releases of the core software, evaluates them, decides when they are stable, and then integrates them into the toaster. Matt has also added several patches which add functionality to these core programs.</p>
 <p>A complete set of instructions for building a mail toaster are on the toaster install page. There is a substantial amount of documentation available for the &quot;Mail::Toaster&quot; toaster. Much of it is also readable via &quot;perldoc Mail::Toaster&quot;, and the subsequent pages. Don't forget to read the Install, Configure, and FAQ pages on the web site. If you still have questions, there is a Web Forum and mailing list. Both are browseable and searchable for your convenience.</p>
-<pre>
-  
-=head2 URLs</pre>
+<p>
+</p>
+<h2><a name="urls">URLs</a></h2>
 <pre>
    <a href="http://mail-toaster.org/">http://mail-toaster.org/</a>
    <a href="http://www.tnpi.net/internet/mail/toaster/">http://www.tnpi.net/internet/mail/toaster/</a></pre>
@@ -70,7 +74,7 @@
 <hr />
 <h1><a name="options_and_arguments">OPTIONS AND ARGUMENTS</a></h1>
 <pre>
-  toaster_setup.pl -s &lt;section&gt; [-debug]</pre>
+  toaster_setup.pl -s &lt;section&gt; [-verbose]</pre>
 <pre>
            help - print this usage screen
          config - initial configuration of toaster*.conf files
@@ -79,7 +83,7 @@
                     Standard Daemons &amp; Utilities
           mysql - installs MySQL
      phpmyadmin - installs phpMyAdmin
-         apache - installs Apache 
+         apache - installs Apache
       apachessl - installs self signed SSL certs for Apache</pre>
 <pre>
                      Qmail and related tools
@@ -92,7 +96,7 @@
         vqadmin - install vqadmin
           qmail - installs qmail with toaster patches
       qmailconf - configure various qmail control files
-       netqmail - installs netqmail 
+       netqmail - installs netqmail
     netqmailmac - installs netqmail with no patches
          djbdns - install the djbdns program</pre>
 <pre>
@@ -111,7 +115,7 @@
        maildrop - installs maildrop and mailfilter
          clamav - installs just ClamAV
         simscan - install simscan
-        simconf - configure simscan 
+        simconf - configure simscan
         simtest - run email tests to verify that simscan is working
    spamassassin - install and configure spamassassin
         allspam - activate spam filtering for all users</pre>
@@ -171,12 +175,12 @@
 <p>The following are all man/perldoc pages:</p>
 <pre>
   Mail::Toaster::Conf
-  toaster.conf 
-  toaster-watcher.conf
-  
+  toaster.conf
+  toaster-watcher.conf</pre>
+<pre>
   Mail::Toaster
   Mail::Toaster::Apache
-  Mail::Toaster::CGI 
+  Mail::Toaster::CGI
   Mail::Toaster::DNS
   Mail::Toaster::Darwin
   Mail::Toaster::Ezmlm
@@ -191,16 +195,6 @@
   <a href="http://mail-toaster.org/docs/">http://mail-toaster.org/docs/</a>
   <a href="http://mail-toaster.org/faq.shtml">http://mail-toaster.org/faq.shtml</a>
   <a href="http://mail-toaster.org/changes.shtml">http://mail-toaster.org/changes.shtml</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="copyright">COPYRIGHT</a></h1>
-<p>Copyright (c) 2004-2010, The Network People, Inc. All rights reserved.</p>
-<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
-<p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
-<p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
-<p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
-<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
 
 </body>
 

@@ -16,8 +16,8 @@ getopts('a:h:q:s:v');
 use lib 'lib';
 use Mail::Toaster 5.40;
 
-my $debug   = $opt_v ? 1 : 0;
-my $toaster = Mail::Toaster->new( debug => $debug );
+my $verbose   = $opt_v ? 1 : 0;
+my $toaster = Mail::Toaster->new( verbose => $verbose );
 
 print "           Qmail Queue Tool   v $VERSION\n\n";
 print "NOTICE: only the root user has permission to read the email queues.
@@ -29,11 +29,11 @@ pod2usage() if ! $opt_a;
 my $qcontrol = $toaster->service_dir_get( prot => "send" );
 
 # Make sure the qmail queue directory is set correctly
-my $qdir = $toaster->qmail->queue_check( debug => $debug, fatal=>0 );
+my $qdir = $toaster->qmail->queue_check( verbose => $verbose, fatal=>0 );
 exit 0 unless $qdir;
 
 # if a queue is specified, only check it.
-print "$0, getting list of messages in delivery queues..." if $debug;
+print "$0, getting list of messages in delivery queues..." if $verbose;
 if ($opt_q) {
     $opt_q eq "remote" ? $remotes = messages_get("remote")
   : $opt_q eq "local"  ? $locals  = messages_get("local")
@@ -46,7 +46,7 @@ else {
     print "\n";
 }
 
-print "done.\n" if $debug;
+print "done.\n" if $verbose;
 
   $opt_a eq "list"   ? messages_list  ( $remotes, $locals )
 : $opt_a eq "delete" ? messages_delete( $remotes, $locals )

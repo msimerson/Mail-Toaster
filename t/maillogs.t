@@ -20,7 +20,7 @@ plan 'no_plan';
 
 require_ok( 'Mail::Toaster' );
 
-my $toaster = Mail::Toaster->new(debug=>0);
+my $toaster = Mail::Toaster->new(verbose=>0);
 ok ( defined $toaster, 'Mail::Toaster object' );
 ok ( $toaster->isa('Mail::Toaster'), 'check object class' );
 
@@ -43,14 +43,14 @@ foreach my $type (@log_types) {
     if ( $UID == 0 ) {
         ok( $util->syscmd( "$maillogs_location $type",
                 fatal   => 0,
-                debug   => 0,
+                verbose   => 0,
             ), "maillogs $type",
         );
     }
     else {
         ok( ! $util->syscmd( "$maillogs_location -a list -s matt -h From ",
                 fatal => 0,
-                debug => 0,
+                verbose => 0,
             ), "maillogs $type",
         );
     }

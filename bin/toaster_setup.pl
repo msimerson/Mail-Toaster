@@ -6,21 +6,16 @@ use English '-no_match_vars';
 use Getopt::Long;
 use Pod::Usage;
 
+$OUTPUT_AUTOFLUSH++;
+GetOptions ( 'section=s' => \my $section, 'verbose' => \my $verbose );
+$verbose = 0 unless defined $verbose;
+
 use lib 'lib';
 use Mail::Toaster 5.41;
+my $toaster = Mail::Toaster->new;
+$toaster->verbose($verbose);
 
-$OUTPUT_AUTOFLUSH++;
-
-GetOptions (
-	'section=s' => \my $section,
-	'verbose'   => \my $debug,
-    );
-
-$debug = 0 unless defined $debug;
-
-my $toaster = Mail::Toaster->new( debug => $debug );
-
-print "verbose mode enabled\n\n" if $debug;
+print "verbose mode enabled\n\n" if $verbose;
 
 if ( ! $section ) {
     pod2usage( { -verbose=>0, });
@@ -35,12 +30,12 @@ if ( $UID != 0 && !$root_agnostic->{$section} ) {
 	die "Thou shalt have root to proceed!\n";
 };
 
-if ( $debug ) {
-    $toaster->conf->{'toaster_debug'} = 1;
-    $toaster->{debug} = 1;
+if ( $verbose ) {
+    $toaster->conf->{'toaster_verbose'} = 1;
+    $toaster->{verbose} = 1;
 }
 else {
-    $toaster->{debug} = 0;
+    $toaster->{verbose} = 0;
 };
 
 my $setup = $toaster->setup;
@@ -73,10 +68,10 @@ my $qmail = $toaster->qmail;
 : $section eq 'vpeconfig'  ? $setup->vpopmail_etc     ()
 : $section eq 'vpopmysql'  ? $setup->vpopmail_mysql_privs()
 : $section eq 'vqadmin'    ? $setup->vqadmin          ()
-: $section eq 'qmail'      ? $qmail->install_qmail    (debug=>$debug )
-: $section eq 'qmailconf'  ? $qmail->config           (debug=>$debug )
-: $section eq 'netqmail'   ? $qmail->netqmail         (debug=>$debug )
-: $section eq 'netqmailmac'? $qmail->netqmail_virgin  (debug=>$debug )
+: $section eq 'qmail'      ? $qmail->install_qmail    ()
+: $section eq 'qmailconf'  ? $qmail->config           ()
+: $section eq 'netqmail'   ? $qmail->netqmail         ()
+: $section eq 'netqmailmac'? $qmail->netqmail_virgin  ()
 : $section eq 'djbdns'     ? $setup->djbdns           ()
 
 # mail servers
@@ -91,15 +86,15 @@ my $qmail = $toaster->qmail;
 : $section eq 'roundcube'   ? $setup->roundcube        ()
 
 #  Mail Filtering
-: $section eq 'filter'      ? $setup->filtering        ( )
-: $section eq 'razor'       ? $setup->razor            ( )
-: $section eq 'maildrop'    ? $setup->maildrop         ( )
-: $section eq 'clamav'      ? $setup->clamav           ( )
-: $section eq 'simscan'     ? $setup->simscan          ( )
-: $section eq 'simconf'     ? $setup->simscan_conf     ( )
-: $section eq 'simtest'     ? $setup->simscan_test     ( )
-: $section eq 'spamassassin'? $setup->spamassassin     ( )
-: $section eq 'allspam'     ? $setup->enable_all_spam  ( )
+: $section eq 'filter'      ? $setup->filtering        ()
+: $section eq 'razor'       ? $setup->razor            ()
+: $section eq 'maildrop'    ? $setup->maildrop         ()
+: $section eq 'clamav'      ? $setup->clamav           ()
+: $section eq 'simscan'     ? $setup->simscan          ()
+: $section eq 'simconf'     ? $setup->simscan_conf     ()
+: $section eq 'simtest'     ? $setup->simscan_test     ()
+: $section eq 'spamassassin'? $setup->spamassassin     ()
+: $section eq 'allspam'     ? $setup->enable_all_spam  ()
 
 #  Logs, Statistics & Monitoring
 : $section eq 'maillogs'    ? $setup->maillogs         ( )
@@ -109,27 +104,27 @@ my $qmail = $toaster->qmail;
 : $section eq 'munin'       ? $setup->munin            ( )
 
 # test targets
-: $section eq 'test'        ? $setup->test             ( )
-: $section eq 'filtertest'  ? $setup->filtering_test   ( )
-: $section eq 'authtest'    ? $setup->test_auth        ( )
-: $section eq 'proctest'    ? $toaster->check_processes (debug=>$debug)
-: $section eq 'imap'        ? $setup->imap_test_auth   ( )
-: $section eq 'pop3'        ? $setup->pop3_test_auth   ( )
-: $section eq 'smtp'        ? $setup->smtp_test_auth   ( )
-: $section eq 'rbltest'     ? $setup->test_rbls        ( )
+: $section eq 'test'        ? $setup->test             ()
+: $section eq 'filtertest'  ? $setup->filtering_test   ()
+: $section eq 'authtest'    ? $setup->test_auth        ()
+: $section eq 'proctest'    ? $toaster->check_processes()
+: $section eq 'imap'        ? $setup->imap_test_auth   ()
+: $section eq 'pop3'        ? $setup->pop3_test_auth   ()
+: $section eq 'smtp'        ? $setup->smtp_test_auth   ()
+: $section eq 'rbltest'     ? $setup->test_rbls        ()
 : $section eq 'test2'       ? exit 0
 
 #  misc
-: $section eq 'toaster'     ? $setup->util->mail_toaster( )
-: $section eq 'nictool'     ? $setup->nictool          ( )
-: $section eq 'webmail'     ? $setup->webmail          ( )
+: $section eq 'toaster'     ? $setup->util->mail_toaster()
+: $section eq 'nictool'     ? $setup->nictool          ()
+: $section eq 'webmail'     ? $setup->webmail          ()
 : $section eq 'all'         ? all()
 
 # deprecated
-: $section eq 'mattbundle'  ? $setup->mattbundle       ( )
-: $section eq 'qss'         ? $setup->qs_stats         ( )
-: $section eq 'logmonster'  ? $setup->logmonster       ( )
-: $section eq 'mrm'         ? $setup->mrm              ( )
+: $section eq 'mattbundle'  ? $setup->mattbundle       ()
+: $section eq 'qss'         ? $setup->qs_stats         ()
+: $section eq 'logmonster'  ? $setup->logmonster       ()
+: $section eq 'mrm'         ? $setup->mrm              ()
 : $section eq 'phpmyadmin'  ? $setup->phpmyadmin       ()
 
 : pod2usage( {-verbose=>1} );
@@ -138,41 +133,38 @@ sub all {
 	$setup->config        ( );
 
     # re-initialize $conf with new settings.
-    $setup->util->parse_config( "toaster-watcher.conf", debug => $debug );
-    $toaster->{'debug'} = 1 if $debug;
-    $toaster->conf->{'toaster_debug'} = 1 if $debug;
-    $setup = Mail::Toaster::Setup->new;
+    $setup->util->parse_config( "toaster-watcher.conf");
+    $toaster->{'verbose'} = 1 if $verbose;
+    $toaster->conf->{'toaster_verbose'} = 1 if $verbose;
 
-	$setup->dependencies  ( );
-	$setup->openssl_conf  ( );
-	$setup->ports         ( );
-	$setup->mysql         ( );
-	$setup->apache        ( );
-	$setup->webmail       ( fatal=>0 );
-	$setup->phpmyadmin    ( );
-	$setup->ucspi_tcp     ( );
-	$setup->ezmlm         ( );
-	$setup->vpopmail      ( );
-	$setup->maildrop      ( );
-	$setup->vqadmin       ( );
-	$setup->qmailadmin    ( );
-	$qmail->netqmail      (debug=>$debug );
-	$setup->courier_imap  ( );
-	$setup->dovecot       ( );
-	$setup->sqwebmail     ( );
-	$setup->squirrelmail  ( );
-	$setup->roundcube     ( );
-	$setup->filtering     ( );
-	$setup->maillogs      ( );
-	$setup->supervise     ( );
-	$setup->test          ( );
+	$setup->dependencies  ();
+	$setup->openssl_conf  ();
+	$setup->ports         ();
+	$setup->mysql         ();
+	$setup->apache        ();
+	$setup->webmail       (fatal=>0 );
+	$setup->phpmyadmin    ();
+	$setup->ucspi_tcp     ();
+	$setup->ezmlm         ();
+	$setup->vpopmail      ();
+	$setup->maildrop      ();
+	$setup->vqadmin       ();
+	$setup->qmailadmin    ();
+	$qmail->netqmail      ();
+	$setup->courier_imap  ();
+	$setup->dovecot       ();
+	$setup->sqwebmail     ();
+	$setup->squirrelmail  ();
+	$setup->roundcube     ();
+	$setup->filtering     ();
+	$setup->maillogs      ();
+	$setup->supervise     ();
+	$setup->test          ();
 }
 
 print "\n$0 script execution complete.\n";
 
 exit 1;
-
-
 __END__
 
 
@@ -188,7 +180,7 @@ toaster_setupl.pl is the front end to everything you need to turn a computer int
    toaster_setup.pl -s <help> [-d]
 
       -s[ection] - see OPTIONS AND ARGUMENTS section for choices
-      -d[ebug]   - enable verbose debugging
+      -v[erbose] - enable verbose output
 
 
 A really good place to start is:
@@ -213,7 +205,7 @@ A complete set of instructions for building a mail toaster are on the toaster in
 
 =head1 OPTIONS AND ARGUMENTS
 
-  toaster_setup.pl -s <section> [-debug]
+  toaster_setup.pl -s <section> [-verbose]
 
            help - print this usage screen
          config - initial configuration of toaster*.conf files
@@ -333,6 +325,5 @@ The following are all man/perldoc pages:
   http://mail-toaster.org/docs/
   http://mail-toaster.org/faq.shtml
   http://mail-toaster.org/changes.shtml
-
 
 =cut

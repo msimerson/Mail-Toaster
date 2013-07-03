@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster::Mysql</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@mattbook.simerson.net" />
+<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -83,10 +83,10 @@
 
 <dd>
 <pre>
-    my ($dbh, $dsn, $drh) = $mysql-&gt;connect($dot, $warn, $debug);</pre>
+    my ($dbh, $dsn, $drh) = $mysql-&gt;connect($dot, $warn, $verbose);</pre>
 <p>$dot is a hashref of key/value pairs in the same format you'd find in ~/.my.cnf. Not coincidentally, that's where it expects you'll be getting them from.</p>
 <p>$warn allows you to determine whether to die or warn on failure or error. To warn, set $warn to a non-zero value.</p>
-<p>$debug will print out helpful debugging messages should you be having problems.</p>
+<p>$verbose will print out helpful messages should you be having problems.</p>
 </dd>
 <dt><strong><a name="db_vars" class="item">db_vars</a></strong></dt>
 
@@ -97,7 +97,7 @@
 
 <dd>
 <pre>
-        $mysql-&gt;flush_logs($dbh, $debug)</pre>
+        $mysql-&gt;flush_logs($dbh, $verbose)</pre>
 <p>runs the mysql &quot;FLUSH LOGS&quot; query on the server. This commits any pending (memory cached writes) to disk.</p>
 </dd>
 <dt><strong><a name="get_hashes" class="item">get_hashes</a></strong></dt>
@@ -127,7 +127,7 @@
 
 <dd>
 <pre>
- $mysql-&gt;parse_dot_file ($file, $start, $debug)</pre>
+ $mysql-&gt;parse_dot_file ($file, $start, $verbose)</pre>
 <p>Example:</p>
 <pre>
  my $dot = $mysql-&gt;parse_dot_file(&quot;.my.cnf&quot;, &quot;[mysql_replicate_manager]&quot;, 0);</pre>
@@ -141,8 +141,7 @@
 <dd>
 <p>Install PhpMyAdmin from FreeBSD ports.</p>
 <pre>
-        $mysql-&gt;phpmyadmin_install($conf);</pre>
-<p>$conf is a hash of configuration values. See toaster-watcher.conf for configuring the optional values to pass along.</p>
+        $mysql-&gt;phpmyadmin_install;</pre>
 </dd>
 <dt><strong><a name="query" class="item">query</a></strong></dt>
 
@@ -162,7 +161,7 @@
 
 <dd>
 <pre>
-        $mysql-&gt;query_confirm($dbh, $query, $debug);</pre>
+        $mysql-&gt;query_confirm($dbh, $query );</pre>
 <p>Use this if you want to interactively get user confirmation before executing a query.</p>
 </dd>
 <dt><strong><a name="sanity" class="item">sanity</a></strong></dt>
@@ -184,7 +183,7 @@
 
 <dd>
 <pre>
-        my $sth = $mysql-&gt;tables_lock($dbh, $debug);
+        my $sth = $mysql-&gt;tables_lock($dbh );
         # do some mysql stuff
         $mysql-&gt;tables_unlock($dbh, $sth);</pre>
 <p>Takes a statement handle and does a global lock on all tables.  Quite useful when you want do do things like make a tarball of the database directory, back up the server, etc.</p>
@@ -193,7 +192,7 @@
 
 <dd>
 <pre>
-        $mysql-&gt;tables_unlock($dbh, $sth, $debug);</pre>
+        $mysql-&gt;tables_unlock($dbh, $sth );</pre>
 <p>Takes a statement handle and does a global unlock on all tables.  Quite useful after you've used $mysql-&gt;tables_lock, done your deeds and wish to release your lock.</p>
 </dd>
 <dt><strong><a name="status" class="item">status</a></strong></dt>

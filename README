@@ -9,7 +9,7 @@ SYNOPSIS
        toaster_setup.pl -s <help> [-d]
 
           -s[ection] - see OPTIONS AND ARGUMENTS section for choices
-          -d[ebug]   - enable verbose debugging
+          -v[erbose] - enable verbose output
 
     A really good place to start is:
 
@@ -44,7 +44,7 @@ DESCRIPTION
        http://www.tnpi.net/internet/mail/toaster/
 
 OPTIONS AND ARGUMENTS
-      toaster_setup.pl -s <section> [-debug]
+      toaster_setup.pl -s <section> [-verbose]
 
                help - print this usage screen
              config - initial configuration of toaster*.conf files
@@ -53,7 +53,7 @@ OPTIONS AND ARGUMENTS
                         Standard Daemons & Utilities
               mysql - installs MySQL
          phpmyadmin - installs phpMyAdmin
-             apache - installs Apache 
+             apache - installs Apache
           apachessl - installs self signed SSL certs for Apache
 
                          Qmail and related tools
@@ -66,7 +66,7 @@ OPTIONS AND ARGUMENTS
             vqadmin - install vqadmin
               qmail - installs qmail with toaster patches
           qmailconf - configure various qmail control files
-           netqmail - installs netqmail 
+           netqmail - installs netqmail
         netqmailmac - installs netqmail with no patches
              djbdns - install the djbdns program
 
@@ -85,7 +85,7 @@ OPTIONS AND ARGUMENTS
            maildrop - installs maildrop and mailfilter
              clamav - installs just ClamAV
             simscan - install simscan
-            simconf - configure simscan 
+            simconf - configure simscan
             simtest - run email tests to verify that simscan is working
        spamassassin - install and configure spamassassin
             allspam - activate spam filtering for all users
@@ -136,12 +136,12 @@ SEE ALSO
     The following are all man/perldoc pages:
 
       Mail::Toaster::Conf
-      toaster.conf 
+      toaster.conf
       toaster-watcher.conf
-  
+
       Mail::Toaster
       Mail::Toaster::Apache
-      Mail::Toaster::CGI 
+      Mail::Toaster::CGI
       Mail::Toaster::DNS
       Mail::Toaster::Darwin
       Mail::Toaster::Ezmlm
@@ -156,34 +156,4 @@ SEE ALSO
       http://mail-toaster.org/docs/
       http://mail-toaster.org/faq.shtml
       http://mail-toaster.org/changes.shtml
-
-COPYRIGHT
-    Copyright (c) 2004-2010, The Network People, Inc. All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are
-    met:
-
-    Redistributions of source code must retain the above copyright notice,
-    this list of conditions and the following disclaimer.
-
-    Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-
-    Neither the name of the The Network People, Inc. nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-    IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-    TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
-    OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 

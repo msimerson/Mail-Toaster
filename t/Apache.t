@@ -15,7 +15,7 @@ BEGIN {
 require_ok( 'Mail::Toaster' );
 require_ok( 'Mail::Toaster::Apache' );
 
-my $toaster = Mail::Toaster->new(debug=>0);
+my $toaster = Mail::Toaster->new(verbose=>0);
 
 my $apache = Mail::Toaster::Apache->new;
 isa_ok( $apache, 'Mail::Toaster::Apache', 'object class' );
@@ -29,7 +29,7 @@ isa_ok( $apache, 'Mail::Toaster::Apache', 'object class' );
 
 # freebsd_extras
 
-    my $apachectl = $apache->util->find_bin( "apachectl", fatal=>0,debug=>0);
+    my $apachectl = $apache->util->find_bin( "apachectl", fatal=>0,verbose=>0);
     if ( $apachectl && -x $apachectl ) {
         ok ( -x $apachectl, 'apachectl exists' );
 
@@ -47,12 +47,12 @@ isa_ok( $apache, 'Mail::Toaster::Apache', 'object class' );
 # apache_conf_patch
             ok( $apache->apache_conf_patch(
                 test_ok => 1, 
-                debug   => 0,
+                verbose => 0,
             ), 'apache_conf_patch');
         };
 
 # install_ssl_certs
-        ok( $apache->install_ssl_certs(test_ok=>1, debug=>0), 'install_ssl_certs');
+        ok( $apache->install_ssl_certs(test_ok=>1, verbose=>0), 'install_ssl_certs');
 
     };
 
@@ -71,6 +71,6 @@ isa_ok( $apache, 'Mail::Toaster::Apache', 'object class' );
         crtdir => "/etc/httpd", 
         keydir => "/etc/httpd", 
         test_ok=> 1,
-        debug  => 0,
+        verbose=> 0,
     ), 'install_rsa_cert');
  

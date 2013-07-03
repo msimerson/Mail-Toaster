@@ -1,30 +1,4 @@
 Mail Toaster Changes
-
-  5.41 - 
-         added Base.pm, all modules inherit it
-         added build adjustment for vpopmail to support longer passwords
-
-  5.40 - Apr 26, 2013
-         updated bin/install_deps.pl
-         improve Setup.t for fewer fatal test errors
-
-  5.39 - Apr 24, 2013
-         updated swaks
-         stripped out some less-than-useful POD and license blocks
-
-  5.38 - Apr 23, 2013
-         packaging and test changes only
-
-  5.37 - Apr 18, 2013
-         adding partial support for pkgng (R. Lensen)
-         added bin/email_restore.pl (restore mailboxes from backups)
-         numerous typo corrections
-         dspam learning fix
-         improved support for qpsmtpd
-
-  5.36 - Dec 01, 2012
-         release (not fully tested, but certainly less broken than 5.35
-
   5.35 - Oct 23, 2012
         api change for get_dir_files, clean_tmp_dir, file_delete
         moved subs from Toaster to Utility: audit, error, dump_audit, dump_errors, has_module, find_config, find_readable, get_std_args, parse_config & parse_line

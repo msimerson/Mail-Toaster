@@ -14,7 +14,7 @@
 #         Mail::Toaster::Logs         #
 #######################################
 
-logs_debug         = 0      # caution, turning this on will result in LOTS of debug 
+logs_verbose       = 0      # caution, turning this on will result in LOTS of
                             # output, you certainly don't want to leave it on.
 
 logs_base          = /var/log/mail         # where qmail logs live (/var/log)

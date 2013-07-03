@@ -30,7 +30,7 @@ ok( $conf, 'toaster-watcher.conf loaded');
 # authenticate
     if ( eval "require vpopmail" ) {
         ok( ! $ezmlm->authenticate(
-            domain   => 'example.com', 
+            domain   => 'example.com',
             password => 'exampass',
         ), 'authenticate');
     };
@@ -38,21 +38,21 @@ ok( $conf, 'toaster-watcher.conf loaded');
 ok( ! $ezmlm->subs_list(
     list     => {'list_object'=>1},
     list_dir => 'path/to/list',
-    debug    => 0, ), 'subs_list');
+    verbose  => 0, ), 'subs_list');
 
 ok( ! $ezmlm->subs_add (
         list=>'list_object',
         list_dir=>'path/to/list',
-        debug=>0,
+        verbose=>0,
         requested=>['user@example.com'],
         br=>'\n',
     ), 'subs_add');
 
-#ok( ! $ezmlm->lists_get(domain=>'example.com',debug=>0), 'subs_list');
+#ok( ! $ezmlm->lists_get(domain=>'example.com',verbose=>0), 'subs_list');
 
 ok( $ezmlm->logo( test_ok => 1), 'logo');
 
-ok( $ezmlm->dir_check(dir=>"/tmp",debug=>0) , 'dir_check');
+ok( $ezmlm->dir_check(dir=>"/tmp",verbose=>0) , 'dir_check');
 
 done_testing();
 exit;

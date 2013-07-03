@@ -13,7 +13,7 @@ BEGIN {
 }
 require_ok('Mail::Toaster');
 
-my $toaster = Mail::Toaster->new(debug=>0);
+my $toaster = Mail::Toaster->new(verbose=>0);
 ok( defined $toaster, 'get Mail::Toaster object' );
 ok( $toaster->isa('Mail::Toaster'), 'check object class' );
 my $conf = $toaster->conf();
@@ -28,7 +28,7 @@ $toaster->audit("line three");
 $toaster->dump_audit( quiet=>1);
 
 # check
-ok( $toaster->check( debug => 0, test_ok=> 1 ), 'check' );
+ok( $toaster->check( verbose => 0, test_ok=> 1 ), 'check' );
 
 if ( $UID == 0 ) {
 
@@ -152,7 +152,7 @@ ok( $toaster->supervised_do_not_edit_notice(),
     'supervised_do_not_edit_notice' );
 
 $toaster->dump_audit(quiet=>1);
-my $setuidgid = $toaster->util->find_bin( "setuidgid", fatal=>0, debug=>0 );
+my $setuidgid = $toaster->util->find_bin( "setuidgid", fatal=>0, verbose=>0 );
 foreach ( qw/ smtpd pop3 submit / ) {
 
 # supervised_hostname

@@ -18,14 +18,14 @@ sub install_port {
         },
     );
 
-    my ( $opts ) = ( $p{'opts'} );
     my %args = $self->get_std_args( %p );
+    my $opts = $p{opts};
 
-    #	$self->ports_check_age("30");
+    #$self->ports_check_age("30");
 
     print "install_port: installing $port_name...";
 
-    my $port_bin = $self->util->find_bin( "port", %args );
+    my $port_bin = $self->util->find_bin( 'port', %args );
 
     unless ( -x $port_bin ) {
         print "FAILED: please install DarwinPorts!\n";
@@ -54,7 +54,7 @@ sub ports_check_age {
 
 sub update_ports {
     my $self = shift;
-    my $cvsbin = $self->util->find_bin( "cvs",fatal=>0, debug=>0 );
+    my $cvsbin = $self->util->find_bin( "cvs",fatal=>0, verbose=>0 );
 
     unless ( -x $cvsbin ) {
         die "FATAL: could not find cvs, please install Developer Tools!\n";
@@ -106,37 +106,37 @@ EO_NO_PORTS
         return;
     }
 
-    $self->util->cwd_source_dir( "/usr", debug=>0 );
+    $self->util->cwd_source_dir( "/usr", verbose=>0 );
 
     print "\n\nthe CVS password is blank, just hit return at the prompt\n\n";
 
     my $cmd =
 'cvs -d :pserver:anonymous@anoncvs.opendarwin.org:/Volumes/src/cvs/od login';
-    $self->util->syscmd( $cmd, debug=>0 );
+    $self->util->syscmd( $cmd, verbose=>0 );
     
     $cmd =
 'cvs -d :pserver:anonymous@anoncvs.opendarwin.org:/Volumes/src/cvs/od co -P darwinports';
-    $self->util->syscmd( $cmd, debug=>0 );
+    $self->util->syscmd( $cmd, verbose=>0 );
     
     chdir("/usr");
-    $self->util->syscmd( "mv darwinports dports", debug=>0 );
+    $self->util->syscmd( "mv darwinports dports", verbose=>0 );
     
     unless ( -d "/etc/ports" ) { mkdir( "/etc/ports", oct('0755') ) };
     
-    $self->util->syscmd( "cp dports/base/doc/sources.conf /etc/ports/", debug=>0 );
-    $self->util->syscmd( "cp dports/base/doc/ports.conf /etc/ports/", debug=>0 );
+    $self->util->syscmd( "cp dports/base/doc/sources.conf /etc/ports/", verbose=>0 );
+    $self->util->syscmd( "cp dports/base/doc/ports.conf /etc/ports/", verbose=>0 );
         
     $self->util->file_write( "/etc/ports/sources.conf",
         lines  => ["file:///usr/dports/dports"],
         append => 1,
-        debug  => 0,
+        verbose  => 0,
     );
 
-    my $portindex = $self->util->find_bin( "portindex",debug=>0 );
+    my $portindex = $self->util->find_bin( "portindex",verbose=>0 );
     unless ( -x $portindex ) {
         print "compiling darwin ports base.\n";
         chdir("/usr/dports/base");
-        $self->util->syscmd( "./configure; make; make install", debug=>0 );
+        $self->util->syscmd( "./configure; make; make install", verbose=>0 );
     }
 }
 
@@ -219,8 +219,6 @@ That's it. Really. Honest. Nothing more.
 
  arguments optional:
     opts  - port options you can pass
-    debug
-
 
 
 =back

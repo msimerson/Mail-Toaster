@@ -31,7 +31,7 @@ sub install_1_source {
     my $prefix   = $self->conf->{'toaster_prefix'}  || "/usr/local";
     my $src      = $self->conf->{'toaster_src_dir'} || "$prefix/src";
 
-    $self->util->cwd_source_dir( "$src/www", debug=>0 );
+    $self->util->cwd_source_dir( "$src/www", verbose=>0 );
 
     unless ( -e "$apache.tar.gz" ) {
         $self->util->get_file("http://www.apache.org/dist/httpd/$apache.tar.gz");
@@ -155,16 +155,16 @@ sub install_1_freebsd {
 sub install_2 {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts, },);
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
+    my ( $fatal, $verbose ) = ( $p{'fatal'}, $p{'verbose'} );
 
     my $prefix = $self->conf->{'toaster_prefix'}  || "/usr/local";
     my $src    = $self->conf->{'toaster_src_dir'} || "$prefix/src";
     $src .= "/www";
 
-    $self->util->cwd_source_dir( $src, debug=>0 );
+    $self->util->cwd_source_dir( $src, verbose=>0 );
 
     if ( $OSNAME eq "freebsd" ) {
-        return $self->install_2_freebsd( $debug );
+        return $self->install_2_freebsd( $verbose );
     }
 
     if ( $OSNAME eq "darwin" ) {
@@ -184,7 +184,7 @@ sub install_2 {
 };
 
 sub install_2_freebsd {
-    my ($self, $debug ) = @_;
+    my ($self, $verbose ) = @_;
 
     my $ports_dir = "apache22";
     my $ver = $self->conf->{'install_apache'}  || 22;
@@ -197,7 +197,7 @@ sub install_2_freebsd {
     $self->audit( "install_2: v$ver from www/$ports_dir on FreeBSD");
 
     # if some variant of apache 2 is installed
-    my $r = $self->freebsd->is_port_installed( "apache-2", debug=>$debug );
+    my $r = $self->freebsd->is_port_installed( "apache-2", verbose=>$verbose );
     if ( $r ) {
         $self->audit( "install_2: installing v$ver, ok ($r)" );
 
@@ -299,7 +299,7 @@ sub startup {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my ( $fatal, $debug ) = ( $p{'fatal'}, $p{'debug'} );
+    my ( $fatal, $verbose ) = ( $p{'fatal'}, $p{'verbose'} );
 
     if ( $self->util->is_process_running("httpd") ) {
         $self->audit( "apache->startup: starting Apache, ok  (already started)" );
@@ -307,7 +307,7 @@ sub startup {
     }
 
     if ( $OSNAME eq "freebsd" ) {
-        $self->startup_freebsd( $debug);
+        $self->startup_freebsd( $verbose);
     };
 
     if ( $self->util->is_process_running("httpd") ) {
@@ -315,14 +315,14 @@ sub startup {
         return 1;
     };
 
-    my $apachectl = $self->util->find_bin( "apachectl", debug=>0 );
+    my $apachectl = $self->util->find_bin( "apachectl", verbose=>0 );
     return if ! -x $apachectl;
 
-    $self->util->syscmd( "$apachectl start", debug=>0 );
+    $self->util->syscmd( "$apachectl start", verbose=>0 );
 }
 
 sub startup_freebsd {
-    my ($self, $debug) = @_;
+    my ($self, $verbose) = @_;
 
     $self->freebsd->conf_check( check=>"apache2_enable", line=>'apache2_enable="YES"' );
     $self->freebsd->conf_check( check=>"apache22_enable", line=>'apache22_enable="YES"' );
@@ -346,12 +346,12 @@ sub apache2_fixups {
 
     unless ( -d $htdocs ) {    # should exist
         print "ERROR: Interesting. What happened to your $htdocs directory? Since it does not exist, I will create it. Verify that the path in toaster-watcher.conf (toaster_http_docs) is set correctly.\n";
-        $self->util->mkdir_system(dir=>$htdocs, debug=>0,fatal=>0);
+        $self->util->mkdir_system(dir=>$htdocs, verbose=>0,fatal=>0);
     }
 
     unless ( -d $cgibin ) {    # should exist
         print "ERROR: What happened to your $cgibin directory? Since it does not exist, I will create it. Check to verify Is the path in toaster-watcher.conf (toaster_cgi_bin) set correctly?\n";
-        $self->util->mkdir_system(dir=>$cgibin, debug=>0,fatal=>0);
+        $self->util->mkdir_system(dir=>$cgibin, verbose=>0,fatal=>0);
     }
 
     if ( $OSNAME eq "freebsd" && $ver eq "22" && ! -d "$prefix/www/$ports_dir" ) {
@@ -394,7 +394,7 @@ sub apache2_install_vhost {
     open my $MT_CONF, ">", "/tmp/$file_to_write";
 
     my $hostname = $self->conf->{'toaster_hostname'};
-    my $ips      = $self->util->get_my_ips(only=>"first", debug=>0);
+    my $ips      = $self->util->get_my_ips(only=>"first", verbose=>0);
     my $local_ip = $ips->[0];
     my $redirect_host = $hostname;
 
@@ -599,7 +599,7 @@ EO_MAIL_TOASTER_CONF
         newfile  => "/tmp/$file_to_write",
         existing => $full_path,
         clean    => 1,
-        debug    => 0,
+        verbose    => 0,
     );
 }
 
@@ -858,15 +858,15 @@ sub install_rsa_cert {
         },
     );
 
-    my ( $crtdir, $keydir, $debug ) = ($p{'crtdir'}, $p{'keydir'}, $p{'debug'} );
+    my ( $crtdir, $keydir, $verbose ) = ($p{'crtdir'}, $p{'keydir'}, $p{'verbose'} );
 
     return $self->error( "keydir ($keydir) is required and missing!" ) if ! $keydir;
     return $self->error( "crtdir ($crtdir) is required and missing!") if ! $crtdir;
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    $self->util->mkdir_system(dir=>$keydir, debug=>$debug) if ! -d $keydir;
-    $self->util->mkdir_system(dir=>$crtdir, debug=>$debug) if ! -d $crtdir;
+    $self->util->mkdir_system(dir=>$keydir, verbose=>$verbose) if ! -d $keydir;
+    $self->util->mkdir_system(dir=>$crtdir, verbose=>$verbose) if ! -d $crtdir;
 
     my $csr = "server.csr";
     my $crt = "server.crt";
@@ -922,7 +922,7 @@ Perl methods for working with Apache. See METHODS.
 
    use Mail::Toaster;
    use Mail::Toaster::Apache
-   my $log = Mail::Toaster->new(debug=>0)
+   my $log = Mail::Toaster->new(verbose=>0)
    my $apache = Mail::Toaster::Apache->new;
 
 use this function to create a new apache object. From there you can use all the functions

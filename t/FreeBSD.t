@@ -17,11 +17,11 @@ my $freebsd = Mail::Toaster::FreeBSD->new();
 isa_ok( $freebsd, 'Mail::Toaster::FreeBSD', 'check object class' );
 
 # drive_spin_down
-	# how exactly do I test this? 
-		# a) check for SCSI disks, 
+	# how exactly do I test this?
+		# a) check for SCSI disks,
 		# b) see if there is more than one
-    ok ( $freebsd->drive_spin_down( drive=>"0:1:0", test_ok=>1, debug=>0), 'drive_spin_down');
-    ok ( ! $freebsd->drive_spin_down( drive=>"0:1:0", test_ok=>0, debug=>0), 'drive_spin_down');
+    ok ( $freebsd->drive_spin_down( drive=>"0:1:0", test_ok=>1, verbose=>0), 'drive_spin_down');
+    ok ( ! $freebsd->drive_spin_down( drive=>"0:1:0", test_ok=>0, verbose=>0), 'drive_spin_down');
 
 
 
@@ -32,7 +32,7 @@ if ( -f '/usr/ports/Makefile' ) {
         my $r = $freebsd->get_port_category($_);
         ok( $r && -d "/usr/ports/$r/$_", "get_port_category, $_, $r" );
     };
-} 
+}
 
 # get_version
     ok ( $freebsd->get_version(), 'get_version');
@@ -41,8 +41,8 @@ if ( -f '/usr/ports/Makefile' ) {
 
 
 # is_port_installed
-	ok ( $freebsd->is_port_installed( "perl", 
-            debug => 0, 
+	ok ( $freebsd->is_port_installed( "perl",
+            verbose => 0,
             fatal => 0,
             test_ok=> 1,
         ), 'is_port_installed');
@@ -53,18 +53,18 @@ if ( -f '/usr/ports/Makefile' ) {
 
 
 # install_package
-	ok ( $freebsd->install_package( "perl", 
-            debug=>0,
+	ok ( $freebsd->install_package( "perl",
+            verbose=>0,
             fatal=>0,
             test_ok=>1,
        ), 'install_package');
 
 
 # install_port
-	ok ( $freebsd->install_port( "perl", 
-	    dir   => 'perl5.8', 
+	ok ( $freebsd->install_port( "perl",
+	    dir   => 'perl5.8',
         fatal => 0,
-	    test_ok=> 1, 
+	    test_ok=> 1,
 	), 'install_port');
 
 
@@ -78,7 +78,7 @@ if ( -f '/usr/ports/Makefile' ) {
 
 # update_ports
     ok ( $freebsd->update_ports(
-            debug=>0,
+            verbose=>0,
             fatal=>0,
             test_ok=>1,
         ), 'update_ports');
@@ -86,7 +86,7 @@ if ( -f '/usr/ports/Makefile' ) {
 
 # portsnap
     ok ( $freebsd->portsnap(
-            debug=>0,
+            verbose=>0,
             fatal=>0,
             test_ok=>1,
         ), 'portsnap');
@@ -94,7 +94,7 @@ if ( -f '/usr/ports/Makefile' ) {
 
 # conf_check
 	ok ( $freebsd->conf_check(
-	    check => "hostname", 
+	    check => "hostname",
 	    line  => "hostname='mail.example.com'",
         fatal => 0,
         test_ok => 1,

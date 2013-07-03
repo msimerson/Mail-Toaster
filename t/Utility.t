@@ -28,10 +28,10 @@ isa_ok( $util, 'Mail::Toaster::Utility' );
 if ( -e "Utility.t" ) { chdir "../"; }
 
 # we need this stuff during subsequent tests
-my $debug = 0;
+my $verbose = 0;
 my ($cwd) = cwd =~ /^([\/\w\-\s\.]+)$/;       # get our current directory
 
-print "\t\twd: $cwd\n" if $debug;
+print "\t\twd: $cwd\n" if $verbose;
 
 my $tmp = "$cwd/t/trash";
 mkdir $tmp, 0755;
@@ -115,11 +115,11 @@ if ( -f "$tmp/foo" ) {
 
 # a dir to create
 ok( $util->cwd_source_dir( "$tmp/foo" ), 'cwd_source_dir' );
-print "\t\t wd: " . cwd . "\n" if $debug;
+print "\t\t wd: " . cwd . "\n" if $verbose;
 
 # go back to our previous working directory
 chdir($cwd) or die;
-print "\t\t wd: " . cwd . "\n" if $debug;
+print "\t\t wd: " . cwd . "\n" if $verbose;
 
 # chown_system
 my $sudo_bin = $util->find_bin( 'sudo', fatal => 0 );
@@ -135,7 +135,7 @@ TODO: {
 }
 ok( $util->clean_tmp_dir( $tmp ), 'clean_tmp_dir' );
 
-print "\t\t wd: " . cwd . "\n" if $debug;
+print "\t\t wd: " . cwd . "\n" if $verbose;
 
 # get_mounted_drives
 ok( my $drives = $util->get_mounted_drives(), 'get_mounted_drives' );
@@ -187,7 +187,7 @@ ok( !$util->archive_file( $backup, fatal => 0 ), 'archive_file' );
 ok( $util->is_readable( $rwtest, fatal => 0 ), 'is_readable' );
 
 # a non-existing file (we already deleted it)
-ok( !$util->is_readable( $backup, fatal => 0,debug=>0 ), 'is_readable - negated' );
+ok( !$util->is_readable( $backup, fatal => 0,verbose=>0 ), 'is_readable - negated' );
 
 ok( $util->is_writable( $rwtest, fatal => 0 ), 'is_writable' );
 
@@ -203,7 +203,7 @@ SKIP: {
 }
 
 chdir($cwd);
-print "\t\t  wd: " . Cwd::cwd . "\n" if $debug;
+print "\t\t  wd: " . Cwd::cwd . "\n" if $verbose;
 
 # chown
 my $uid = getpwuid($UID);
@@ -536,15 +536,14 @@ ok( $pr eq $up1dir,  'path_parse' );
 ok( $bi eq $userdir, 'path_parse' );
 
 $util->dump_audit(quiet=>1);
-$util->{last_error} = scalar @{$util->{errors}};
 
 # check_pidfile
 # will fail because the file is too new
-ok( !$util->check_pidfile( $rwtest, fatal => 0,debug=>0 ), 'check_pidfile' )
+ok( !$util->check_pidfile( $rwtest, fatal => 0,verbose=>0 ), 'check_pidfile' )
     or $util->dump_audit();
 
 # will fail because the file is a directory
-ok( !$util->check_pidfile( $tmp, fatal => 0,debug=>0 ), 'check_pidfile' )
+ok( !$util->check_pidfile( $tmp, fatal => 0,verbose=>0 ), 'check_pidfile' )
     or $util->dump_audit();
 
 # proper invocation
@@ -559,7 +558,7 @@ ok( $PROCESS_ID == $pid, 'check_pidfile' );
 ok( $util->regexp_test(
         exp    => 'toast',
         string => 'mailtoaster rocks',
-        debug  => 0,
+        verbose  => 0,
     ),
     'regexp_test'
 );
@@ -587,7 +586,7 @@ ok( $foo && $bar, 'parse_line' );
 # parse_config
 # this fails because the filename is wrong
     ok( !$util->parse_config( 'toaster-wacher.conf',
-                debug => 0,
+                verbose => 0,
                 fatal => 0
                 ),
             'parse_config invalid filename'
@@ -596,7 +595,7 @@ ok( $foo && $bar, 'parse_line' );
 # this works because find_config will check for -dist in the local dir
     my $conf;
     ok( $conf = $util->parse_config( 'toaster-watcher.conf',
-                debug => 0,
+                verbose => 0,
                 fatal => 0
                 ),
             'parse_config correct'
@@ -623,8 +622,8 @@ $util->dump_errors( fatal => 0 );
 # syscmd
 my $tmpfile = '/tmp/provision-unix-test';
 ok( $util->syscmd( "touch $tmpfile", fatal => 0 ), 'syscmd +');
-ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,debug=>0 ), 'syscmd -');
-ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,,debug=>0, timeout=>1), 'syscmd - (w/timeout)');
+ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,verbose=>0 ), 'syscmd -');
+ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,,verbose=>0, timeout=>1), 'syscmd - (w/timeout)');
 ok( $util->syscmd( "rm $tmpfile", fatal => 0, ), 'syscmd +');
     ok( $util->syscmd( "$rm $tmp/maildrop-qmail-domain", fatal => 0, ),
         'syscmd +'

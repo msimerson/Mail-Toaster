@@ -56,10 +56,9 @@ sub get_port_category {
 
 sub get_version {
     my $self  = shift;
-    my $debug = shift;
 
     my (undef, undef, $version) = POSIX::uname;
-    print "version is $version\n" if $debug;
+    $self->audit( "version is $version" );
 
     return $version;
 }
@@ -79,7 +78,7 @@ sub install_port {
     );
 
     my $options = $p{options};
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = ( verbose => $p{verbose}, fatal => $p{fatal} );
 
     my $make_defines = "";
     my @defs;
@@ -87,7 +86,7 @@ sub install_port {
     return $p{test_ok} if defined $p{test_ok};
 
     my $check = $p{check} || $portname;
-    return 1 if $self->is_port_installed( $check, debug=>1);
+    return 1 if $self->is_port_installed( $check, verbose=>1);
 
     my $port_dir = $p{dir} || $portname;
     $port_dir =~ s/::/-/g if $port_dir =~ /::/;
@@ -134,7 +133,7 @@ sub install_port {
     # return to our original working directory
     chdir($start_directory);
 
-    return 1 if $self->is_port_installed( $check, debug=>1 );
+    return 1 if $self->is_port_installed( $check, verbose=>1 );
 
     $self->util->audit( "install_port: $portname install, FAILED" );
     $self->install_port_try_manual( $portname, $path );
@@ -168,7 +167,7 @@ sub is_port_installed {
 
     my ( $r, @args );
 
-    $self->util->audit( "  checking for port $port", debug=>0);
+    $self->util->audit( "  checking for port $port", verbose=>0);
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
@@ -177,7 +176,7 @@ sub is_port_installed {
         @packages = `/usr/sbin/pkg info`; chomp @packages;
     }
     else {
-        my $pkg_info = $self->util->find_bin( 'pkg_info', debug => 0 );
+        my $pkg_info = $self->util->find_bin( 'pkg_info', verbose => 0 );
         @packages = `pkg_info`; chomp @packages;
     }
 
@@ -186,11 +185,11 @@ sub is_port_installed {
     if ( scalar @matches == 0 ) { @matches = grep {/^$alt\-/ } @packages; };
     if ( scalar @matches == 0 ) { @matches = grep {/^$alt/ } @packages; };
     return if scalar @matches == 0; # no matches
-    $self->util->audit( "WARN: found multiple matches for port $port",debug=>1)
+    $self->util->audit( "WARN: found multiple matches for port $port",verbose=>1)
         if scalar @matches > 1;
 
     my ($installed_as) = split(/\s/, $matches[0]);
-    $self->util->audit( "found port $port installed as $installed_as",debug=>$p{debug} );
+    $self->util->audit( "found port $port installed as $installed_as" );
     return $installed_as;
 }
 
@@ -264,9 +263,9 @@ sub install_package {
 
     my $r2;
     if ( $pkg_method == 0) {
-        $r2 = $self->util->syscmd( "$pkg_add -r $package", debug => 0 );
+        $r2 = $self->util->syscmd( "$pkg_add -r $package", verbose => 0 );
     } else {
-        $r2 = $self->util->syscmd( "$pkg_add add -r $package", debug => 0 );
+        $r2 = $self->util->syscmd( "$pkg_add add -r $package", verbose => 0 );
     }
 
     if   ( !$r2 ) { print "\t pkg_add failed\t "; }
@@ -276,9 +275,9 @@ sub install_package {
         print "Failure #1, trying alternate package site.\n";
         $ENV{"PACKAGEROOT"} = "ftp://ftp2.freebsd.org";
         if ( $pkg_method == 0) {
-            $self->util->syscmd( "$pkg_add -r $package", debug => 0 );
+            $self->util->syscmd( "$pkg_add -r $package", verbose => 0 );
         } else {
-            $self->util->syscmd( "$pkg_add add -r $package", debug => 0 );
+            $self->util->syscmd( "$pkg_add add -r $package", verbose => 0 );
         }
 
 
@@ -286,18 +285,18 @@ sub install_package {
             print "Failure #2, trying alternate package site.\n";
             $ENV{"PACKAGEROOT"} = "ftp://ftp3.freebsd.org";
             if ( $pkg_method == 0) {
-                $self->util->syscmd( "$pkg_add -r $package", debug => 0 );
+                $self->util->syscmd( "$pkg_add -r $package", verbose => 0 );
             } else {
-                $self->util->syscmd( "$pkg_add add -r $package", debug => 0 );
+                $self->util->syscmd( "$pkg_add add -r $package", verbose => 0 );
             }
 
             unless ( $self->is_port_installed( $package, alt => $alt, %args,)) {
                 print "Failure #3, trying alternate package site.\n";
                 $ENV{"PACKAGEROOT"} = "ftp://ftp4.freebsd.org";
                 if ( $pkg_method == 0) {
-                    $self->util->syscmd( "$pkg_add -r $package", debug => 0 );
+                    $self->util->syscmd( "$pkg_add -r $package", verbose => 0 );
                 } else {
-                    $self->util->syscmd( "$pkg_add add -r $package", debug => 0 );
+                    $self->util->syscmd( "$pkg_add add -r $package", verbose => 0 );
                 }
             }
         }
@@ -523,7 +522,6 @@ Checks to see if a port is installed.
  arguments optional:
     hostname  - jail36.example.com,
     jail_home - /home/jail,
-    debug
 
 If hostname is not passed and reverse DNS is set up, it will
 be looked up. Otherwise, the hostname defaults to "jail".
@@ -589,7 +587,6 @@ Starts up a FreeBSD jail.
  arguments optional:
     hostname  - jail36.example.com,
     jail_home - /home/jail,
-    debug
 
 If hostname is not passed and reverse DNS is set up, it will be
 looked up. Otherwise, the hostname defaults to "jail".
@@ -633,8 +630,6 @@ So, a full complement of settings could look like:
    dir   - overrides 'port' for the build directory
    check - what to test for to determine if the port is installed (see note #1)
    flags - comma separated list of arguments to pass when building
-   fatal
-   debug
 
  NOTES:
 

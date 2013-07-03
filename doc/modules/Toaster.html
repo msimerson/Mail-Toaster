@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@mattbook.simerson.net" />
+<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -28,7 +28,7 @@
 	<li><a href="#bugs_and_limitations">BUGS AND LIMITATIONS</a></li>
 	<li><a href="#todo">TODO</a></li>
 	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#licence_and_copyright">LICENCE AND COPYRIGHT</a></li>
+	<li><a href="#copyright_and_licence">COPYRIGHT AND LICENCE</a></li>
 </ul>
 
 <hr name="index" />
@@ -317,7 +317,7 @@ context to help them understand the methods that are subsequently described.</p>
    prot is one of these protocols: smtp, pop3, submit, send</pre>
 <pre>
  arguments optional:
-   debug
+   verbose
    fatal</pre>
 <pre>
  result:
@@ -362,14 +362,14 @@ that are a different than mine, like a LWQ install.</p>
 <dd>
 <p>Creates the qmail supervise directories.</p>
 <pre>
-        $toaster-&gt;supervise_dirs_create(debug=&gt;$debug);</pre>
+        $toaster-&gt;supervise_dirs_create(verbose=&gt;$verbose);</pre>
 <p>The default directories created are:</p>
 <pre>
   $supervise/smtp
   $supervise/submit
   $supervise/send
   $supervise/pop3</pre>
-<p>unless otherwise specified in $conf</p>
+<p>unless otherwise specified in $self-&gt;conf</p>
 </dd>
 <dt><strong><a name="supervised_dir_test" class="item">supervised_dir_test</a></strong></dt>
 
@@ -387,7 +387,7 @@ that are a different than mine, like a LWQ install.</p>
     prot - a protocol to check (smtp, pop3, send, submit)</pre>
 <pre>
  arguments optional:
-    debug</pre>
+    verbose</pre>
 </dd>
 <dt><strong><a name="supervise_restart" class="item">supervise_restart</a></strong></dt>
 
@@ -403,7 +403,7 @@ that are a different than mine, like a LWQ install.</p>
     $toaster-&gt;check_processes();</pre>
 <pre>
  arguments optional:
-    debug</pre>
+    verbose</pre>
 </dd>
 </dl>
 <p>
@@ -422,8 +422,8 @@ that are a different than mine, like a LWQ install.</p>
 </p>
 <hr />
 <h1><a name="diagnostics">DIAGNOSTICS</a></h1>
-<p>Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the &quot;debug&quot; argument which is passed to each sub/function.</p>
-<p>Status messages and verbose logging is enabled by default. toaster-watcher.pl and most of the automated tests (see t/toaster-watcher.t and t/Toaster.t) explicitely turns this off by setting debug=&gt;0.</p>
+<p>Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the &quot;verbose&quot; argument which is passed to each sub/function.</p>
+<p>Status messages and verbose logging is enabled by default. toaster-watcher.pl and most of the automated tests (see t/toaster-watcher.t and t/Toaster.t) explicitely turns this off by setting verbose=&gt;0.</p>
 <p>
 </p>
 <hr />
@@ -441,15 +441,11 @@ that are a different than mine, like a LWQ install.</p>
 </p>
 <hr />
 <h1><a name="bugs_and_limitations">BUGS AND LIMITATIONS</a></h1>
-<p>There are no known bugs in this module.
-Please report problems to author
-Patches are welcome.</p>
+<p>Report to author or submit patches on GitHub.</p>
 <p>
 </p>
 <hr />
 <h1><a name="todo">TODO</a></h1>
-<pre>
-  Install an optional stub DNS resolver (dnscache)</pre>
 <p>
 </p>
 <hr />
@@ -458,8 +454,8 @@ Patches are welcome.</p>
 <p>
 </p>
 <hr />
-<h1><a name="licence_and_copyright">LICENCE AND COPYRIGHT</a></h1>
-<p>Copyright (c) 2004-2010, The Network People, Inc. <code>&lt;matt@tnpi.net&gt;</code>. All rights reserved.</p>
+<h1><a name="copyright_and_licence">COPYRIGHT AND LICENCE</a></h1>
+<p>Copyright (c) 2004-2013, The Network People, Inc. <code>&lt;matt@tnpi.net&gt;</code>. All rights reserved.</p>
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>

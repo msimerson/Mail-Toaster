@@ -16,5 +16,9 @@ isa_ok( $base, $mod );
 my $util = $base->util;
 isa_ok( $util, 'Mail::Toaster::Utility' );
 
+ok( ! $base->verbose, "verbose, unset" );
+ok( $base->verbose(1), "verbose, set");
+ok( $base->verbose, "verbose, get" );
+
 done_testing();
 exit;

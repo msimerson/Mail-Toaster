@@ -7,11 +7,11 @@ our $VERSION = '5.41';
 
 use Cwd;
 #use Data::Dumper;
-use English qw/ -no_match_vars /;
+use English '-no_match_vars';
 use File::Basename;
 use File::Find;
 use File::stat;
-use Params::Validate qw/ :all /;
+use Params::Validate ':all';
 use Sys::Hostname;
 use version;
 
@@ -27,8 +27,8 @@ sub test {
 
     my %p = validate(@_, { $self->get_std_opts } );
     my $quiet = $p{quiet};
-    return if ( defined $p{test_ok} && ! $p{debug} );
-    return if ( $quiet && ! $p{debug} );
+    return if ( defined $p{test_ok} && ! $p{verbose} );
+    return if ( $quiet && ! $p{verbose} );
 
     print $mess if ! $quiet;
     defined $result or do { print "\n" if ! $quiet; return; };
@@ -64,7 +64,7 @@ sub check_permissions {
     my $etc = $self->conf->{'system_config_dir'} || '/usr/local/etc';
     my $twconf = "$etc/toaster-watcher.conf";
     if ( -f $twconf ) {
-        my $mode = $self->util->file_mode( file=>$twconf, debug=>0 );
+        my $mode = $self->util->file_mode( file=>$twconf, verbose=>0 );
         $self->audit( "file mode of $twconf is $mode.", %p);
         my $others = substr($mode, -1, 1);
         if ( $others > 0 ) {
@@ -76,7 +76,7 @@ sub check_permissions {
     # check permissions on toaster.conf
     $twconf = "$etc/toaster.conf";
     if ( -f $twconf ) {
-        my $mode = $self->util->file_mode(file=>$twconf, debug=>0);
+        my $mode = $self->util->file_mode(file=>$twconf, verbose=>0);
         $self->audit( "file mode of $twconf is $mode", %p);
         my $others = substr($mode, -1, 1);
         if ( ! $others ) {
@@ -178,7 +178,7 @@ sub learn_mailboxes {
     return $p{test_ok} if defined $p{test_ok};
 
     $self->learn_mailboxes_setup() or return;
-    my $find = $self->util->find_bin( 'find', debug=>0 );
+    my $find = $self->util->find_bin( 'find', verbose=>0 );
 
     foreach my $d ( $self->get_maildir_paths() ) {  # every email box
         if  ( ! -d $d ) {
@@ -217,7 +217,7 @@ sub learn_mailboxes {
             $self->util->logfile_append( file => "$d/learn.log",
                 prog => $0,
                 lines => [ "trained $counter{'ham'} hams and $counter{'spam'} spams" ],
-                debug => 0,
+                verbose => 0,
             );
         };
     }
@@ -242,13 +242,13 @@ sub train_spamassassin {
 
     if ( scalar @{$messages->{'ham'}} ) {
         my $hamlist  = "$d/learned-ham-messages";
-        $self->util->file_write($hamlist, lines => $messages->{ham}, debug=>0 );
-        $self->util->syscmd( "$salearn --ham -f $hamlist", debug=>0 );
+        $self->util->file_write($hamlist, lines => $messages->{ham}, verbose=>0 );
+        $self->util->syscmd( "$salearn --ham -f $hamlist", verbose=>0 );
     }
     if ( scalar @{$messages->{'spam'}} ) {
         my $spamlist = "$d/learned-spam-messages";
-        $self->util->file_write($spamlist, lines => $messages->{spam}, debug=>0 );
-        $self->util->syscmd( "$salearn --spam -f $spamlist", debug=>0 );
+        $self->util->file_write($spamlist, lines => $messages->{spam}, verbose=>0 );
+        $self->util->syscmd( "$salearn --spam -f $spamlist", verbose=>0 );
     }
 };
 
@@ -387,7 +387,7 @@ sub maildir_clean_spam {
 
     $self->audit( "clean_spam: cleaning spam messages older than $days days." );
 
-    my $find = $self->util->find_bin( 'find', debug=>0 );
+    my $find = $self->util->find_bin( 'find', verbose=>0 );
     $self->util->syscmd( "$find $spambox/cur -type f -mtime +$days -exec rm {} \\;" );
     $self->util->syscmd( "$find $spambox/new -type f -mtime +$days -exec rm {} \\;" );
 };
@@ -425,7 +425,7 @@ sub maildir_clean_sent {
 
     $self->audit( "clean_sent: cleaning sent messages older than $days days");
 
-    my $find = $self->util->find_bin( "find", debug=>0 );
+    my $find = $self->util->find_bin( "find", verbose=>0 );
     $self->util->syscmd( "$find $sent/new -type f -mtime +$days -exec rm {} \\;");
     $self->util->syscmd( "$find $sent/cur -type f -mtime +$days -exec rm {} \\;");
 }
@@ -443,7 +443,7 @@ sub maildir_clean_new {
         return 0;
     }
 
-    my $find = $self->util->find_bin( "find", debug=>0 );
+    my $find = $self->util->find_bin( "find", verbose=>0 );
     $self->audit( "clean_new: cleaning unread messages older than $days days");
     $self->util->syscmd( "$find $unread -type f -mtime +$days -exec rm {} \\;" );
 }
@@ -462,7 +462,7 @@ sub maildir_clean_ham {
     }
 
     $self->audit( "clean_ham: cleaning read messages older than $days days");
-    my $find = $self->util->find_bin( "find", debug=>0 );
+    my $find = $self->util->find_bin( "find", verbose=>0 );
     $self->util->syscmd( "$find $read -type f -mtime +$days -exec rm {} \\;" );
 }
 
@@ -665,12 +665,6 @@ To be removed please reply back with the word "remove" in the subject line.
 ';
 }
 
-sub get_debug {
-    my ($self, $debug) = @_;
-    return $debug if defined $debug;
-    return $self->{debug};
-};
-
 sub get_dspam_class {
     my ($self, $file) = @_;
     if ( ! -f $file ) {
@@ -736,7 +730,7 @@ sub get_maildir_paths {
 sub get_maildir_folders {
     my ( $self, $d, $find ) = @_;
 
-    $find ||= $self->util->find_bin( 'find', debug=>0 );
+    $find ||= $self->util->find_bin( 'find', verbose=>0 );
     my $find_dirs = "$find $d -type d -name cur";
 
     my @dirs;
@@ -881,7 +875,7 @@ sub run_isoqlog {
 
     return if ! $self->conf->{'install_isoqlog'};
 
-    my $isoqlog = $self->util->find_bin( "isoqlog", debug=>0,fatal => 0 )
+    my $isoqlog = $self->util->find_bin( "isoqlog", verbose=>0,fatal => 0 )
         or return;
 
     system "$isoqlog >/dev/null" or return 1;
@@ -896,10 +890,10 @@ sub run_qmailscanner {
 
     $self->audit( "checking qmail-scanner quarantine.");
 
-    my $qs_debug = $self->conf->{'qs_quarantine_verbose'};
-    $qs_debug++ if $self->{debug};
+    my $qs_verbose = $self->conf->{'qs_quarantine_verbose'};
+    $qs_verbose++ if $self->{verbose};
 
-    my @list = $self->qmail->get_qmailscanner_virus_sender_ips( $qs_debug );
+    my @list = $self->qmail->get_qmailscanner_virus_sender_ips( $qs_verbose );
 
     $self->audit( "found " . scalar @list . " infected files" ) if scalar @list;
 
@@ -1126,7 +1120,7 @@ sub supervise_dirs_create {
         mkdir( "$dir/log", oct('0775') ) or die "failed to create $dir/log: $!\n";
         $self->audit( "supervise_dirs_create: creating $dir/log, ok", %args );
 
-        $self->util->syscmd( "chmod +t $dir", debug=>0 );
+        $self->util->syscmd( "chmod +t $dir", verbose=>0 );
 
         symlink( $dir, $prot ) if ! -e $prot;
     }
@@ -1315,7 +1309,7 @@ sub supervised_log_rotate {
         if ! -f "$dir/run";
 
     $self->audit( "sending ALRM signal to $prot at $dir");
-    my $svc = $self->util->find_bin('svc',debug=>0,fatal=>0) or return;
+    my $svc = $self->util->find_bin('svc',verbose=>0,fatal=>0) or return;
     system "$svc -a $dir";
 
     return 1;
@@ -1327,8 +1321,8 @@ sub supervise_restart {
 
     return $self->error( "supervise_restart: is not a dir: $dir" ) if !-d $dir;
 
-    my $svc  = $self->util->find_bin( 'svc',  debug=>0, fatal=>0 );
-    my $svok = $self->util->find_bin( 'svok', debug=>0, fatal=>0 );
+    my $svc  = $self->util->find_bin( 'svc',  verbose=>0, fatal=>0 );
+    my $svok = $self->util->find_bin( 'svok', verbose=>0, fatal=>0 );
 
     return $self->error( "unable to find svc! Is daemontools installed?")
         if ! -x $svc;
@@ -1355,8 +1349,8 @@ sub supervised_tcpserver {
     $mem = $mem ? $mem * 1024000 : 4000000;
     $self->audit( "memory limited to $mem bytes" );
 
-    my $softlimit = $self->util->find_bin( 'softlimit', debug => 0);
-    my $tcpserver = $self->util->find_bin( 'tcpserver', debug => 0);
+    my $softlimit = $self->util->find_bin( 'softlimit', verbose => 0);
+    my $tcpserver = $self->util->find_bin( 'tcpserver', verbose => 0);
 
     my $exec = "exec\t$softlimit -m $mem \\\n\t$tcpserver ";
     $exec .= $self->supervised_tcpserver_mysql( $prot, $tcpserver );
@@ -1417,7 +1411,7 @@ sub supervised_tcpserver_mysql {
     return '' if ! $self->conf->{ $prot . '_use_mysql_relay_table' };
 
     # is tcpserver mysql patch installed
-    my $strings = $self->util->find_bin( 'strings', debug=>0);
+    my $strings = $self->util->find_bin( 'strings', verbose=>0);
 
     if ( grep /sql/, `$strings $tcpserver` ) {
         $self->audit( "using MySQL based relay table" );
@@ -1748,7 +1742,7 @@ This is necessary because things such as service directories are now in /var/ser
    prot is one of these protocols: smtp, pop3, submit, send
 
  arguments optional:
-   debug
+   verbose
    fatal
 
  result:
@@ -1795,7 +1789,7 @@ that are a different than mine, like a LWQ install.
 
 Creates the qmail supervise directories.
 
-	$toaster->supervise_dirs_create(debug=>$debug);
+	$toaster->supervise_dirs_create(verbose=>$verbose);
 
 The default directories created are:
 
@@ -1822,7 +1816,7 @@ Checks a supervised directory to see if it is set up properly for supervise to s
     prot - a protocol to check (smtp, pop3, send, submit)
 
  arguments optional:
-    debug
+    verbose
 
 
 =item supervise_restart
@@ -1838,7 +1832,7 @@ Tests to see if all the processes on your Mail::Toaster that should be running i
     $toaster->check_processes();
 
  arguments optional:
-    debug
+    verbose
 
 
 
@@ -1858,9 +1852,9 @@ The following man (perldoc) pages:
 
 =head1 DIAGNOSTICS
 
-Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the "debug" argument which is passed to each sub/function.
+Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the "verbose" argument which is passed to each sub/function.
 
-Status messages and verbose logging is enabled by default. toaster-watcher.pl and most of the automated tests (see t/toaster-watcher.t and t/Toaster.t) explicitely turns this off by setting debug=>0.
+Status messages and verbose logging is enabled by default. toaster-watcher.pl and most of the automated tests (see t/toaster-watcher.t and t/Toaster.t) explicitely turns this off by setting verbose=>0.
 
 
 =head1 CONFIGURATION AND ENVIRONMENT

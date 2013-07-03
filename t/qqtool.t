@@ -14,7 +14,7 @@ if ( $OSNAME =~ /cygwin|win32|windows/i ) {
 
 require_ok( 'Mail::Toaster' );
 
-my $toaster = Mail::Toaster->new(debug=>0);
+my $toaster = Mail::Toaster->new(verbose=>0);
 ok ( defined $toaster, 'Mail::Toaster object' );
 ok ( $toaster->isa('Mail::Toaster'), 'check object class' );
 
@@ -37,7 +37,7 @@ if ($OSNAME ne 'VMS')
 
 ok( $toaster->util->syscmd( "$this_perl $qqtool_location -a list -s matt -h From ",
         fatal   => 0,
-        debug   => 0,
+        verbose => 0,
     ), 'qqtool.pl' );
 
 done_testing();

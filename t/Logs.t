@@ -8,8 +8,8 @@ use Test::More;
 use lib 'lib';
 use Mail::Toaster;
 
-my $toaster = Mail::Toaster->new(debug=>0);
-my $conf = $toaster->util->parse_config( "toaster.conf", debug => 0 );
+my $toaster = Mail::Toaster->new(verbose=>0);
+my $conf = $toaster->util->parse_config( "toaster.conf", verbose => 0 );
 
 my $logdir = $conf->{logs_base};
 my $count  = $conf->{logs_counters};
@@ -78,11 +78,11 @@ SKIP: {
 
 # imap_count
     if ( $UID == 0 ) {
-        ok( $log->imap_count(debug=>0), 'imap_count');
+        ok( $log->imap_count(verbose=>0), 'imap_count');
 
 
 # pop3_count
-        ok( $log->pop3_count(debug=>0), 'pop3_count');
+        ok( $log->pop3_count(verbose=>0), 'pop3_count');
 
 
 # webmail_count
@@ -166,14 +166,14 @@ SKIP: {
 # counter_read
     my ( $path, $file ) = $toaster->util->path_parse($countfile);
     if ( -w $path ) {
-        ok( $log->counter_read(file=>$countfile, debug=>0), 'counter_read');
+        ok( $log->counter_read(file=>$countfile, verbose=>0), 'counter_read');
     }
     else {
         if ( -e $countfile ) {
-            ok( $log->counter_read(file=>$countfile, debug=>0), 'counter_read');
+            ok( $log->counter_read(file=>$countfile, verbose=>0), 'counter_read');
         };
         $countfile = $log->set_countfile(prot=>"blop3");
-        ok( ! $log->counter_read(file=>$countfile, debug=>0), 'counter_read');
+        ok( ! $log->counter_read(file=>$countfile, verbose=>0), 'counter_read');
     }
 
 

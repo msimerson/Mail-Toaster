@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster::Qmail</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@mattbook.simerson.net" />
+<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -83,10 +83,6 @@
  arguments required:
     file - the temp file to construct</pre>
 <pre>
- arguments optional:
-    debug
-    fatal</pre>
-<pre>
  results:
     0 - failure
     1 - success</pre>
@@ -100,9 +96,7 @@
 <pre>
  arguments optional:
     prots - an arrayref list of protocols to build run files for.
-           Defaults to [pop3,smtp,send,submit]
-        debug
-        fatal</pre>
+           Defaults to [pop3,smtp,send,submit]</pre>
 <pre>
  Results:
     qmail_supervise/pop3/log/run
@@ -129,12 +123,10 @@
 <p>Builds and installs a pristine netqmail. This is necessary to resolve a chicken and egg problem. You can't apply the toaster patches (specifically chkuser) against netqmail until vpopmail is installed, and you can't install vpopmail without qmail being installed. After installing this, and then vpopmail, you can rebuild netqmail with the toaster patches.</p>
 <pre>
  Usage:
-   $qmail-&gt;netqmail_virgin( debug=&gt;1);</pre>
+   $qmail-&gt;netqmail_virgin( verbose=&gt;1);</pre>
 <pre>
  arguments optional:
-    package  - the name of the programs tarball, defaults to &quot;netqmail-1.05&quot;
-    debug
-    fatal</pre>
+    package  - the name of the programs tarball, defaults to &quot;netqmail-1.05&quot;</pre>
 <pre>
  result:
     qmail installed.</pre>
@@ -183,14 +175,11 @@
 
 <dd>
 <pre>
-        my $available = $qmail-&gt;test_each_rbl( rbls=&gt;$selected, debug=&gt;1 );</pre>
+        my $available = $qmail-&gt;test_each_rbl( rbls=&gt;$selected, verbose=&gt;1 );</pre>
 <p>We get a list of RBL's in an arrayref, run some tests on them to determine if they are working correctly, and pass back the working ones in an arrayref.</p>
 <pre>
  arguments required:
    rbls - an arrayref with a list of RBL zones</pre>
-<pre>
- arguments optional:
-   debug - print status messages</pre>
 <pre>
  result:
    an arrayref with the list of the correctly functioning RBLs.</pre>
@@ -209,10 +198,6 @@
  arguments required:
    file - the temp file to construct</pre>
 <pre>
- arguments optional:
-   debug
-   fatal</pre>
-<pre>
  results:
    0 - failure
    1 - success</pre>
@@ -229,10 +214,6 @@
 <pre>
  arguments required:
     file - the temp file to construct</pre>
-<pre>
- arguments optional:
-    debug
-    fatal</pre>
 <pre>
  results:
     0 - failure
@@ -251,10 +232,6 @@
  arguments required:
     file - the temp file to construct</pre>
 <pre>
- arguments optional:
-    debug
-    fatal</pre>
-<pre>
  results:
     0 - failure
     1 - success</pre>
@@ -266,10 +243,6 @@
 <pre>
  arguments required:
     dir - the directory whose existence we test for</pre>
-<pre>
- arguments optional:
-    debug
-    fatal</pre>
 <pre>
  results:
     0 - failure
@@ -317,10 +290,6 @@
  Usage:
    $qmail-&gt;config();</pre>
 <pre>
- arguments optional:
-    debug
-    fatal</pre>
-<pre>
  results:
     0 - failure
     1 - success</pre>
@@ -348,10 +317,6 @@
                 alrm -- same as doqueue
                 hup -- same as reload</pre>
 <pre>
- arguments optional:
-    debug
-    fatal</pre>
-<pre>
  results:
     0 - failure
     1 - success</pre>
@@ -361,14 +326,13 @@
 <dd>
 <p>Fetch a list of domains from the qmaildir/users/assign file.</p>
 <pre>
-  $qmail-&gt;get_domains_from_assign( assign=&gt;$assign, debug=&gt;$debug );</pre>
+  $qmail-&gt;get_domains_from_assign( assign=&gt;$assign, verbose=&gt;$verbose );</pre>
 <pre>
  arguments required:
     none</pre>
 <pre>
  arguments optional:
     assign - the path to the assign file (default: /var/qmail/users/assign)
-    debug
     match - field to match (dom, uid, dir)
     value - the pattern to  match</pre>
 <pre>
@@ -380,10 +344,7 @@
 <dd>
 <p>Gets passed a hashref of values and extracts all the RBLs that are enabled in the file. See the toaster-watcher.conf file and the rbl_ settings therein for the format expected. See also the t/Qmail.t for examples of usage.</p>
 <pre>
-  my $r = $qmail-&gt;get_list_of_rbls( debug =&gt; $debug );</pre>
-<pre>
- arguments optional:
-    debug</pre>
+  my $r = $qmail-&gt;get_list_of_rbls( verbose =&gt; $verbose );</pre>
 <pre>
  result:
    an arrayref of values</pre>
@@ -392,12 +353,8 @@
 
 <dd>
 <pre>
-  my $selected = $qmail-&gt;get_list_of_rwls( debug=&gt;$debug);</pre>
+  my $selected = $qmail-&gt;get_list_of_rwls( verbose=&gt;$verbose);</pre>
 <p>Here we collect a list of the RWLs from the configuration file that gets passed to us and return them.</p>
-<pre>
- arguments optional:
-   debug
-   fatal</pre>
 <pre>
  result:
    an arrayref with the enabled rwls.</pre>
@@ -408,12 +365,10 @@
 <p>Builds qmail and installs qmail with patches (based on your settings in toaster-watcher.conf), installs the SSL certs, adjusts the permissions of several files that need it.</p>
 <pre>
  Usage:
-   $qmail-&gt;install_qmail( debug=&gt;1);</pre>
+   $qmail-&gt;install_qmail( verbose=&gt;1);</pre>
 <pre>
  arguments optional:
-     package  - the name of the programs tarball, defaults to &quot;qmail-1.03&quot;
-     debug
-     fatal</pre>
+     package  - the name of the programs tarball, defaults to &quot;qmail-1.03&quot;</pre>
 <pre>
  result:
      one kick a55 mail server.</pre>
@@ -444,7 +399,7 @@
 </p>
 <hr />
 <h1><a name="diagnostics">DIAGNOSTICS</a></h1>
-<p>All functions include debugging output which is enabled by default. You can disable the status/debugging messages by calling the functions with debug=&gt;0. The default behavior is to die upon errors. That too can be overriddent by setting fatal=&gt;0. See the tests in t/Qmail.t for code examples.</p>
+<p>All functions include verbose output which is enabled by default. You can disable the status/verbose messages by calling the functions with verbose=&gt;0. The default behavior is to die upon errors. That too can be overriddent by setting fatal=&gt;0. See the tests in t/Qmail.t for code examples.</p>
 <pre>
   #=head1 COMMON USAGE MISTAKES</pre>
 <p>

@@ -26,7 +26,7 @@ toaster_admin_email                = postmaster@example.com
 toaster_test_email                 = test@example.com
 toaster_test_email_pass            = cHanGeMe
 
-toaster_debug                      = 0
+toaster_verbose                    = 0
 supervise_rebuild_notice           = 1       # email admin when a run file is updated
 
 system_config_dir                  = /usr/local/etc
@@ -162,7 +162,7 @@ filtering_maildrop_filter_file     = /usr/local/etc/mail/mailfilter
 filtering_spama_discard_score      = 12      # discard messages above this score
 filtering_report_spam_spamassassin = 1
 filtering_report_spam_pyzor        = 0       # don't enable with report_spamassassin
-filtering_debug                    = 1
+filtering_verbose                  = 1
 
 
 ######################################
@@ -230,7 +230,7 @@ vpopmail_daemon                    = 1
 #           qmail-send                #
 #######################################
 
-# send_log_method - [ syslog | multilog | debug | stats | disabled ]
+# send_log_method - [ syslog | multilog | verbose | stats | disabled ]
 # see smtpd_log_method for complete details
 #
 send_log_method                    = multilog
@@ -276,11 +276,11 @@ smtpd_fixcrio                      = 0
 smtpd_recordio                     = 0
 
 ##
-# smtpd_log_method - [ syslog | multilog | debug | stats | disabled ]
+# smtpd_log_method - [ syslog | multilog | verbose | stats | disabled ]
 #
 # - syslog   - logs to syslog ( /var/log/mail* )
 # - multilog - logs via multilog to $qmail_log_base/smtp - required for maillogs & RRDutil.
-# - debug    - enables full debugging, records entire SMTP converation
+# - verbose  - enables full debugging, records entire SMTP converation
 # - stats    - only logs stats lines 
 # - disabled - silently discards all logs
 ##
@@ -432,11 +432,11 @@ submit_qmail_queue                 = /var/qmail/bin/simscan
 #submit_qmail_queue                = /var/qmail/bin/qmail-queue
 
 ##
-# submit_log_method - [ syslog | multilog | debug | stats | disabled ]
+# submit_log_method - [ syslog | multilog | verbose | stats | disabled ]
 #
 # - syslog   - logs to syslog ( /var/log/mail* )
 # - multilog - logs via multilog to $qmail_log_base/submit
-# - debug    - enables full debugging, records entire SMTP converation
+# - verbose  - enables full debugging, records entire SMTP converation
 # - stats    - only logs stats lines 
 # - disabled - silently discards all logs
 ##

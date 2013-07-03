@@ -6,36 +6,23 @@ our $VERSION = '5.41';
 
 use Params::Validate ':all';
 
-our (@audit, $last_audit, @errors, $last_error, $debug, $verbose); # package variables
+our (@audit, $last_audit, @errors, $last_error, $verbose); # package variables
 our ($conf, $log);
 our ($apache, $darwin, $dns, $freebsd, $qmail, $setup, $toaster, $util );
 
 our %std_opts = (
         test_ok => { type => BOOLEAN, optional => 1 },
-        debug   => { type => BOOLEAN, optional => 1, default => 1 },
+        verbose => { type => BOOLEAN, optional => 1, default => 1 },
         fatal   => { type => BOOLEAN, optional => 1, default => 1 },
         quiet   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
 sub new {
     my $class = shift;
-
     my %p = validate( @_, { %std_opts } );
-
-    my $self = {
-        audit  => [],
-        errors => [],
-        last_audit => 0,
-        last_error => 0,
-        debug  => $p{debug},
-        fatal  => $p{fatal},
-        quiet  => undef,
-    };
-    bless( $self, $class );
-
     my @caller = caller;
 #   warn sprintf( "Base.pm loaded by %s, %s, %s\n", @caller ) if $caller[0] ne 'main';
-    return $self;
+    return bless {}, $class;
 }
 
 sub apache {
@@ -95,19 +82,14 @@ sub util {
 }
 
 sub verbose {
-    return $_[0]->{verbose} if 1 == scalar @_;
-    return $_[0]->{verbose} = $_[1];
+    return $verbose if 1 == scalar @_;
+    return $verbose = $_[1];
 };
 
 sub conf {
     $conf = $_[1] if $_[1];
     return $conf if $conf;
     $conf = $_[0]->util->parse_config( "toaster-watcher.conf" );
-};
-
-sub debug {
-    return $_[0]->{debug} if 1 == scalar @_;
-    return $_[0]->{debug} = $_[1];
 };
 
 sub audit {
@@ -118,7 +100,7 @@ sub audit {
 
     if ($mess) {
         push @audit, $mess;
-        print "$mess\n" if $self->{debug} || $p{debug};
+        print "$mess\n" if $verbose || $p{verbose};
     }
 
     return \@audit;
@@ -156,7 +138,7 @@ sub error {
     );
 
     my $location = $p{location};
-    my $debug = $p{debug};
+    my $verbose = $p{verbose};
     my $fatal = $p{fatal};
 
     if ( $message ) {
@@ -172,7 +154,7 @@ sub error {
         $message = $errors[-1];
     }
 
-    if ( $debug || $fatal ) {
+    if ( $verbose || $fatal ) {
         $self->dump_audit();
         $self->dump_errors();
     }
@@ -207,7 +189,7 @@ sub get_std_args {
     my $self = shift;
     my %p = @_;
     my %args;
-    foreach ( qw/ debug fatal test_ok quiet / ) {
+    foreach ( qw/ verbose fatal test_ok quiet / ) {
         if ( defined $p{$_} ) {
             $args{$_} = $p{$_};
             next;

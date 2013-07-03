@@ -789,24 +789,24 @@ sub _changes
 
 sub get_url {
 
-    my ($url, $timer, $fatal, $debug) = @_;
+    my ($url, $timer, $fatal, $verbose) = @_;
 
     my ( $fetchbin, $found );
 
-    print "get_url: fetching $url\n" if $debug;
+    print "get_url: fetching $url\n" if $verbose;
 
     if ( $OSNAME eq "freebsd" ) {
         $fetchbin = find_bin('fetch');
         if ( $fetchbin && -x $fetchbin ) {
             $found = "fetch";
-            $found .= " -q" unless $debug;
+            $found .= " -q" unless $verbose;
         }
     }
     elsif ( $OSNAME eq "darwin" ) {
         $fetchbin = find_bin( 'curl' );
         if ( $fetchbin && -x $fetchbin ) {
             $found = "curl -O";
-            $found .= " -s " unless $debug;
+            $found .= " -s " unless $verbose;
         }
     }
 
@@ -856,7 +856,7 @@ sub find_bin {
         return;
     }
 
-    #print "find_bin: searching for $bin\n" if $debug;
+    #print "find_bin: searching for $bin\n" if $verbose;
 
     my $prefix = "/usr/local";
 

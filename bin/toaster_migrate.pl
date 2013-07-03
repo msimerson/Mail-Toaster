@@ -71,10 +71,10 @@ sub migrate_vpopmail {
 	if ( $util->yes_or_no( "\nshall I try it for you?", force=>1) )
 	{
 		# does the domain directory exist on the other end?
-		unless ( $util->syscmd("ssh $host test -d $vpopdir/domains/$domain", debug=>0)) {
+		unless ( $util->syscmd("ssh $host test -d $vpopdir/domains/$domain", verbose=>0)) {
 			$exists++;
 			print "target directory already exists on $host!\n\tmoving it out of the way...";
-			$util->syscmd("ssh $host mv $vpopdir/domains/$domain $vpopdir/domains/$domain.bak", debug=>0);
+			$util->syscmd("ssh $host mv $vpopdir/domains/$domain $vpopdir/domains/$domain.bak", verbose=>0);
 			print "done.\n";
 		};
 
@@ -129,7 +129,7 @@ sub add_emails
 		print " $cmd\n";
 
 		if ( $do ) {
-			$util->syscmd("ssh $host $cmd", debug=>0);
+			$util->syscmd("ssh $host $cmd", verbose=>0);
 		}
 	};
 };
@@ -143,7 +143,7 @@ sub add_postmaster
 		my $cmd = "$vpopdir/bin/vadddomain '$domain' '$_->{'pw_clear_passwd'}'";
 		print "  $cmd\n";
 		if ( $do ) {
-			$util->syscmd("ssh $host $cmd", debug=>0); # add the domain on the new server.
+			$util->syscmd("ssh $host $cmd", verbose=>0); # add the domain on the new server.
 			return 1;
 		};
 	};
@@ -225,7 +225,7 @@ sub delete_domain
 	print "\n  $vpopdir/bin/vdeldomain $domain";
 
 	if ( $util->yes_or_no( "\nshall I try it for you?", force=>1) ) {
-		$util->syscmd("$vpopdir/bin/vdeldomain $domain", debug=>0);
+		$util->syscmd("$vpopdir/bin/vdeldomain $domain", verbose=>0);
 	};
 
 	unless ( $util->yes_or_no( "\nhave you completed the previous task successfully?", force=>1) ) {
@@ -271,9 +271,9 @@ sub rsync_mailboxes_to_new
 		my $cleanup = "rm -r $vpopdir/domains/$domain";
 		my $clean2  = "mv $vpopdir/domains/$domain.bak $vpopdir/domains/$domain";
 		print "   $cleanup\n";
-		$util->syscmd("ssh $host $cleanup", debug=>0);
+		$util->syscmd("ssh $host $cleanup", verbose=>0);
 		print "   $clean2\n";
-		$util->syscmd("ssh $host $clean2", debug=>0);
+		$util->syscmd("ssh $host $clean2", verbose=>0);
 	};
 
 	my $cmd = "rsync -av -e ssh --delete $vpopdir/domains/$domain $host:$vpopdir/domains/";
@@ -281,7 +281,7 @@ sub rsync_mailboxes_to_new
 	print "rsync the maildirs from this (old) server to the new one with:\n\n   $cmd \n\n";
 
 	if ( $util->yes_or_no( "\nshall I try it for you?", force=>1) ) {
-		$util->syscmd($cmd, debug=>0);
+		$util->syscmd($cmd, verbose=>0);
 	};
 
 	unless ( $util->yes_or_no( "\nhas the previous task completed successfully?", force=>1) ) {

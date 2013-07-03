@@ -171,9 +171,9 @@ sub chmod {
         or return $self->error( "invalid params to chmod in ". ref $self  );
 
     if ( $p{sudo} ) {
-        my $chmod = $self->find_bin( 'chmod', debug => 0 );
+        my $chmod = $self->find_bin( 'chmod', verbose => 0 );
         my $sudo  = $self->sudo();
-        $self->syscmd( "$sudo $chmod $mode $file", debug => 0 )
+        $self->syscmd( "$sudo $chmod $mode $file", verbose => 0 )
             or return $self->error( "couldn't chmod $file: $!", %args );
     }
 
@@ -757,7 +757,7 @@ sub find_readable {
     my $file = shift;
     my $dir  = shift or return;   # break recursion at end of @_
 
-    #$self->audit("looking for $file in $dir") if $self->{debug};
+    #$self->audit("looking for $file in $dir") if $self->{verbose};
     if ( -r "$dir/$file" ) {
         no warnings;
         return "$dir/$file";       # success
@@ -791,11 +791,11 @@ sub fstab_list {
 
     my $fstab = "/etc/fstab";
     if ( !-e $fstab ) {
-        print "fstab_list: FAILURE: $fstab does not exist!\n" if $p{debug};
+        print "fstab_list: FAILURE: $fstab does not exist!\n" if $p{verbose};
         return;
     }
 
-    my $grep = $self->find_bin( "grep", debug => 0 );
+    my $grep = $self->find_bin( "grep", verbose => 0 );
     my @fstabs = `$grep -v cdr $fstab`;
 
     #	foreach my $fstab (@fstabs)
@@ -907,10 +907,9 @@ sub get_my_ips {
         }
     );
 
-    my $debug = $p{debug};
     my $only  = $p{only};
 
-    my $ifconfig = $self->find_bin( "ifconfig", debug => 0 );
+    my $ifconfig = $self->find_bin( "ifconfig", verbose => 0 );
 
     my $once = 0;
 
@@ -923,7 +922,7 @@ TRY:
 
     # this keeps us from failing if the box has only internal IPs
     if ( @ips < 1 || $ips[0] eq "" ) {
-        carp "yikes, you really don't have any public IPs?!" if $debug;
+        $self->audit( "yikes, you really don't have any public IPs?!");
         $p{exclude_internals} = 0;
         $once++;
         goto TRY if ( $once < 2 );
@@ -935,22 +934,6 @@ TRY:
     return [ $ips[-1] ] if $only eq 'last';
     return \@ips;
 }
-
-sub get_std_args {
-    my $self = shift;
-    my %p = @_;
-    my %args;
-    foreach ( qw/ debug fatal test_ok quiet / ) {
-        if ( defined $p{$_} ) {
-            $args{$_} = $p{$_};
-            next;
-        };
-        if ( $self->{$_} ) {
-            $args{$_} = $self->{$_};
-        };
-    };
-    return %args;
-};
 
 sub get_the_date {
     my $self = shift;
@@ -1023,7 +1006,7 @@ sub get_mounted_drives {
 
         #if ( $m =~ /^\// && $d =~ /^\// )  # mount drives that begin with /
         if ( $m && $m =~ /^\// ) {   # only mounts that begin with /
-            $self->audit( "adding: $m \t $d" ) if $p{debug};
+            $self->audit( "adding: $m \t $d" );
             $hash{$m} = $d;
         }
     }
@@ -1090,7 +1073,7 @@ sub get_url_system {
     );
 
     my $dir      = $p{dir};
-    my $debug    = $p{debug};
+    my $verbose  = $p{verbose};
     my %args = $self->get_std_args( %p );
 
     my ($fetchbin, $found);
@@ -1098,14 +1081,14 @@ sub get_url_system {
         $fetchbin = $self->find_bin( 'fetch', %args);
         if ( $fetchbin && -x $fetchbin ) {
             $found = $fetchbin;
-            $found .= " -q" if !$debug;
+            $found .= " -q" if !$verbose;
         }
     }
     elsif ( $OSNAME eq "darwin" ) {
         $fetchbin = $self->find_bin( 'curl', %args );
         if ( $fetchbin && -x $fetchbin ) {
             $found = "$fetchbin -O";
-            $found .= " -s " if !$debug;
+            $found .= " -s " if !$verbose;
         }
     }
 
@@ -1358,7 +1341,7 @@ sub install_from_source {
 
     $self->cwd_source_dir( $src, %args );
 
-    if ( $bintest && $self->find_bin( $bintest, fatal => 0, debug => 0 ) ) {
+    if ( $bintest && $self->find_bin( $bintest, fatal => 0, verbose => 0 ) ) {
         return if ! $self->yes_or_no(
             "$bintest exists, suggesting that "
                 . "$package is installed. Do you want to reinstall?",
@@ -1402,7 +1385,7 @@ sub install_from_source {
 
     my $msg = "install_from_source: using targets\n";
     foreach (@$targets) { $msg .= "\t$_\n" };
-    $self->audit( $msg ) if $p{debug};
+    $self->audit( $msg );
 
     # build the program
     foreach my $target (@$targets) {
@@ -1532,15 +1515,6 @@ sub install_package {
 sub install_module {
     my ($self, $module, %info) = @_;
 
-    my $debug = defined $info{debug} ? $info{debug} : 1;
-
-## no critic ( ProhibitStringyEval )
-    eval "use $module";
-## use critic
-    if ( ! $EVAL_ERROR ) {
-        $self->audit( "$module is already installed.",debug=>$debug );
-    };
-
     if ( lc($OSNAME) eq 'darwin' ) {
         $self->install_module_darwin( $module ) and return 1;
     }
@@ -1553,9 +1527,7 @@ sub install_module {
 
     $self->install_module_cpan( $module );
 
-    ## no critic ( ProhibitStringyEval )
-    eval "use $module";
-    ## use critic
+    eval "use $module";   ## no critic ( StringyEval )
     if ( ! $EVAL_ERROR ) {
         $self->audit( "$module is installed." );
         return 1;
@@ -1591,7 +1563,7 @@ sub install_module_darwin {
     return $self->error( "Darwin ports is not installed!", fatal => 0)
         if ! -x $dport;
 
-    my $port = "p5-$module";
+    my $port = lc "p5-$module";
     $port =~ s/::/-/g;
     system "sudo $dport install $port" or return 1;
     return;
@@ -1607,19 +1579,15 @@ sub install_module_freebsd {
         $portname =~ s/::/-/g;
     };
 
-    require Mail::Toaster::FreeBSD;
-    my $freebsd = Mail::Toaster::FreeBSD->new;
-    my $r = $freebsd->is_port_installed( $portname );
-    return $self->audit( "$module is installed as $r") if $r;
+    return 1 if $self->freebsd->is_port_installed( $portname );
 
     my $portdir = glob("/usr/ports/*/$portname");
+    return if ! $portdir;
+    return if ! -d $portdir;
 
-    if ( $portdir && -d $portdir && chdir $portdir ) {
-        $self->audit( "installing $module from ports ($portdir)" );
-        system "make clean && make install clean";
-        return 1;
-    }
-    return;
+    $self->audit( "installing $module from ports ($portdir)" );
+    system "make -C $portdir clean install clean";
+    return 1;
 }
 
 sub install_module_from_src {
@@ -1682,7 +1650,7 @@ sub install_module_from_src {
         }
 
         chdir('..');
-        $self->syscmd( cmd => "rm -rf $file", debug=>0);
+        $self->syscmd( cmd => "rm -rf $file", verbose=>0);
         last;
     }
 
@@ -1733,7 +1701,7 @@ sub is_interactive {
 sub is_process_running {
     my ( $self, $process ) = @_;
 
-    my $ps   = $self->find_bin( 'ps', debug => 0 );
+    my $ps   = $self->find_bin( 'ps', verbose => 0 );
 
     if    ( lc($OSNAME) =~ /solaris/i ) { $ps .= ' -ef';  }
     elsif ( lc($OSNAME) =~ /irix/i    ) { $ps .= ' -ef';  }
@@ -1750,7 +1718,7 @@ sub is_readable {
     my $file = shift or die "missing file or dir name\n";
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my %args = ( debug => $p{debug}, fatal => $p{fatal} );
+    my %args = ( verbose => $p{verbose}, fatal => $p{fatal} );
 
     -e $file or return $self->error( "$file does not exist.", %args);
     -r $file or return $self->error( "$file is not readable by you ("
@@ -2026,26 +1994,26 @@ sub regexp_test {
         },
     );
 
-    my $debug = $p{debug};
+    my $verbose = $p{verbose};
     my ( $exp, $string, $pbp ) = ( $p{exp}, $p{string}, $p{pbp} );
 
     if ($pbp) {
         if ( $string =~ m{($exp)}xms ) {
-            print "\t Matched pbp: |$`<$&>$'|\n" if $debug;
+            print "\t Matched pbp: |$`<$&>$'|\n" if $verbose;
             return $1;
         }
         else {
-            print "\t No match.\n" if $debug;
+            print "\t No match.\n" if $verbose;
             return;
         }
     }
 
     if ( $string =~ m{($exp)} ) {
-        print "\t Matched: |$`<$&>$'|\n" if $debug;
+        print "\t Matched: |$`<$&>$'|\n" if $verbose;
         return $1;
     }
 
-    print "\t No match.\n" if $debug;
+    print "\t No match.\n" if $verbose;
     return;
 }
 
@@ -2184,7 +2152,7 @@ sub sudo {
             url     => '/sudo/',
             targets => [ './configure', 'make', 'make install' ],
             patches => '',
-            debug   => 1,
+            verbose => 1,
         );
 
     # can we find it now?
@@ -2237,7 +2205,7 @@ sub syscmd {
     $self->audit($message, %args );
 
     if ( $bin && !-e $bin ) {  # $bin is set, but we have not found it
-        $bin = $self->find_bin( $bin, fatal => 0, debug => 0 )
+        $bin = $self->find_bin( $bin, fatal => 0, verbose => 0 )
             or return $self->error( "$bin was not found", %args);
     }
     unshift @args, $bin;
@@ -2377,7 +2345,7 @@ sub yes_or_no {
 
 1;
 __END__
-
+sub {}; # for vim autofold
 
 
 =head1 SYNOPSIS
@@ -2401,7 +2369,7 @@ All methods set and return error codes (0 = fail, 1 = success) unless otherwise 
 
 Unless otherwise mentioned, all methods accept two additional parameters:
 
-  debug - to print status and verbose error messages, set debug=>1.
+  verbose - to print status and verbose error messages, set verbose=>1.
   fatal - die on errors. This is the default, set fatal=>0 to override.
 
 
@@ -2558,8 +2526,6 @@ Set the permissions (ugo-rwx) of a file. Will use the native perl methods (by de
 
  arguments optional:
    sudo  - the output of $util->sudo
-   fatal - die on errors? (default: on)
-   debug
 
  result:
    0 - failure
@@ -2586,8 +2552,6 @@ Set the ownership (user and group) of a file. Will use the native perl methods (
    file  - alias for file_or_dir
    dir   - alias for file_or_dir
    sudo  - the output of $util->sudo
-   fatal - die on errors? (default: on)
-   debug
 
  result:
    0 - failure
@@ -2610,7 +2574,7 @@ Set the ownership (user and group) of a file. Will use the native perl methods (
 
 =item get_url
 
-   $util->get_url( $url, debug=>1 );
+   $util->get_url( $url, verbose=>1 );
 
 Use the standard URL fetching utility (fetch, curl, wget) for your OS to download a file from the $url handed to us.
 
@@ -2619,8 +2583,6 @@ Use the standard URL fetching utility (fetch, curl, wget) for your OS to downloa
 
  arguments optional:
    timeout - the maximum amount of time to try
-   fatal
-   debug
 
  result:
    1 - success
@@ -2643,10 +2605,6 @@ compares the mtime on two files to determine if one is newer than another.
  required arguments:
    mode - the files permissions mode
 
- arguments optional:
-   fatal
-   debug
-
  result:
    0 - failure
    1 - success
@@ -2664,8 +2622,6 @@ Reads in a file, and returns it in an array. All lines in the array are chomped.
  arguments optional:
    max_lines  - integer - max number of lines
    max_length - integer - maximum length of a line
-   fatal
-   debug
 
  result:
    0 - failure
@@ -2684,10 +2640,6 @@ Reads in a file, and returns it in an array. All lines in the array are chomped.
    file - the file path you want to write to
    lines - an arrayref. Each array element will be a line in the file
 
- arguments optional:
-   fatal
-   debug
-
  result:
    0 - failure
    1 - success
@@ -2697,7 +2649,7 @@ Reads in a file, and returns it in an array. All lines in the array are chomped.
 
 Determine if the files are different. $type is assumed to be text unless you set it otherwise. For anthing but text files, we do a MD5 checksum on the files to determine if they are different or not.
 
-   $util->files_diff( f1=>$file1,f2=>$file2,type=>'text',debug=>1 );
+   $util->files_diff( f1=>$file1,f2=>$file2,type=>'text',verbose=>1 );
 
    if ( $util->files_diff( f1=>"foo", f2=>"bar" ) )
    {
@@ -2710,8 +2662,6 @@ Determine if the files are different. $type is assumed to be text unless you set
 
  arguments optional:
    type - the type of file (text or binary)
-   fatal
-   debug
 
  result:
    0 - files are the same
@@ -2735,8 +2685,6 @@ Example:
 
  arguments optional:
    dir - a directory to check first
-   fatal
-   debug
 
  results:
    0 - failure
@@ -2767,8 +2715,6 @@ Example:
 
  arguments optional:
    etcdir - the etc directory to prefer
-   debug
-   fatal
 
  result:
    0 - failure
@@ -2832,14 +2778,10 @@ If the file exists, it checks to see if it is writable. If the file does not exi
 
 =item get_dir_files
 
-   $util->get_dir_files( $dir, debug=>1 )
+   $util->get_dir_files( $dir, verbose=>1 )
 
  required arguments:
    dir - a directory
-
- optional arguments:
-   fatal
-   debug
 
  result:
    an array of files names contained in that directory.
@@ -2850,14 +2792,13 @@ If the file exists, it checks to see if it is writable. If the file does not exi
 
 Returns the date split into a easy to work with set of strings.
 
-   $util->get_the_date( bump=>$bump, debug=>$debug )
+   $util->get_the_date( bump=>$bump, verbose=>$verbose )
 
  required arguments:
    none
 
  optional arguments:
    bump - the offset (in days) to subtract from the date.
-   debug
 
  result: (array with the following elements)
 	$dd = day
@@ -2881,7 +2822,7 @@ Returns the date split into a easy to work with set of strings.
 		url     => '/simscan/',
 		targets => ['./configure', 'make', 'make install'],
 		patches => '',
-		debug   => 1,
+		verbose => 1,
 	);
 
 Downloads and installs a program from sources.
@@ -2898,8 +2839,6 @@ Downloads and installs a program from sources.
     patch_args -
     source_sub_dir - a subdirectory within the sources build directory
     bintest - check the usual places for an executable binary. If found, it will assume the software is already installed and require confirmation before re-installing.
-    debug
-    fatal
 
  result:
    1 - success
@@ -2934,10 +2873,6 @@ That will append a line like this to the log file:
    prog  - the name of the application
    lines - arrayref - elements are events to log.
 
- arguments optional:
-   fatal
-   debug
-
  result:
    1 - success
    0 - failure
@@ -2952,7 +2887,7 @@ Downloads and installs Mail::Toaster.
 
 =item mkdir_system
 
-   $util->mkdir_system( dir => $dir, debug=>$debug );
+   $util->mkdir_system( dir => $dir, verbose=>$verbose );
 
 creates a directory using the system mkdir binary. Can also make levels of directories (-p) and utilize sudo if necessary to escalate.
 
@@ -3043,7 +2978,6 @@ Tries to download a set of sources files from the site and url provided. It will
 
  arguments optional:
    conf    - hashref - values from toaster-watcher.conf
-   debug
 
 This sub proved quite useful during 2005 as many packages began to be distributed in bzip format instead of the traditional gzip.
 
@@ -3060,9 +2994,6 @@ If sudo is not installed and you're running as root, it'll offer to install sudo
 
  arguments required:
 
- arguments optional:
-   debug
-
  result:
    0 - failure
    on success, the full path to the sudo binary
@@ -3077,10 +3008,6 @@ If sudo is not installed and you're running as root, it'll offer to install sudo
 
     arguments required:
       cmd     - the command to execute
-
-    arguments optional:
-      debug
-      fatal
 
     result
       the exit status of the program you called.

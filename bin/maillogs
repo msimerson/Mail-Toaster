@@ -13,11 +13,11 @@ use Mail::Toaster::Logs 5.41;
 use vars qw( $opt_r $opt_v %count %spam );
 getopts('rv');
 
-my $debug = $opt_v ? 1 : 0;
-print "maillogs $Mail::Toaster::Logs::VERSION: verbose mode enabled.\n" if $debug;
+my $verbose = $opt_v ? 1 : 0;
+print "maillogs $Mail::Toaster::Logs::VERSION: verbose mode enabled.\n" if $verbose;
 
-my $logs = Mail::Toaster::Logs->new(debug=>$debug);
-$logs->conf->{'logs_debug'} = $debug;
+my $logs = Mail::Toaster::Logs->new(verbose=>$verbose);
+$logs->conf->{'logs_verbose'} = $verbose;
 
 $|++;
 
@@ -188,7 +188,7 @@ Installation is automatic when you install Mail-Toaster. The latest version can 
 
 =head1 DIAGNOSTICS
  
-If the output of maillogs is not what you expect, you can run it in verbose mode to see status messages and debug logging. 
+If the output of maillogs is not what you expect, you can run it in verbose mode to see status messages and verbose logging. 
 
 
 =head2 COMMON USAGE MISTAKES

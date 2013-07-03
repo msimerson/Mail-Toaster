@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster::Setup</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@mattbook.simerson.net" />
+<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -21,10 +21,7 @@
 	<li><a href="#methods">METHODS</a></li>
 	<li><a href="#dependencies">DEPENDENCIES</a></li>
 	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#bugs">BUGS</a></li>
-	<li><a href="#todo">TODO</a></li>
 	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
 </ul>
 
 <hr name="index" />
@@ -44,14 +41,14 @@
 </p>
 <hr />
 <h1><a name="methods">METHODS</a></h1>
-<p>All documented methods in this package (shown below) accept two optional arguments, debug and fatal. Setting debug to zero will supress nearly all informational and debugging output. If you want more output, simply pass along debug=&gt;1 and status messages will print out. Fatal allows you to override the default behaviour of these methods, which is to die upon error. Each sub returns 0 if the action failed and 1 for success.</p>
+<p>All documented methods in this package (shown below) accept two optional arguments, verbose and fatal. Setting verbose to zero will supress nearly all informational and debugging output. If you want more output, simply pass along verbose=&gt;1 and status messages will print out. Fatal allows you to override the default behaviour of these methods, which is to die upon error. Each sub returns 0 if the action failed and 1 for success.</p>
 <pre>
  arguments required:
    varies (most require conf)</pre>
 <pre>
  arguments optional:
-   debug - print status messages
-   fatal - die on errors (default)</pre>
+   verbose - print status messages
+   fatal   - die on errors (default)</pre>
 <pre>
  result:
    0 - failure
@@ -59,10 +56,10 @@
 <pre>
  Examples:</pre>
 <pre>
-   1. $setup-&gt;apache( debug=&gt;0, fatal=&gt;0 );
+   1. $setup-&gt;apache( verbose=&gt;0, fatal=&gt;0 );
    Try to build apache, do not print status messages and do not die on error(s).</pre>
 <pre>
-   2. $setup-&gt;apache( debug=&gt;1 );
+   2. $setup-&gt;apache( verbose=&gt;1 );
    Try to build apache, print status messages, die on error(s).</pre>
 <pre>
    3. if ( $setup-&gt;apache( ) { print &quot;yay!\n&quot; };
@@ -78,49 +75,10 @@
 <p>From there you can run any of the following methods via $setup-&gt;method as documented below.</p>
 <p>Many of the methods require $conf, which is a hashref containing the contents of toaster-watcher.conf.</p>
 </dd>
-<dt><strong><a name="apache" class="item">apache</a></strong></dt>
-
-<dd>
-<p>Calls $apache-&gt;install[1|2] which then builds and installs Apache for you based on how it was called. See Mail::Toaster::Apache for more details.</p>
-<pre>
-  $setup-&gt;apache( ver=&gt;22 );</pre>
-<p>There are many popular Apache compile time options supported. To see what options are available, see toaster-watcher.conf.</p>
-<pre>
- required arguments:
-   conf</pre>
-<pre>
- optional arguments:
-   ver - the version number of Apache to install
-   debug
-   fatal</pre>
-</dd>
-<dt><strong><a name="autorespond" class="item">autorespond</a></strong></dt>
-
-<dd>
-<p>Install autorespond. Fetches sources from Inter7 web site and installs. Automatically patches the sources to compile correctly on Darwin.</p>
-<pre>
-  $setup-&gt;autorespond( );</pre>
-<pre>
- required arguments:
-   conf</pre>
-<pre>
- optional arguments:
-   debug
-   fatal</pre>
-</dd>
 <dt><strong><a name="clamav" class="item">clamav</a></strong></dt>
 
 <dd>
 <p>Install ClamAV, configure the startup and config files, download the latest virus definitions, and start up the daemons.</p>
-<pre>
-  $setup-&gt;clamav( );</pre>
-<pre>
- required arguments:
-   conf</pre>
-<pre>
- optional arguments:
-   debug
-   fatal</pre>
 </dd>
 <dt><strong><a name="config_personalize_your_toaster_watcher_conf_settings" class="item">config - personalize your toaster-watcher.conf settings</a></strong></dt>
 
@@ -129,87 +87,16 @@
 <pre>
  required arguments:
    conf</pre>
-<pre>
- optional arguments:
-   debug
-   fatal</pre>
 </dd>
 <dt><strong><a name="config_tweaks" class="item">config_tweaks</a></strong></dt>
 
 <dd>
 <p>Makes changes to the config file, dynamically based on detected circumstances such as a jailed hostname, or OS platform. Platforms like FreeBSD, Darwin, and Debian have package management capabilities. Rather than installing software via sources, we prefer to try using the package manager first. The toaster-watcher.conf file typically includes the latest stable version of each application to install. This subroutine will replace those version numbers with with 'port', 'package', or other platform specific tweaks.</p>
 </dd>
-<dt><strong><a name="courier" class="item">courier</a></strong></dt>
-
-<dd>
-<pre>
-  $setup-&gt;courier( );</pre>
-<p>Installs courier imap based on your settings in toaster-watcher.conf.</p>
-<pre>
- required arguments:
-   conf</pre>
-<pre>
- optional arguments:
-   debug
-   fatal</pre>
-<pre>
- result:
-   1 - success
-   0 - failure</pre>
-</dd>
-<dt><strong><a name="courier_startup" class="item">courier_startup</a></strong></dt>
-
-<dd>
-<pre>
-  $setup-&gt;courier_startup( );</pre>
-<p>Does the post-install configuration of Courier IMAP.</p>
-</dd>
-<dt><strong><a name="cpan" class="item">cpan</a></strong></dt>
-
-<dd>
-<pre>
-  $setup-&gt;cpan( );</pre>
-<p>Installs only the perl modules that are required for 'make test' to succeed. Useful for CPAN testers.</p>
-<pre>
- Date::Parse
- HTML::Template
- Compress::Zlib
- Crypt::PasswdMD5
- Net::DNS
- Quota
- TimeDate</pre>
-</dd>
-<dt><strong><a name="cronolog" class="item">cronolog</a></strong></dt>
-
-<dd>
-<p>Installs cronolog. If running on FreeBSD or Darwin, it will install from ports. If the port install fails for any reason, or you are on another platform, it will install from sources.</p>
-<p>required arguments:
-  conf</p>
-<p>optional arguments:
-  debug
-  fatal</p>
-<p>result:
-  1 - success
-  0 - failure</p>
-</dd>
 <dt><strong><a name="daemontools" class="item">daemontools</a></strong></dt>
 
 <dd>
 <p>Fetches sources from DJB's web site and installs daemontools, per his instructions.</p>
-<pre>
- Usage:
-  $setup-&gt;daemontools( conf-&gt;$conf );</pre>
-<pre>
- required arguments:
-   conf</pre>
-<pre>
- optional arguments:
-   debug
-   fatal</pre>
-<pre>
- result:
-   1 - success
-   0 - failure</pre>
 </dd>
 <dt><strong><a name="dependencies" class="item">dependencies</a></strong></dt>
 
@@ -220,9 +107,6 @@
 <p>ispell, gdbm, setquota, expect, maildrop, autorespond, qmail, qmailanalog, daemontools, openldap-client, Crypt::OpenSSL-RSA, DBI, DBD::mysql.</p>
 <p>required arguments:
   conf</p>
-<p>optional arguments:
-  debug
-  fatal</p>
 <p>result:
   1 - success
   0 - failure</p>
@@ -236,10 +120,6 @@
 <pre>
  required arguments:
    conf</pre>
-<pre>
- optional arguments:
-   debug
-   fatal</pre>
 <pre>
  result:
    1 - success
@@ -260,10 +140,6 @@
  required arguments:
    conf</pre>
 <pre>
- optional arguments:
-   debug
-   fatal</pre>
-<pre>
  result:
    1 - success
    0 - failure</pre>
@@ -274,18 +150,6 @@
 <p>Installs SpamAssassin, ClamAV, simscan, QmailScanner, maildrop, procmail, and programs that support the aforementioned ones. See toaster-watcher.conf for options that allow you to customize which programs are installed and any options available.</p>
 <pre>
   $setup-&gt;filtering();</pre>
-</dd>
-<dt><strong><a name="is_newer" class="item">is_newer</a></strong></dt>
-
-<dd>
-<p>Checks a three place version string like 5.3.24 to see if the current version is newer than some value. Useful when you have various version of a program like vpopmail or mysql and the syntax you need to use for building it is different for differing version of the software.</p>
-</dd>
-<dt><strong><a name="isoqlog" class="item">isoqlog</a></strong></dt>
-
-<dd>
-<p>Installs isoqlog.</p>
-<pre>
-  $setup-&gt;isoqlog();</pre>
 </dd>
 <dt><strong><a name="maildrop" class="item">maildrop</a></strong></dt>
 
@@ -313,7 +177,7 @@
 <dd>
 <p>Downloads and installs the latest version of MATT::Bundle.</p>
 <pre>
-  $setup-&gt;mattbundle(debug=&gt;1);</pre>
+  $setup-&gt;mattbundle(verbose=&gt;1);</pre>
 <p>Don't do it. Matt::Bundle has been deprecated for years now.</p>
 </dd>
 <dt><strong><a name="mysql" class="item">mysql</a></strong></dt>
@@ -322,104 +186,6 @@
 <p>Installs mysql server for you, based on your settings in toaster-watcher.conf. The actual code that does the work is in Mail::Toaster::Mysql so read the man page for Mail::Toaster::Mysql for more info.</p>
 <pre>
   $setup-&gt;mysql( );</pre>
-</dd>
-<dt><strong><a name="phpmyadmin" class="item">phpmyadmin</a></strong></dt>
-
-<dd>
-<p>Installs PhpMyAdmin for you, based on your settings in toaster-watcher.conf. The actual code that does the work is in Mail::Toaster::Mysql (part of Mail::Toaster::Bundle) so read the man page for Mail::Toaster::Mysql for more info.</p>
-<pre>
-  $setup-&gt;phpmyadmin($conf);</pre>
-</dd>
-<dt><strong><a name="ports" class="item">ports</a></strong></dt>
-
-<dd>
-<p>Install the ports tree on FreeBSD or Darwin and update it with cvsup.</p>
-<p>On FreeBSD, it optionally uses cvsup_fastest to choose the fastest cvsup server to mirror from. Configure toaster-watch.conf to adjust it's behaviour. It can also install the portupgrade port to use for updating your legacy installed ports. Portupgrade is very useful, but be very careful about using portupgrade -a. I always use portupgrade -ai and skip the toaster related ports such as qmail since we have customized version(s) of them installed.</p>
-<pre>
-  $setup-&gt;ports();</pre>
-</dd>
-<dt><strong><a name="qmailadmin" class="item">qmailadmin</a></strong></dt>
-
-<dd>
-<p>Install qmailadmin based on your settings in toaster-watcher.conf.</p>
-<pre>
-  $setup-&gt;qmailadmin();</pre>
-</dd>
-<dt><strong><a name="razor" class="item">razor</a></strong></dt>
-
-<dd>
-<p>Install Vipul's Razor2</p>
-<pre>
-  $setup-&gt;razor( );</pre>
-</dd>
-<dt><strong><a name="ripmime" class="item">ripmime</a></strong></dt>
-
-<dd>
-<p>Installs ripmime</p>
-<pre>
-  $setup-&gt;ripmime();</pre>
-</dd>
-<dt><strong><a name="simscan" class="item">simscan</a></strong></dt>
-
-<dd>
-<p>Install simscan from Inter7.</p>
-<pre>
-  $setup-&gt;simscan();</pre>
-<p>See toaster-watcher.conf to see how these settings affect the build and operations of simscan.</p>
-</dd>
-<dt><strong><a name="simscan_conf" class="item">simscan_conf</a></strong></dt>
-
-<dd>
-<p>Build the simcontrol and ssattach config files based on toaster-watcher.conf settings.</p>
-</dd>
-<dt><strong><a name="simscan_test" class="item">simscan_test</a></strong></dt>
-
-<dd>
-<p>Send some test messages to the mail admin using simscan as a message scanner.</p>
-<pre>
-    $setup-&gt;simscan_test();</pre>
-</dd>
-<dt><strong><a name="socklog" class="item">socklog</a></strong></dt>
-
-<dd>
-<pre>
-        $setup-&gt;socklog( ip=&gt;$ip );</pre>
-<p>If you need to use socklog, then you'll appreciate how nicely this configures it. :)  $ip is the IP address of the socklog master server.</p>
-</dd>
-<dt><strong><a name="socklog_qmail_control" class="item">socklog_qmail_control</a></strong></dt>
-
-<dd>
-<pre>
-        socklog_qmail_control($service, $ip, $user, $supervisedir);</pre>
-<p>Builds a service/log/run file for use with socklog.</p>
-</dd>
-<dt><strong><a name="squirrelmail" class="item">squirrelmail</a></strong></dt>
-
-<dd>
-<pre>
-        $setup-&gt;squirrelmail</pre>
-<p>Installs Squirrelmail using FreeBSD ports. Adjusts the FreeBSD port by passing along WITH_APACHE2 if you have Apache2 selected in your toaster-watcher.conf.</p>
-</dd>
-<dt><strong><a name="sqwebmail" class="item">sqwebmail</a></strong></dt>
-
-<dd>
-<pre>
-        $setup-&gt;sqwebmail();</pre>
-<p>install sqwebmail based on your settings in toaster-watcher.conf.</p>
-</dd>
-<dt><strong><a name="supervise" class="item">supervise</a></strong></dt>
-
-<dd>
-<pre>
-        $setup-&gt;supervise();</pre>
-<p>One stop shopping: calls the following subs:</p>
-<pre>
-  $qmail-&gt;control_create        ();
-  $setup-&gt;service_dir_create    ();
-  $toaster-&gt;supervise_dirs_create ();
-  $qmail-&gt;install_qmail_control_files ();
-  $qmail-&gt;install_qmail_control_log_files();
-  $toaster-&gt;service_symlinks    (debug=&gt;$debug);</pre>
 </dd>
 <dt><strong><a name="startup_script" class="item">startup_script</a></strong></dt>
 
@@ -441,42 +207,6 @@
 <dd>
 <p>Run a variety of tests to verify that your Mail::Toaster installation is working correctly.</p>
 </dd>
-<dt><strong><a name="ucspi_tcp" class="item">ucspi_tcp</a></strong></dt>
-
-<dd>
-<p>Installs ucspi-tcp with my (Matt Simerson) MySQL patch.</p>
-<pre>
-        $setup-&gt;ucspi_tcp( );</pre>
-</dd>
-<dt><strong><a name="vpopmail" class="item">vpopmail</a></strong></dt>
-
-<dd>
-<p>Vpopmail is great, but it has lots of options and remembering which option you used months or years ago to build a mail server is not always easy. So, store all the settings in toaster-watcher.conf and this sub will install vpopmail for you, honoring all your settings and passing the appropriate configure flags to vpopmail's configure.</p>
-<pre>
-        $setup-&gt;vpopmail( );</pre>
-<p>If you do not have toaster-watcher.conf installed, it will ask you a series of questions and then install based on your answers.</p>
-</dd>
-<dt><strong><a name="vpopmail_etc" class="item">vpopmail_etc</a></strong></dt>
-
-<dd>
-<p>Builds the ~vpopmail/etc/tcp.smtp file with a mess of sample entries and user specified settings.</p>
-<pre>
-        $setup-&gt;vpopmail_etc( );</pre>
-</dd>
-<dt><strong><a name="vpopmail_mysql_privs" class="item">vpopmail_mysql_privs</a></strong></dt>
-
-<dd>
-<p>Connects to MySQL server, creates the vpopmail table if it doesn't exist, and sets up a vpopmail user and password as set in $conf.</p>
-<pre>
-    $setup-&gt;vpopmail_mysql_privs($conf);</pre>
-</dd>
-<dt><strong><a name="vqadmin" class="item">vqadmin</a></strong></dt>
-
-<dd>
-<pre>
-        $setup-&gt;vqadmin($conf, $debug);</pre>
-<p>Installs vqadmin from ports on FreeBSD and from sources on other platforms. It honors your cgi-bin and your htdocs directory as configured in toaster-watcher.conf.</p>
-</dd>
 </dl>
 <p>
 </p>
@@ -492,18 +222,8 @@
 <p>
 </p>
 <hr />
-<h1><a name="bugs">BUGS</a></h1>
-<p>None known. Report to author. Patches welcome (diff -u preferred)</p>
-<p>
-</p>
-<hr />
-<h1><a name="todo">TODO</a></h1>
-<p>Better documentation. It is almost reasonable now.</p>
-<p>
-</p>
-<hr />
 <h1><a name="see_also">SEE ALSO</a></h1>
-<p>The following are all man/perldoc pages:</p>
+<p>The following are all perldoc pages:</p>
 <pre>
  Mail::Toaster
  Mail::Toaster::Conf
@@ -511,16 +231,6 @@
  toaster-watcher.conf</pre>
 <pre>
  <a href="http://mail-toaster.org/">http://mail-toaster.org/</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="copyright_and_license">COPYRIGHT AND LICENSE</a></h1>
-<p>Copyright (c) 2004-2010, The Network People, Inc.  All rights reserved.</p>
-<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
-<p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
-<p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
-<p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
-<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
 
 </body>
 

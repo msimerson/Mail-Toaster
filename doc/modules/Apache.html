@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster::Apache</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@mattbook.simerson.net" />
+<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -27,7 +27,6 @@
 
 	<li><a href="#author">AUTHOR</a></li>
 	<li><a href="#bugs">BUGS</a></li>
-	<li><a href="#todo">TODO</a></li>
 	<li><a href="#see_also">SEE ALSO</a></li>
 	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
 </ul>
@@ -61,8 +60,8 @@
 <pre>
    use Mail::Toaster;
    use Mail::Toaster::Apache
-   my $log = Mail::Toaster-&gt;new(debug=&gt;0)
-   my $apache = Mail::Toaster::Apache-&gt;new( toaster =&gt; $toaster );</pre>
+   my $log = Mail::Toaster-&gt;new(verbose=&gt;0)
+   my $apache = Mail::Toaster::Apache-&gt;new;</pre>
 <p>use this function to create a new apache object. From there you can use all the functions
 included in this document.</p>
 <p>Each method expect to recieve one or two hashrefs. The first hashref must have a value set for &lt;i&gt;vhost&lt;/i&gt; and optional values set for the following: ip, serveralias serveradmin, documentroot, redirect, ssl, sslcert, sslkey, cgi, customlog, customerror.</p>
@@ -84,7 +83,7 @@ included in this document.</p>
         use Mail::Toaster::Apache;
         my $apache = new Mail::Toaster::Apache;</pre>
 <pre>
-        $apache-&gt;install_2($conf);</pre>
+        $apache-&gt;install_2();</pre>
 <p>Builds Apache from sources with DSO for all modules. Also installs mod_perl2 and mod_php4.</p>
 <p>Currently tested on FreeBSD and Mac OS X. On FreeBSD, the chosen version of php is installed. It installs both the PHP cli and mod_php Apache module. This is done because the SpamAssassin + SQL module requires pear-DB and the pear-DB port thinks it needs the lang/php port installed. There are other ports which also have this requirement so it's best to just have it installed.</p>
 <p>This script also builds default SSL certificates, based on your preferences in openssl.cnf (usually in /etc/ssl) and makes a few tweaks to your httpd.conf (for using PHP &amp; perl scripts).</p>
@@ -94,7 +93,7 @@ included in this document.</p>
 
 <dd>
 <pre>
-        $apache-&gt;apache_conf_patch(conf=&gt;$conf);</pre>
+        $apache-&gt;apache_conf_patch();</pre>
 <p>Patch apache's default httpd.conf file. See the patch in contrib of Mail::Toaster to see what changes are being made.</p>
 </dd>
 <dt><strong><a name="install_ssl_certs" class="item">install_ssl_certs</a></strong></dt>
@@ -137,10 +136,6 @@ included in this document.</p>
 <hr />
 <h1><a name="bugs">BUGS</a></h1>
 <p>None known. Report any to author.</p>
-<p>
-</p>
-<hr />
-<h1><a name="todo">TODO</a></h1>
 <p>
 </p>
 <hr />

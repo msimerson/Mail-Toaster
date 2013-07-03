@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster::Utility</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@mattbook.simerson.net" />
+<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -50,7 +50,7 @@
 <p>All methods set and return error codes (0 = fail, 1 = success) unless otherwise stated.</p>
 <p>Unless otherwise mentioned, all methods accept two additional parameters:</p>
 <pre>
-  debug - to print status and verbose error messages, set debug=&gt;1.
+  verbose - to print status and verbose error messages, set verbose=&gt;1.
   fatal - die on errors. This is the default, set fatal=&gt;0 to override.</pre>
 <p>
 </p>
@@ -202,9 +202,7 @@
    mode   - the permissions (numeric)</pre>
 <pre>
  arguments optional:
-   sudo  - the output of $util-&gt;sudo
-   fatal - die on errors? (default: on)
-   debug</pre>
+   sudo  - the output of $util-&gt;sudo</pre>
 <pre>
  result:
    0 - failure
@@ -230,9 +228,7 @@
  arguments optional:
    file  - alias for file_or_dir
    dir   - alias for file_or_dir
-   sudo  - the output of $util-&gt;sudo
-   fatal - die on errors? (default: on)
-   debug</pre>
+   sudo  - the output of $util-&gt;sudo</pre>
 <pre>
  result:
    0 - failure
@@ -257,16 +253,14 @@
 
 <dd>
 <pre>
-   $util-&gt;get_url( $url, debug=&gt;1 );</pre>
+   $util-&gt;get_url( $url, verbose=&gt;1 );</pre>
 <p>Use the standard URL fetching utility (fetch, curl, wget) for your OS to download a file from the $url handed to us.</p>
 <pre>
  arguments required:
    url - the fully qualified URL</pre>
 <pre>
  arguments optional:
-   timeout - the maximum amount of time to try
-   fatal
-   debug</pre>
+   timeout - the maximum amount of time to try</pre>
 <pre>
  result:
    1 - success
@@ -290,10 +284,6 @@
  required arguments:
    mode - the files permissions mode</pre>
 <pre>
- arguments optional:
-   fatal
-   debug</pre>
-<pre>
  result:
    0 - failure
    1 - success</pre>
@@ -310,9 +300,7 @@
 <pre>
  arguments optional:
    max_lines  - integer - max number of lines
-   max_length - integer - maximum length of a line
-   fatal
-   debug</pre>
+   max_length - integer - maximum length of a line</pre>
 <pre>
  result:
    0 - failure
@@ -332,10 +320,6 @@
    file - the file path you want to write to
    lines - an arrayref. Each array element will be a line in the file</pre>
 <pre>
- arguments optional:
-   fatal
-   debug</pre>
-<pre>
  result:
    0 - failure
    1 - success</pre>
@@ -345,7 +329,7 @@
 <dd>
 <p>Determine if the files are different. $type is assumed to be text unless you set it otherwise. For anthing but text files, we do a MD5 checksum on the files to determine if they are different or not.</p>
 <pre>
-   $util-&gt;files_diff( f1=&gt;$file1,f2=&gt;$file2,type=&gt;'text',debug=&gt;1 );</pre>
+   $util-&gt;files_diff( f1=&gt;$file1,f2=&gt;$file2,type=&gt;'text',verbose=&gt;1 );</pre>
 <pre>
    if ( $util-&gt;files_diff( f1=&gt;&quot;foo&quot;, f2=&gt;&quot;bar&quot; ) )
    {
@@ -357,9 +341,7 @@
    f2 - the second file to compare</pre>
 <pre>
  arguments optional:
-   type - the type of file (text or binary)
-   fatal
-   debug</pre>
+   type - the type of file (text or binary)</pre>
 <pre>
  result:
    0 - files are the same
@@ -380,9 +362,7 @@
    bin - the name of the program (its filename)</pre>
 <pre>
  arguments optional:
-   dir - a directory to check first
-   fatal
-   debug</pre>
+   dir - a directory to check first</pre>
 <pre>
  results:
    0 - failure
@@ -409,9 +389,7 @@
    file - the .conf file to read in</pre>
 <pre>
  arguments optional:
-   etcdir - the etc directory to prefer
-   debug
-   fatal</pre>
+   etcdir - the etc directory to prefer</pre>
 <pre>
  result:
    0 - failure
@@ -474,14 +452,10 @@
 
 <dd>
 <pre>
-   $util-&gt;get_dir_files( $dir, debug=&gt;1 )</pre>
+   $util-&gt;get_dir_files( $dir, verbose=&gt;1 )</pre>
 <pre>
  required arguments:
    dir - a directory</pre>
-<pre>
- optional arguments:
-   fatal
-   debug</pre>
 <pre>
  result:
    an array of files names contained in that directory.
@@ -492,14 +466,13 @@
 <dd>
 <p>Returns the date split into a easy to work with set of strings.</p>
 <pre>
-   $util-&gt;get_the_date( bump=&gt;$bump, debug=&gt;$debug )</pre>
+   $util-&gt;get_the_date( bump=&gt;$bump, verbose=&gt;$verbose )</pre>
 <pre>
  required arguments:
    none</pre>
 <pre>
  optional arguments:
-   bump - the offset (in days) to subtract from the date.
-   debug</pre>
+   bump - the offset (in days) to subtract from the date.</pre>
 <pre>
  result: (array with the following elements)
         $dd = day
@@ -524,7 +497,7 @@
                 url     =&gt; '/simscan/',
                 targets =&gt; ['./configure', 'make', 'make install'],
                 patches =&gt; '',
-                debug   =&gt; 1,
+                verbose =&gt; 1,
         );</pre>
 <p>Downloads and installs a program from sources.</p>
 <pre>
@@ -539,9 +512,7 @@
     patches - arrayref - patch(es) to apply to the sources before compiling
     patch_args -
     source_sub_dir - a subdirectory within the sources build directory
-    bintest - check the usual places for an executable binary. If found, it will assume the software is already installed and require confirmation before re-installing.
-    debug
-    fatal</pre>
+    bintest - check the usual places for an executable binary. If found, it will assume the software is already installed and require confirmation before re-installing.</pre>
 <pre>
  result:
    1 - success
@@ -575,10 +546,6 @@
    prog  - the name of the application
    lines - arrayref - elements are events to log.</pre>
 <pre>
- arguments optional:
-   fatal
-   debug</pre>
-<pre>
  result:
    1 - success
    0 - failure</pre>
@@ -594,7 +561,7 @@
 
 <dd>
 <pre>
-   $util-&gt;mkdir_system( dir =&gt; $dir, debug=&gt;$debug );</pre>
+   $util-&gt;mkdir_system( dir =&gt; $dir, verbose=&gt;$verbose );</pre>
 <p>creates a directory using the system mkdir binary. Can also make levels of directories (-p) and utilize sudo if necessary to escalate.</p>
 </dd>
 <dt><strong><a name="check_pidfile" class="item">check_pidfile</a></strong></dt>
@@ -680,8 +647,7 @@
    url     - the path to the package on $site</pre>
 <pre>
  arguments optional:
-   conf    - hashref - values from toaster-watcher.conf
-   debug</pre>
+   conf    - hashref - values from toaster-watcher.conf</pre>
 <p>This sub proved quite useful during 2005 as many packages began to be distributed in bzip format instead of the traditional gzip.</p>
 </dd>
 <dt><strong><a name="sudo" class="item">sudo</a></strong></dt>
@@ -695,9 +661,6 @@
 <p>If sudo is not installed and you're running as root, it'll offer to install sudo for you. This is recommended, as is properly configuring sudo.</p>
 <pre>
  arguments required:</pre>
-<pre>
- arguments optional:
-   debug</pre>
 <pre>
  result:
    0 - failure
@@ -714,10 +677,6 @@
 <pre>
     arguments required:
       cmd     - the command to execute</pre>
-<pre>
-    arguments optional:
-      debug
-      fatal</pre>
 <pre>
     result
       the exit status of the program you called.</pre>
@@ -756,8 +715,7 @@
 <h1><a name="todo">TODO</a></h1>
 <pre>
   make all errors raise exceptions
-  write test cases for every method
-  comments. always needs more comments.</pre>
+  write test cases for every method</pre>
 <p>
 </p>
 <hr />
