@@ -24,7 +24,7 @@ else {
 
 require_ok('Mail::Toaster::Logs');
 
-my $log = Mail::Toaster::Logs->new(toaster => $toaster, conf=>$conf);
+my $log = Mail::Toaster::Logs->new;
 ok( defined $log, 'get Mail::Toaster::Logs object' );
 ok( $log->isa('Mail::Toaster::Logs'), 'check object class' );
 
