@@ -8,7 +8,7 @@ use Params::Validate ':all';
 
 our (@audit, $last_audit, @errors, $last_error, $verbose); # package variables
 our ($conf, $log);
-our ($apache, $darwin, $dns, $freebsd, $qmail, $setup, $toaster, $util );
+our ($apache, $darwin, $dns, $freebsd, $qmail, $mysql, $setup, $toaster, $util );
 
 our %std_opts = (
         test_ok => { type => BOOLEAN, optional => 1 },
@@ -52,6 +52,13 @@ sub freebsd {
     require Mail::Toaster::FreeBSD;
     return $freebsd = Mail::Toaster::FreeBSD->new();
 }   
+
+sub mysql {
+    my $self = shift;
+    return $mysql if ref $mysql;
+    require Mail::Toaster::Mysql;
+    return $mysql = Mail::Toaster::Mysql->new();
+}
 
 sub qmail {
     my $self = shift;

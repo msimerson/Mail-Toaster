@@ -3807,7 +3807,7 @@ sub mysql {
         return;
     };
 
-    return $self->mysql->install( verbose => $p{verbose} );
+    return $self->SUPER::mysql->install( verbose => $p{verbose} );
 }
 
 sub nictool {
