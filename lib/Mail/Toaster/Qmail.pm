@@ -1111,17 +1111,21 @@ sub install_supervise_run {
 sub install_qmail_control_log_files {
     my $self = shift;
     my %p = validate( @_, {
-            prots   => { type=>ARRAYREF,optional=>1, default=>['smtp', 'send', 'pop3', 'submit'] },
+            prots   => {
+                type=>ARRAYREF, optional=>1,
+                default=>['smtp', 'send', 'pop3', 'submit'],
+            },
             $self->get_std_opts,
         },
     );
 
     my %args = $self->toaster->get_std_args( %p );
     my $prots = $p{prots};
+    push @$prots, "vpopmaild" if $self->conf->{vpopmail_daemon};
 
     my $supervise = $self->conf->{'qmail_supervise'} || "/var/qmail/supervise";
 
-    my %valid_prots = map { $_ => 1 } qw/ smtp send pop3 submit /;
+    my %valid_prots = map { $_ => 1 } qw/ smtp send pop3 submit vpopmaild /;
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -1143,7 +1147,7 @@ sub install_qmail_control_log_files {
 
         $self->audit( "install_qmail_control_log_files: comparing $run_f");
 
-        my $notify = defined $self->conf->{'supervise_rebuild_notice'} ? $self->conf->{'supervise_rebuild_notice'} : 1;
+        my $notify = $self->conf->{'supervise_rebuild_notice'} ? 1 : 0;
 
         if ( -s $tmpfile ) {
             $self->util->install_if_changed(

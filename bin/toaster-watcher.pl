@@ -41,6 +41,7 @@ foreach my $prot ( qw/  send pop3 smtp submit / ) {
     my $method = 'build_' . $prot . '_run';
     $toaster->qmail->$method( %args );
 };
+$toaster->build_vpopmaild_run;
 
 #$toaster->setup->startup_script();
 $toaster->check( %args );

@@ -37,6 +37,29 @@ sub test {
     print $result ? 'ok' : 'FAILED', "\n";
 };
 
+sub build_vpopmaild_run {
+    my $self = shift;
+    my %p = validate( @_, { $self->get_std_opts } );
+    my %args = $self->get_std_args( %p );
+
+    return if ! $self->conf->{vpopmail_daemon};
+
+    $self->audit( "generating vpopmaild/run..." );
+
+    my @lines = $self->toaster->supervised_do_not_edit_notice();
+
+    push @lines, q{#!/bin/sh
+exec 1>/dev/null 2>&1
+exec env - PATH="/usr/bin:/bin:/usr/local/bin:/opt/local/bin" \
+     tcpserver -vHRD 127.0.0.1 89 /usr/local/vpopmail/bin/vpopmaild
+};
+
+    my $file = "/tmp/toaster-watcher-vpopmaild-runfile";
+    $self->util->file_write( $file, lines => \@lines, fatal => 0) or return;
+    $self->qmail->install_supervise_run( tmpfile => $file, prot => 'vpopmaild' ) or return;
+    return 1;
+};
+
 sub check {
     my $self = shift;
     my %p = validate(@_, { $self->get_std_opts } );
@@ -90,29 +113,25 @@ sub check_processes {
     my $self = shift;
     my %p = validate(@_, { $self->get_std_opts } );
     my %args = $self->get_std_args( %p );
+    my $conf = $self->conf;
 
     $self->audit( "checking running processes");
 
-    my @processes = qw( svscan qmail-send );
+    my @processes = qw/ svscan qmail-send multilog /;
 
-    push @processes, "httpd"              if $self->conf->{'install_apache'};
-    push @processes, "mysqld"             if $self->conf->{'install_mysqld'};
-    push @processes, "snmpd"              if $self->conf->{'install_snmp'};
-    push @processes, "clamd", "freshclam" if $self->conf->{'install_clamav'};
-    push @processes, "sqwebmaild"         if $self->conf->{'install_sqwebmail'};
-    push @processes, "imapd-ssl", "imapd", "pop3d-ssl"
-      if $self->conf->{'install_courier-imap'};
-    push @processes, "vpopmaild"          if $self->conf->{'vpopmail_daemon'};
-
-    push @processes, "authdaemond"
-      if ( $self->conf->{'install_courier_imap'} eq "port"
-        || $self->conf->{'install_courier_imap'} > 4 );
-
-    push @processes, "sendlog"
-      if $self->conf->{'send_log_method'} eq "multilog";
-
-    push @processes, "smtplog"
-      if $self->conf->{'smtpd_log_method'} eq "multilog";
+    push @processes, "httpd"              if $conf->{install_apache};
+    push @processes, "httpd"              if $conf->{install_lighttpd};
+    push @processes, "mysqld"             if $conf->{install_mysqld};
+    push @processes, "snmpd"              if $conf->{install_snmp};
+    push @processes, "clamd", "freshclam" if $conf->{install_clamav};
+    push @processes, "sqwebmaild"         if $conf->{install_sqwebmail};
+    push @processes, "dovecot"            if $conf->{install_dovecot};
+    push @processes, "vpopmaild"          if $conf->{vpopmail_daemon};
+    if ( $conf->{install_courier_imap} ) {
+        push @processes, "imapd-ssl", "imapd", "pop3d-ssl";
+        my $cour = $conf->{install_courier_imap};
+        push @processes, "authdaemond" if ( $cour eq 'port' || $cour > 4 );
+    };
 
     foreach (@processes) {
         $self->test( "  $_", $self->util->is_process_running($_), %args );
@@ -906,7 +925,7 @@ sub service_dir_get {
     my $prot = $p{prot};
        $prot = 'smtp' if $prot eq 'smtpd'; # catch and fix legacy usage.
 
-    my @valid = qw/ send smtp pop3 submit qpsmtpd qmail-deliverable /;
+    my @valid = qw/ send smtp pop3 submit qpsmtpd qmail-deliverable vpopmaild /;
     my %valid = map { $_=>1 } @valid;
     return $self->error( "invalid service: $prot",fatal=>0) if ! $valid{$prot};
 
@@ -926,6 +945,7 @@ sub service_symlinks {
     my %args = $self->get_std_args( %p );
 
     my @active_services = 'send';
+    push @active_services, 'vpopmaild' if $self->conf->{vpopmail_daemon};
 
     my $r = $self->service_symlinks_smtp();
     push @active_services, $r if $r;
@@ -1159,7 +1179,7 @@ sub supervised_dir_test {
       || $self->conf->{ $prot . 'd_log_method' }
       || "multilog";
 
-    return 1 if $log_method =~ /syslog|disabled/i;
+    return 1 if $log_method =~ /(?:syslog|disabled)/i;
 
     # make sure the log directory exists
     return $self->error( "$dir/log does not exist", %args ) if ! -d "$dir/log";
@@ -1253,8 +1273,8 @@ sub supervised_multilog {
     my $logprot  = $prot eq 'smtp' ? 'smtpd' : $prot;
     my $runline  = "exec $setuidgid $loguser $multilog t ";
 
-    my $maxbytes = $self->conf->{ $logprot . '_log_maxsize_bytes' } || "100000";
-    my $method   = $self->conf->{ $logprot . '_log_method' };
+    my $maxbytes = $self->conf->{ $logprot . '_log_maxsize_bytes' } || '100000';
+    my $method   = $self->conf->{ $logprot . '_log_method' } || 'none';
 
     if    ( $method eq "stats" )    { $runline .= "-* +stats s$maxbytes "; }
     elsif ( $method eq "disabled" ) { $runline .= "-* "; }
