@@ -1,6 +1,6 @@
-# 
-# Extensive documentation for this file and its settings is 
-# included in the docs directory of the Mail::Toaster 
+#
+# Extensive documentation for this file and its settings is
+# included in the docs directory of the Mail::Toaster
 # distribution, in perl pod format (perldoc toaster-watcher.conf)
 # and posted online at the following URL:
 #
@@ -57,7 +57,7 @@ package_install_method             = ports     # packages | ports
 
 cvsup_server_preferred             = fastest         # fastest or a hostname
 cvsup_server_country               = US
-cvsup_supfile_ports                = portsnap        # portsnap or path to file 
+cvsup_supfile_ports                = portsnap        # portsnap or path to file
                                                      # ex: /etc/cvsup-ports
 cvsup_supfile_sources              = cvsup-sources
 toaster_pkg_site                   = ftp://ftp.freebsd.org
@@ -65,7 +65,7 @@ use_pkgng                          = 1               # Use the new package forma
 
 
 ######################################
-#           Programs 
+#           Programs
 ######################################
 
 # You can pass the version number of some programs
@@ -123,7 +123,7 @@ install_roundcube                  = port    # 0, port
 install_roundcube_db_pass          = To4st3dR0ndc@be
 install_munin                      = port
 
-# openssl 
+# openssl
 install_openssl                    = 1
 openssl_ciphers                    = pci  # a list of OpenSSL ciphers, or one of the following:
                                           # high:    256-bit encryption
@@ -133,7 +133,7 @@ openssl_ciphers                    = pci  # a list of OpenSSL ciphers, or one of
                                           # all:     (see 'openssl ciphers ALL')
 
 ######################################
-#           Mail Filtering 
+#           Mail Filtering
 ######################################
 
 install_mail_filtering             = 1
@@ -196,8 +196,7 @@ vpopmail_user                      = vpopmail
 vpopmail_group                     = vchkpw
 vpopmail_home_dir                  = /usr/local/vpopmail
 vpopmail_learn_passwords           = 1
-vpopmail_default_domain            = 0
-vpopmail_roaming_users             = 1
+vpopmail_roaming_users             = 0
 vpopmail_relay_clear_minutes       = 180
 vpopmail_mysql                     = 0       # enables all mysql options
 vpopmail_mysql_limits              = 0
@@ -223,7 +222,7 @@ vpopmail_default_quota             = 100000000S,10000C  # deprecated in 5.4.0+
 vpopmail_disable_many_domains      = 0
 vpopmail_enable_netblocks          = 0
 vpopmail_maildrop                  = 0
-vpopmail_daemon                    = 1
+vpopmail_daemon                    = 0
 
 
 #######################################
@@ -233,7 +232,7 @@ vpopmail_daemon                    = 1
 # send_log_method - [ syslog | multilog | verbose | stats | disabled ]
 # see smtpd_log_method for complete details
 #
-send_log_method                    = multilog
+send_log_method                    = syslog
 send_log_maxsize_bytes             = 100000     # make this > 5 minutes of logging
 send_log_isoqlog                   = 1
 send_mailbox_string                = ./Maildir/
@@ -280,11 +279,11 @@ smtpd_recordio                     = 0
 # - syslog   - logs to syslog ( /var/log/mail* )
 # - multilog - logs via multilog to $qmail_log_base/smtp
 # - verbose  - enables full debugging, records entire SMTP converation
-# - stats    - only logs stats lines 
+# - stats    - only logs stats lines
 # - disabled - silently discards all logs
 ##
 
-smtpd_log_method                   = multilog
+smtpd_log_method                   = syslog
 smtpd_log_maxsize_bytes            = 100000     # make sure this is larger than 5 minutes of logging
 
 rbl_enable                         = 0       # master RBL switch. Enables all RBLs
@@ -312,7 +311,7 @@ rbl_cbl.abuseat.org                = 0       # http://cbl.abuseat.org/ (part of 
 rbl_sbl.spamhaus.org               = 0       # http://www.spamhaus.org/sbl/
 rbl_xbl.spamhaus.org               = 0       # http://www.spamhaus.org/xbl/
 rbl_pbl.spamhaus.org               = 0       # http://www.spamhaus.org/pbl/
-rbl_dul.dnsbl.sorbs.net            = 0   
+rbl_dul.dnsbl.sorbs.net            = 0
 rbl_zombie.dnsbl.sorbs.net         = 0       # http://www.dnsbl.sorbs.net/
 rbl_socks.dnsbl.sorbs.net          = 0
 rbl_blackholes.mail-abuse.org      = 0       # Subscription only!
@@ -333,10 +332,10 @@ rbl_dynablock.njabl.org            = 0       # being dropped as of 2007.01.??
 rbl_combined.njabl.org             = 0       # aggregate: all njabl.org lists
 rbl_relays.ordb.org                = 0       # DEAD - 2006.12.18 http://www.ordb.org/
 rbl_spews.blackhole.us             = 0       # not available directly - part of dnsbl.sorbs.net
-rbl_bl.ordb.org                    = 0       # DEAD - 
+rbl_bl.ordb.org                    = 0       # DEAD -
 rbl_dialups.visi.com               = 0       # DEAD - no NS records as of 2004.05.02
 rbl_relays.visi.com                = 0       # DEAD - donation required
-rbl_cn.rbl.cluecentral.net         = 0       # DEAD - Block all of China  
+rbl_cn.rbl.cluecentral.net         = 0       # DEAD - Block all of China
 rbl_kr.rbl.cluecentral.net         = 0       # DEAD - Block all of Korea
 rbl_dev.null.dk                    = 0       # DEAD
 rbl_relays.osirusoft.com           = 0       # DEAD
@@ -382,7 +381,7 @@ pop3_checkpasswd_bin               = vpopmail_home_dir/bin/vchkpw
 # pop3_log_method - [ syslog | multilog | verbose | stats | disabled ]
 ##
 
-pop3_log_method                    = multilog   # multilog required for RRDutil
+pop3_log_method                    = syslog     # multilog required for RRDutil
 pop3_log_maxsize_bytes             = 100000     # make this > 5 minutes of logging
 
 
@@ -434,7 +433,7 @@ submit_qmail_queue                 = /var/qmail/bin/simscan
 # - syslog   - logs to syslog ( /var/log/mail* )
 # - multilog - logs via multilog to $qmail_log_base/submit
 # - verbose  - enables full debugging, records entire SMTP converation
-# - stats    - only logs stats lines 
+# - stats    - only logs stats lines
 # - disabled - silently discards all logs
 ##
 
@@ -486,7 +485,7 @@ simscan_block_attachments          = 1       # block attachments in /var/qmail/c
 simscan_block_types                = exe,com,vbs,lnk,scr,wsh,hta,pif
 simscan_received                   = 0       # add the Received: by simscan header
 simscan_custom_smtp_reject         = 1       # does qmail have the custom smtp reject patch?
-simscan_regex_scanner              = 0       # 
+simscan_regex_scanner              = 0       #
 
 
 #######################################
