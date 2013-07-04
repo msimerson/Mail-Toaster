@@ -96,6 +96,8 @@ lib/Mail/Toaster/Logs.pm
 lib/Mail/Toaster/Mysql.pm
 lib/Mail/Toaster/Qmail.pm
 lib/Mail/Toaster/Setup.pm
+lib/Mail/Toaster/Setup/Simscan.pm
+lib/Mail/Toaster/Setup/Test.pm
 lib/Mail/Toaster/Setup/Vpopmail.pm
 lib/Mail/Toaster/Utility.pm
 lib/toaster-watcher.conf.pod

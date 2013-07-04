@@ -1,0 +1,568 @@
+package Mail::Toaster::Test;
+
+use strict;
+use warnings;
+
+#use Carp;
+#use Config;
+#use Cwd;
+#use Data::Dumper;
+#use File::Copy;
+#use File::Path;
+use English '-no_match_vars';
+#use Params::Validate qw( :all );
+#use Sys::Hostname;
+
+use lib 'lib';
+use parent 'Mail::Toaster::Base';
+
+sub daemontools_test {
+    my $self = shift;
+
+    print "checking daemontools binaries...\n";
+    my @bins = qw/ multilog softlimit setuidgid supervise svok svscan tai64nlocal /;
+    foreach my $test ( @bins ) {
+        my $bin = $self->util->find_bin( $test, fatal => 0, verbose=>0);
+        $self->toaster->test("  $test", -x $bin );
+    };
+
+    return 1;
+}
+
+sub pop3_test_auth {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts },);
+
+    my @features;
+
+    $OUTPUT_AUTOFLUSH = 1;
+
+    my $r = $self->util->install_module( "Mail::POP3Client", verbose => 0,);
+    $self->toaster->test("checking Mail::POP3Client", $r );
+    if ( ! $r ) {
+        print "skipping POP3 tests\n";
+        return;
+    };
+
+    my %auths = (
+        'POP3'          => { type => 'PASS',     descr => 'plain text' },
+        'POP3-APOP'     => { type => 'APOP',     descr => 'APOP' },
+        'POP3-CRAM-MD5' => { type => 'CRAM-MD5', descr => 'CRAM-MD5' },
+        'POP3-SSL'      => { type => 'PASS', descr => 'plain text', ssl => 1 },
+        'POP3-SSL-APOP' => { type => 'APOP', descr => 'APOP', ssl => 1 },
+        'POP3-SSL-CRAM-MD5' => { type => 'CRAM-MD5', descr => 'CRAM-MD5', ssl => 1 },
+    );
+
+    foreach ( sort keys %auths ) {
+        $self->pop3_auth( $_, $auths{$_} );
+    }
+
+    return 1;
+}
+
+sub smtp_test_auth {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts } );
+
+    my @modules = ('IO::Socket::INET', 'IO::Socket::SSL', 'Net::SSLeay', 'Socket qw(:DEFAULT :crlf)');
+    foreach ( @modules ) {
+        eval "use $_";
+        die $@ if $@;
+        $self->toaster->test( "loading $_", 'ok' );
+    };
+
+    Net::SSLeay::load_error_strings();
+    Net::SSLeay::SSLeay_add_ssl_algorithms();
+    Net::SSLeay::randomize();
+
+    my $host = $self->conf->{'smtpd_listen_on_address'} || 'localhost';
+       $host = 'localhost' if ( $host =~ /system|qmail|all/i );
+
+
+
+
+
+    my $smtp = Net::SMTP_auth->new($host);
+    $self->toaster->test( "connect to smtp port on $host", $smtp );
+    return 0 if ! defined $smtp;
+
+    my @auths = $smtp->auth_types();
+    $self->toaster->test( "  get list of SMTP AUTH methods", scalar @auths);
+    $smtp->quit;
+
+    $self->smtp_test_auth_pass($host, \@auths);
+    $self->smtp_test_auth_fail($host, \@auths);
+};
+
+sub smtp_test_auth_pass {
+    my $self = shift;
+    my $host = shift;
+    my $auths = shift or die "invalid params\n";
+
+    my $user = $self->conf->{'toaster_test_email'}      || 'test2@example.com';
+    my $pass = $self->conf->{'toaster_test_email_pass'} || 'cHanGeMe';
+
+    # test each authentication method the server advertises
+    foreach (@$auths) {
+
+        my $smtp = Net::SMTP_auth->new($host);
+        my $r = $smtp->auth( $_, $user, $pass );
+        $self->toaster->test( "  authentication with $_", $r );
+        next if ! $r;
+
+        $smtp->mail( $self->conf->{'toaster_admin_email'} );
+        $smtp->to('postmaster');
+        $smtp->data();
+        $smtp->datasend("To: postmaster\n");
+        $smtp->datasend("\n");
+        $smtp->datasend("A simple test message\n");
+        $smtp->dataend();
+
+        $smtp->quit;
+        $self->toaster->test("  sending after auth $_", 1 );
+    }
+}
+
+sub smtp_test_auth_fail {
+    my $self = shift;
+    my $host = shift;
+    my $auths = shift or die "invalid params\n";
+
+    my $user = 'non-exist@example.com';
+    my $pass = 'non-password';
+
+    foreach (@$auths) {
+        my $smtp = Net::SMTP_auth->new($host);
+        my $r = $smtp->auth( $_, $user, $pass );
+        $self->toaster->test( "  failed authentication with $_", ! $r );
+        $smtp->quit;
+    }
+}
+
+sub run_all {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts } );
+
+    print "testing...\n";
+
+    $self->test_qmail;
+    sleep 1;
+    $self->daemontools_test;
+    sleep 1;
+    $self->ucspi_test;
+    sleep 1;
+
+    $self->dump_audit(quiet=>1);  # clear audit history
+
+    $self->test_supervised_procs;
+    sleep 1;
+    $self->test_logging;
+    sleep 1;
+    $self->setup->vpopmail->test;
+    sleep 1;
+
+    $self->toaster->check_processes;
+    sleep 1;
+    $self->test_network;
+    sleep 1;
+    $self->test_crons;
+    sleep 1;
+
+    $self->qmail->check_rcpthosts();
+    sleep 1;
+
+    if ( ! $self->util->yes_or_no( "skip the mail scanner tests?", timeout  => 10 ) ) {
+        $self->simscan->test;
+        print "\n\nFor more ways to test your Virus scanner, go here:
+\n\t http://www.testvirus.org/\n\n";
+    };
+    sleep 1;
+
+    if ( ! $self->util->yes_or_no( "skip the authentication tests?", timeout  => 10) ) {
+        $self->test_auth();
+    };
+
+    # there's plenty more room here for more tests.
+
+    # test DNS!
+    # make sure primary IP is not reserved IP space
+    # test reverse address for this machines IP
+    # test resulting hostname and make sure it matches
+    # make sure server's domain name has NS records
+    # test MX records for server name
+    # test for SPF records for server name
+
+    # test for low disk space on /, qmail, and vpopmail partitions
+
+    print "\ntesting complete.\n";
+}
+
+sub test_auth {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts } );
+
+    $self->test_auth_setup or return;
+
+    $self->imap_test_auth;
+    $self->pop3_test_auth;
+    $self->smtp_test_auth;
+
+    print
+"\n\nNOTICE: It is normal for some of the tests to fail. This test suite is useful for any mail server, not just a Mail::Toaster. \n\n";
+
+    # webmail auth
+    # other ?
+}
+
+sub test_auth_setup {
+    my $self = shift;
+
+    my $qmail_dir = $self->conf->{'qmail_dir'};
+    my $assign    = "$qmail_dir/users/assign";
+    my $email     = $self->conf->{'toaster_test_email'};
+    my $pass      = $self->conf->{'toaster_test_email_pass'};
+
+    my $domain = ( split( '@', $email ) )[1];
+    print "test_auth: testing domain is: $domain.\n";
+
+    if ( ! -e $assign || ! grep {/:$domain:/} `cat $assign` ) {
+        print "domain $domain is not set up.\n";
+        return if ! $self->util->yes_or_no( "may I add it for you?", timeout => 30 );
+
+        my $vpdir = $self->conf->{'vpopmail_home_dir'};
+        system "$vpdir/bin/vadddomain $domain $pass";
+        system "$vpdir/bin/vadduser $email $pass";
+    }
+
+    open( my $ASSIGN, '<', $assign) or return;
+    return if ! grep {/:$domain:/} <$ASSIGN>;
+    close $ASSIGN;
+
+    if ( $OSNAME eq "freebsd" ) {
+        $self->freebsd->install_port( "p5-Mail-POP3Client" ) or return;
+        $self->freebsd->install_port( "p5-Mail-IMAPClient" ) or return;
+        $self->freebsd->install_port( "p5-Net-SMTP_auth"   ) or return;
+        $self->freebsd->install_port( "p5-IO-Socket-SSL"   ) or return;
+    }
+    return 1;
+};
+
+sub test_crons {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts },);
+
+    my $tw = $self->util->find_bin( 'toaster-watcher.pl', verbose => 0);
+    my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+
+    my @crons = ( "$vpopdir/bin/clearopensmtp", $tw);
+
+    my $sqcache = "/usr/local/share/sqwebmail/cleancache.pl";
+    push @crons, $sqcache if ( $self->conf->{'install_sqwebmail'} && -x $sqcache);
+
+    print "checking cron processes\n";
+
+    foreach (@crons) {
+        $self->toaster->test("  $_", system( $_ ) ? 0 : 1 );
+    }
+}
+
+sub test_dns {
+
+    print <<'EODNS'
+People forget to even have DNS setup on their Toaster, as Matt has said before. If someone forgot to configure DNS, chances are, little or nothing will work -- from port fetching to timely mail delivery.
+
+How about adding a simple DNS check to the Toaster Setup test suite? And in the meantime, you could give some sort of crude benchmark, depending on the circumstances of the test data.  I am not looking for something too hefty, but something small and sturdy to make sure there is a good DNS server around answering queries reasonably fast.
+
+Here is a sample of some DNS lookups you could perform.  What I would envision is that there were around 20 to 100 forward and reverse lookups, and that the lookups were timed.  I guess you could look them up in parallel, and wait a maximum of around 15 seconds for all of the replies.  The interesting thing about a lot of reverse lookups is that they often fail because no one has published them.
+
+Iteration 1: lookup A records.
+Iteration 2: lookup NS records.
+Iteration 3: lookup MX records.
+Iteration 4: lookup TXT records.
+Iteration 5: Repeat step 1, observe the faster response time due to caching.
+
+Here's a sample output!  Wow.
+
+#toaster_setup.pl -s dnstest
+Would you like to enter a local domain so I can test it in detail?
+testmydomain-local.net
+Would you like to test domains with underscores in them? (y/n)n
+Testing /etc/rc.conf for a hostname= line...
+This box is known as smtp.testmydomain-local.net
+Verifying /etc/hosts exists ... Okay
+Verifying /etc/host.conf exists ... Okay
+Verifying /etc/nsswitch.conf exists ... Okay
+Doing reverse lookups in in-addr.arpa using default name service....
+Doing forward A lookups using default name service....
+Doing forward NS lookups using default name service....
+Doing forward MX lookups using default name service....
+Doing forward TXT lookups using default name service....
+Results:
+[Any errors, like...]
+Listing Reverses Not found:
+10.120.187.45 (normal)
+169.254.89.123 (normal)
+Listing A Records Not found:
+example.impossible.nonexistent.bogus.co.nl (normal)
+Listing TXT Records Not found:
+Attempting to lookup the same A records again....  Hmmm. much faster!
+Your DNS Server (or its forwarder) seems to be caching responses. (Good)
+
+Checking local domain known as testmydomain-local.net
+Checking to see if I can query the testmydomain-local.net NS servers and retrieve the entire DNS record...
+ns1.testmydomain-local.net....yes.
+ns256.backup-dns.com....yes.
+ns13.ns-ns-ns.net...no.
+Do DNS records agree on all DNS servers?  Yes. identical.
+Skipping SOA match.
+
+I have discovered that testmydomain-local.net has no MX records.  Shame on you, this is a mail server!  Please fix this issue and try again.
+
+I have discovered that testmydomain-local.net has no TXT records.  You may need to consider an SPF v1 TXT record.
+
+Here is a dump of your domain records I dug up for you:
+xoxoxoxox
+
+Does hostname agree with DNS?  Yes. (good).
+
+Is this machine a CNAME for something else in DNS?  No.
+
+Does this machine have any A records in DNS?  Yes.
+smtp.testmydomain-local.net is 192.168.41.19.  This is a private IP.
+
+Round-Robin A Records in DNS pointing to another machine/interface?
+No.
+
+Does this machine have any CNAME records in DNS?  Yes. aka
+box1.testmydomain-local.net
+pop.testmydomain-local.net
+webmail.testmydomain-local.net
+
+***************DNS Test Output complete
+
+Sample Forwards:
+The first few may be cached, and the last one should fail.  Some will have no MX server, some will have many.  (The second to last entry has an interesting mail exchanger and priority.)  Many of these will (hopefully) not be found in even a good sized DNS cache.
+
+I have purposely listed a few more obscure entries to try to get the DNS server to do a full lookup.
+localhost
+<vpopmail_default_domain if set>
+www.google.com
+yahoo.com
+nasa.gov
+sony.co.jp
+ctr.columbia.edu
+time.nrc.ca
+distancelearning.org
+www.vatican.va
+klipsch.com
+simerson.net
+warhammer.mcc.virginia.edu
+example.net
+foo.com
+example.impossible.nonexistent.bogus.co.nl
+
+[need some obscure ones that are probably always around, plus some non-US sample domains.]
+
+Sample Reverses:
+Most of these should be pretty much static.  Border routers, nics and such.  I was looking for a good range of IP's from different continents and providers.  Help needed in some networks.  I didn't try to include many that don't have a published reverse name, but many examples exist in case you want to purposely have some.
+127.0.0.1
+224.0.0.1
+198.32.200.50	(the big daddy?!)
+209.197.64.1
+4.2.49.2
+38.117.144.45
+64.8.194.3
+72.9.240.9
+128.143.3.7
+192.228.79.201
+192.43.244.18
+193.0.0.193
+194.85.119.131
+195.250.64.90
+198.32.187.73
+198.41.3.54
+198.32.200.157
+198.41.0.4
+198.32.187.58
+198.32.200.148
+200.23.179.1
+202.11.16.169
+202.12.27.33
+204.70.25.234
+207.132.116.7
+212.26.18.3
+10.120.187.45
+169.254.89.123
+
+[Looking to fill in some of the 12s, 50s and 209s better.  Remove some 198s]
+
+Just a little project.  I'm not sure how I could code it, but it is a little snippet I have been thinking about.  I figure that if you write the code once, it would be quite a handy little feature to try on a server you are new to.
+
+Billy
+
+EODNS
+      ;
+}
+
+sub test_logging {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts },);
+
+    print "do the logging directories exist?\n";
+    my $q_log = $self->conf->{'qmail_log_base'};
+    foreach ( '', "pop3", "send", "smtp", "submit" ) {
+        $self->toaster->test("  $q_log/$_", -d "$q_log/$_" );
+    }
+
+    print "checking log files?\n";
+    my @active_log_files = ( "clean.log", "maildrop.log", "watcher.log",
+                    "send/current",  "smtp/current",  "submit/current" );
+
+    push @active_log_files, "pop3/current" if $self->conf->{'pop3_daemon'} eq 'qpop3d';
+
+    foreach ( @active_log_files ) {
+        $self->toaster->test("  $_", -f "$q_log/$_" );
+    }
+}
+
+sub test_network {
+    my $self = shift;
+    return if $self->util->yes_or_no( "skip the network listener tests?",
+            timeout  => 10,
+        );
+
+    my $netstat = $self->util->find_bin( 'netstat', fatal => 0, verbose=>0 );
+    return unless $netstat && -x $netstat;
+
+    if ( $OSNAME eq "freebsd" ) { $netstat .= " -alS" }
+    if ( $OSNAME eq "darwin" )  { $netstat .= " -al" }
+    if ( $OSNAME eq "linux" )   { $netstat .= " -a --numeric-hosts" }
+    else { $netstat .= " -a" };      # should be pretty safe
+
+    print "checking for listening tcp ports\n";
+    my @listeners = `$netstat | grep -i listen`;
+    foreach (qw( smtp http pop3 imap https submission pop3s imaps )) {
+        $self->toaster->test("  $_", scalar grep {/$_/} @listeners );
+    }
+
+    print "checking for udp listeners\n";
+    my @udps;
+    push @udps, "snmp" if $self->conf->{install_snmp};
+
+    foreach ( @udps ) {
+        $self->toaster->test("  $_", `$netstat | grep $_` );
+    }
+}
+
+sub test_qmail {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts } );
+
+    my $qdir = $self->conf->{'qmail_dir'};
+    print "does qmail's home directory exist?\n";
+    $self->toaster->test("  $qdir", -d $qdir );
+
+    print "checking qmail directory contents\n";
+    my @tests = qw(alias boot control man users bin doc queue);
+    push @tests, "configure" if ( $OSNAME eq "freebsd" );    # added by the port
+    foreach (@tests) {
+        $self->toaster->test("  $qdir/$_", -d "$qdir/$_" );
+    }
+
+    print "is the qmail rc file executable?\n";
+    $self->toaster->test(  "  $qdir/rc", -x "$qdir/rc" );
+
+    print "do the qmail users exist?\n";
+    foreach (
+        $self->conf->{'qmail_user_alias'}  || 'alias',
+        $self->conf->{'qmail_user_daemon'} || 'qmaild',
+        $self->conf->{'qmail_user_passwd'} || 'qmailp',
+        $self->conf->{'qmail_user_queue'}  || 'qmailq',
+        $self->conf->{'qmail_user_remote'} || 'qmailr',
+        $self->conf->{'qmail_user_send'}   || 'qmails',
+        $self->conf->{'qmail_log_user'}    || 'qmaill',
+      )
+    {
+        $self->toaster->test("  $_", $self->user_exists($_) );
+    }
+
+    print "do the qmail groups exist?\n";
+    foreach ( $self->conf->{'qmail_group'}     || 'qmail',
+              $self->conf->{'qmail_log_group'} || 'qnofiles',
+        ) {
+        $self->toaster->test("  $_", scalar getgrnam($_) );
+    }
+
+    print "do the qmail alias files have contents?\n";
+    my $q_alias = "$qdir/alias/.qmail";
+    foreach ( qw/ postmaster root mailer-daemon / ) {
+        $self->toaster->test( "  $q_alias-$_", -s "$q_alias-$_" );
+    }
+}
+
+sub test_supervised_procs {
+    my $self = shift;
+
+    print "do supervise directories exist?\n";
+    my $q_sup = $self->conf->{'qmail_supervise'} || "/var/qmail/supervise";
+    $self->toaster->test("  $q_sup", -d $q_sup);
+
+    # check supervised directories
+    foreach ( qw/ smtp send pop3 submit / ) {
+        $self->toaster->test( "  $q_sup/$_",
+            $self->toaster->supervised_dir_test( prot => $_, verbose=>1 ) );
+    }
+
+    print "do service directories exist?\n";
+    my $q_ser = $self->conf->{'qmail_service'};
+
+    my @active_service_dirs;
+    foreach ( qw/ smtp send / ) {
+        push @active_service_dirs, $self->toaster->service_dir_get( prot => $_ );
+    }
+
+    push @active_service_dirs, $self->toaster->service_dir_get( prot => 'pop3' )
+        if $self->conf->{'pop3_daemon'} eq 'qpop3d';
+
+    push @active_service_dirs, $self->toaster->service_dir_get( prot => "submit" )
+        if $self->conf->{'submit_enable'};
+
+    foreach ( $q_ser, @active_service_dirs ) {
+        $self->toaster->test( "  $_", -d $_ );
+    }
+
+    print "are the supervised services running?\n";
+    my $svok = $self->util->find_bin( 'svok', fatal => 0 );
+    foreach ( @active_service_dirs ) {
+        $self->toaster->test( "  $_", system("$svok $_") ? 0 : 1 );
+    }
+};
+
+sub ucspi_test {
+    my $self  = shift;
+
+    print "checking ucspi-tcp binaries...\n";
+    foreach (qw( tcprules tcpserver rblsmtpd tcpclient recordio )) {
+        $self->toaster->test("  $_", $self->util->find_bin( $_, fatal => 0, verbose=>0 ) );
+    }
+
+    if ( $self->conf->{install_mysql} && $self->conf->{'vpopmail_mysql'} ) {
+        my $tcpserver = $self->util->find_bin( "tcpserver", fatal => 0, verbose=>0 );
+        $self->toaster->test( "  tcpserver mysql support",
+            scalar `strings $tcpserver | grep sql`
+        );
+    }
+
+    return 1;
+}
+
+sub vpopmail {
+    shift @_;
+    require Mail::Toaster::Setup::Vpopmail;
+    my $vpopmail = Mail::Toaster::Setup::Vpopmail->new;
+    return $vpopmail->install(@_);
+};
+
+1;
+__END__;
+

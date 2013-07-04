@@ -450,7 +450,7 @@ sub vpopmail_roaming_users {
     return " --enable-roaming-users=y";
 };
 
-sub vpopmail_test {
+sub test {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
