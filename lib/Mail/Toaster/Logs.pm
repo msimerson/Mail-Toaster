@@ -22,7 +22,6 @@ use parent 'Mail::Toaster::Base';
 
 sub report_yesterdays_activity {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
 
     my %p = validate(@_, { $self->get_std_opts } );
 
@@ -93,7 +92,6 @@ EO_EMAIL
 
 sub find_qmailanalog {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
 
     my $qmailanalog_dir = $self->conf->{'qmailanalog_bin'} || "/var/qmail/qmailanalog/bin";
 
@@ -136,7 +134,6 @@ EO_NO_MATCHUP
 
 sub get_yesterdays_send_log {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
 
     if ( $self->conf->{'send_log_method'} && $self->conf->{'send_log_method'} eq "syslog" ) {
         return $self->get_yesterdays_send_log_syslog();
@@ -190,7 +187,6 @@ sub get_yesterdays_send_log_syslog {
 
 sub get_yesterdays_smtp_log {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
 
     my $logbase = $self->conf->{'logs_base'}   # some form of multilog logging
         || $self->conf->{'qmail_log_base'}
@@ -256,7 +252,6 @@ sub verify_settings {
 
 sub parse_cmdline_flags {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
 
     my %p = validate(@_, {
         'prot' => { type=>SCALAR|UNDEF, optional=>1, },
@@ -264,7 +259,6 @@ sub parse_cmdline_flags {
     } );
 
     my $prot  = $p{'prot'} or pod2usage;
-       $verbose = $p{'verbose'};
 
     my @prots = qw/ smtp send imap pop3 rbl yesterday qmailscanner
                     spamassassin webmail test /;
@@ -290,7 +284,6 @@ sub parse_cmdline_flags {
 
 sub what_am_i {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
 
     $self->audit( "what_am_i: $0");
     $0 =~ /([a-zA-Z0-9\.]*)$/;
@@ -972,17 +965,13 @@ sub roll_send_logs {
 
 sub roll_rbl_logs {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
 
     my $logbase = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $countfile = $self->set_countfile(prot=>'rbl');
 
-    my $countfile = $self->set_countfile(prot=>"rbl");
-    unless ( -r $countfile ) {
-        carp "WARNING: roll_rbl_logs could not read $countfile!: $!";
-        return;
+    if ( -r $countfile ) {
+        $spam_ref = $self->counter_read( file=>$countfile );
     }
-
-    $spam_ref = $self->counter_read( file=>$countfile );
 
     $self->process_rbl_logs(
         roll  => 1,
@@ -990,6 +979,7 @@ sub roll_rbl_logs {
     );
 
     $self->counter_write( log=>$countfile, values=>$spam_ref, fatal=>0 );
+    exit 0;
 }
 
 sub roll_pop3_logs {
@@ -1157,7 +1147,7 @@ sub process_rbl_logs {
     if ( $p{'roll'} ) {
         my $PIPE_TO_CRONOLOG;
         if ( ! $skip_archive ) {
-            $PIPE_TO_CRONOLOG = $self->get_cronolog_handle(file=>"smtplog")
+            $PIPE_TO_CRONOLOG = $self->get_cronolog_handle(file=>'smtplog')
                 or $skip_archive++;
         };
 
@@ -1499,7 +1489,7 @@ sub get_cronolog_handle {
     my $self  = shift;
     my $verbose = $self->{'verbose'};
 
-    my %p = validate(@_, { 'file' => SCALAR, },);
+    my %p = validate(@_, { 'file' => SCALAR } );
 
     my $file = $p{'file'};
 
@@ -1507,19 +1497,19 @@ sub get_cronolog_handle {
 
     # archives disabled in toaster.conf
     if ( ! $self->conf->{'logs_archive'} ) {
-        print "get_cronolog_handle: archives disabled, skipping cronolog handle.\n" if $verbose;
+        warn "get_cronolog_handle: archives disabled, skipping cronolog handle.\n" if $verbose;
         return;
     };
 
     # $logbase is missing and we haven't permission to create it
     unless ( -w $logbase ) {
-        carp "WARNING: could not write to $logbase. FAILURE!";
+        warn "WARN: could not write to $logbase. FAILURE!";
         return;
     };
 
     my $cronolog = $self->util->find_bin( "cronolog", verbose=>0, fatal=>0 );
     if ( ! $cronolog || !-x $cronolog) {
-        carp "cronolog could not be found. Please install it!";
+        warn "cronolog could not be found. Please install it!";
         return;
     }
 
@@ -1538,7 +1528,6 @@ sub get_cronolog_handle {
 
         $tai64nlocal = $taibin;
     }
-
 
     my $cronolog_invocation = "| ";
     $cronolog_invocation .= "$tai64nlocal | " if $tai64nlocal;
@@ -1583,18 +1572,15 @@ sub syslog_locate {
 
 sub set_countfile {
     my $self = shift;
-    my $verbose = $self->{'verbose'};
 
-    my %p = validate(@_, { prot=>SCALAR }, );
+    my %p = validate(@_, { prot=>SCALAR } );
     my $prot = $p{'prot'};
-
-    print "set_countfile: countfile for prot $prot is " if $verbose;
 
     my $logbase  = $self->conf->{'logs_base'} || "/var/log/mail";
     my $counters = $self->conf->{'logs_counters'} || "counters";
     my $prot_file = $self->conf->{'logs_'.$prot.'_count'} || "$prot.txt";
 
-    print "$logbase/$counters/$prot_file\n" if $verbose;
+# $self->audit( "countfile: $logbase/$counters/$prot_file");
 
     return "$logbase/$counters/$prot_file";
 }
@@ -1682,9 +1668,9 @@ $prot is the protocol we're supposed to work on.
 
 =item counter_read
 
-	$logs->counter_read( file=>$file, verbose=>$verbose);
+	$logs->counter_read( file=>$file );
 
-$file is the file to read from. $verbose is optional, it prints out verbose messages during the process. The sub returns a hashref full of key value pairs.
+$file is the file to read from. The sub returns a hashref full of key value pairs.
 
 
 =item counter_write
@@ -1751,11 +1737,11 @@ For a supplied protocol, cleans out last months email logs.
 
 Count the number of connections we've blocked (via rblsmtpd) for each RBL that we use.
 
-	$logs->rbl_count($verbose);
+	$logs->rbl_count(
 
 =item roll_rbl_logs
 
-	$logs->roll_rbl_logs($verbose);
+	$logs->roll_rbl_logs();
 
 Roll the qmail-smtpd logs (without 2>&1 output generated by rblsmtpd).
 
@@ -1796,7 +1782,7 @@ Count statistics logged by SpamAssassin.
 
 =item syslog_locate
 
-	$logs->syslog_locate($verbose);
+	$logs->syslog_locate;
 
 Determine where syslog.mail is logged to. Right now we just test based on the OS you're running on and assume you've left it in the default location. This is easy to expand later.
 

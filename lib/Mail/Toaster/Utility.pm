@@ -722,8 +722,10 @@ sub find_config {
         }
     );
 
-#my @caller = caller;
-#warn sprintf( "find_config loaded by %s, %s, %s\n", @caller );
+    if ( $p{verbose} > 1 ) {
+        my @caller = caller;
+        $self->audit( sprintf("find_config loaded by %s, %s, %s\n", @caller ));
+    };
 
     $self->audit("find_config: searching for $file");
 
@@ -1038,10 +1040,7 @@ sub get_url {
 
     $self->audit( "fetching $url" );
     eval { $response = LWP::Simple::mirror($url, $file_path ); };
-    if ( $EVAL_ERROR ) {
-        $self->audit( $EVAL_ERROR );
-        return;
-    };
+    $self->error( $EVAL_ERROR ) if $EVAL_ERROR;
 
     if ( $response ) {
         if ( $response == 404 ) {
@@ -1058,7 +1057,7 @@ sub get_url {
         };
     };
 
-    return if ! -e $file_path;
+    $self->error( "download failed for $url!") if ! -e $file_path;
     return $response;
 }
 
@@ -1465,7 +1464,7 @@ sub install_from_source_get_files {
     foreach my $patch (@$patches) {
         next if ! $patch;
         next if -e $patch;
-        $self->get_url( "$patch_url/$patch" ) or return;
+        $self->get_url( "$patch_url/$patch" );
     };
 
     return 1;

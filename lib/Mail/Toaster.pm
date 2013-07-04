@@ -109,12 +109,10 @@ sub check_processes {
         || $self->conf->{'install_courier_imap'} > 4 );
 
     push @processes, "sendlog"
-      if ( $self->conf->{'send_log_method'} eq "multilog"
-        && $self->conf->{'send_log_postprocessor'} eq "maillogs" );
+      if $self->conf->{'send_log_method'} eq "multilog";
 
     push @processes, "smtplog"
-      if ( $self->conf->{'smtpd_log_method'} eq "multilog"
-        && $self->conf->{'smtpd_log_postprocessor'} eq "maillogs" );
+      if $self->conf->{'smtpd_log_method'} eq "multilog";
 
     foreach (@processes) {
         $self->test( "  $_", $self->util->is_process_running($_), %args );
@@ -1254,11 +1252,6 @@ sub supervised_multilog {
     my $log_base = $self->conf->{'qmail_log_base'} || $self->conf->{'log_base'} || '/var/log/mail';
     my $logprot  = $prot eq 'smtp' ? 'smtpd' : $prot;
     my $runline  = "exec $setuidgid $loguser $multilog t ";
-
-    if ( $self->conf->{ $logprot . '_log_postprocessor' } eq "maillogs" ) {
-        $self->audit( "supervised_multilog: using maillogs for $prot");
-        $runline .= "!./" . $prot . "log ";
-    }
 
     my $maxbytes = $self->conf->{ $logprot . '_log_maxsize_bytes' } || "100000";
     my $method   = $self->conf->{ $logprot . '_log_method' };

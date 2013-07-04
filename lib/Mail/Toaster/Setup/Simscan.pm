@@ -23,12 +23,12 @@ sub install {
     return $p{test_ok} if defined $p{test_ok}; # for testing
 
     my $ver = $self->conf->{'install_simscan'} or do {
-        $self->audit( "simscan: installing, skipping (disabled)" );
+        $self->audit( "simscan install, skipping (disabled)" );
         return;
     };
 
     if ( $OSNAME eq 'freebsd' ) {
-        my $r = $self->simscan_freebsd_port();
+        my $r = $self->install_freebsd_port();
         return $r if $ver eq 'port';
     };
 
@@ -78,10 +78,10 @@ sub install {
         bintest        => "$qdir/bin/simscan",
         source_sub_dir => 'mail',
         patches        => $patches,
-        patch_url      => "$self->conf->{'toaster_dl_site'}$self->conf->{'toaster_dl_url'}/patches",
+        patch_url      => $self->conf->{'toaster_dl_site'}.$self->conf->{'toaster_dl_url'}.'/patches',
     );
 
-    $self->simscan_conf();
+    $self->config();
 }
 
 sub simscan_clamav {
@@ -105,7 +105,7 @@ sub simscan_clamav {
     return $cmd;
 };
 
-sub simscan_conf {
+sub config {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
@@ -179,7 +179,7 @@ sub simscan_conf {
     }
 }
 
-sub simscan_freebsd_port {
+sub install_freebsd_port {
     my $self = shift;
 
     my @args;
@@ -208,7 +208,7 @@ WITH_HEADERS=true
 WITHOUT_DSPAM=true",
     );
 
-    return $self->simscan_conf();
+    return $self->config();
 };
 
 sub simscan_regex {
@@ -218,7 +218,7 @@ sub simscan_regex {
     my $config = "--enable-regex=y ";
 
     if ( $OSNAME eq "freebsd" ) {
-        $self->freebsd->install_port( "pcre" );
+        $self->freebsd->install_port( 'pcre' );
         $config .= "--with-pcre-include=/usr/local/include ";
     }
     else {
@@ -230,7 +230,7 @@ sub simscan_regex {
 sub simscan_ripmime {
     my ($self, $ver ) = @_;
 
-    if ( ! $self->is_newer( min => "1.0.8", cur => $ver ) ) {
+    if ( ! $self->setup->is_newer( min => "1.0.8", cur => $ver ) ) {
         print "ripmime doesn't work with simcan < 1.0.8\n";
         return '';
     };
@@ -241,7 +241,7 @@ sub simscan_ripmime {
     unless ( -x $bin ) {
         croak "couldn't find $bin, install ripmime!\n";
     }
-    $self->ripmime();
+    $self->setup->ripmime() or return '';
     return "--enable-ripmime=$bin ";
 };
 

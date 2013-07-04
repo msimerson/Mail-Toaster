@@ -162,17 +162,13 @@ sub clamav {
 
     # install via ports if selected
     if ( $OSNAME eq "freebsd" && $ver eq "port" ) {
-        $self->freebsd->install_port( "clamav", flags => "BATCH=yes WITHOUT_LDAP=1",);
-
-        $self->clamav_update() or return;
-        $self->clamav_perms () or return;
-        $self->clamav_start () or return;
-        return 1;
+        $self->freebsd->install_port( "clamav", flags => "BATCH=yes WITHOUT_LDAP=1");
+        return $self->clamav_post_install;
     }
 
     # add the clamav user and group
     unless ( getpwuid($clamuser) ) {
-        $self->group_add( "clamav", "90" );
+        $self->group_add( 'clamav', '90' );
         $self->user_add( $clamuser, 90, 90 );
     }
 
@@ -183,19 +179,14 @@ sub clamav {
 
     # install via ports if selected
     if ( $OSNAME eq "darwin" && $ver eq "port" ) {
-        if ( $self->darwin->install_port( "clamav" ) ) {
-            $self->audit( "clamav: installing, ok" );
-        }
-        $self->clamav_update( ) or return;
-        $self->clamav_perms ( ) or return;
-        $self->clamav_start ( ) or return;
-        return 1;
+        $self->darwin->install_port( "clamav" ) or return;
+        return $self->clamav_post_install;
     }
 
     # port installs didn't work out, time to build from sources
 
     # set a default version of ClamAV if not provided
-    if ( $ver eq "1" ) { $ver = "0.96.1"; }; # latest as of 6/2010
+    if ( $ver eq "1" ) { $ver = "0.97.8"; }; # latest as of 6/2013
 
     # download the sources, build, and install ClamAV
     $self->util->install_from_source(
@@ -212,9 +203,17 @@ sub clamav {
 
     $self->audit( "clamav: installed ok" );
 
-    $self->clamav_update() or return;
-    $self->clamav_perms () or return;
-    $self->clamav_start () or return;
+    return $self->clamav_post_install;
+}
+
+sub clamav_post_install {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts } );
+
+    $self->clamav_update or return;
+    $self->clamav_perms  or return;
+    $self->clamav_start  or return;
+    return 1;
 }
 
 sub clamav_perms {
@@ -318,6 +317,7 @@ sub clamav_update {
     my $freshclam = $self->util->find_bin( "freshclam", verbose=>0 )
         or return $self->error( "couldn't find freshclam!", fatal=>0);
 
+    $self->audit("updating ClamAV database with freshclam");
     $self->util->syscmd( "$freshclam", verbose => 0, fatal => 0 );
     return 1;
 }
@@ -1812,7 +1812,7 @@ WITHOUT_PORTS_SENDMAIL=true\n",
     $self->spamassassin;
     $self->razor;
     $self->clamav;
-    $self->simscan;
+    $self->simscan->install;
 }
 
 sub gmake_freebsd {
@@ -2376,25 +2376,6 @@ sub maillogs {
     $self->toaster->supervise_dirs_create( verbose=>1 );
     $self->maillogs_create_dirs();
 
-    my $maillogs = $self->util->find_bin( 'maillogs', verbose => 0);
-
-    my @multilogs = ( "$logdir/send/sendlog", "$logdir/smtp/smtplog",
-                      "$logdir/pop3/pop3log" );
-
-    foreach my $processor ( @multilogs  ) {
-        my $r = $self->util->install_if_changed(
-            newfile  => $maillogs,
-            existing => $processor,
-            uid      => $uid,
-            gid      => $gid,
-            mode     => '0755',
-            clean    => 0,
-        ) or next;
-
-        $r = $r == 1 ? "ok" : "ok (same)";
-        $self->audit( "maillogs: update $processor, $r", verbose=>1);
-    };
-
     $self->cronolog();
     $self->isoqlog();
 
@@ -2544,19 +2525,6 @@ sub munin_node {
     system "/usr/local/etc/rc.d/munin-node", "restart";
 };
 
-sub mysql {
-    my $self  = shift;
-    my %p = validate( @_, { $self->get_std_opts } );
-    return $p{test_ok} if defined $p{test_ok}; # for testing
-
-    if ( ! $self->conf->{install_mysql} ) {
-        $self->audit("skipping mysql install (disabled)");
-        return;
-    };
-
-    return $self->SUPER::mysql->install( verbose => $p{verbose} );
-}
-
 sub nictool {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts, },);
@@ -2568,7 +2536,7 @@ sub nictool {
     $self->expat();
     $self->rsync();
     $self->djbdns();
-    $self->mysql();
+    $self->mysql->install();
 
     # make sure these perl modules are installed
     $self->util->install_module( "LWP::UserAgent", port => 'p5-libwww' );
@@ -2845,66 +2813,6 @@ daily_status_mail_rejects_logs=3                        # How many logs to check
 #-- end --
 ';
     close $PERIODIC;
-}
-
-sub pop3_test_auth {
-    my $self  = shift;
-    my %p = validate( @_, { $self->get_std_opts },);
-
-    my @features;
-
-    $OUTPUT_AUTOFLUSH = 1;
-
-    my $r = $self->util->install_module( "Mail::POP3Client", verbose => 0,);
-    $self->toaster->test("checking Mail::POP3Client", $r );
-    if ( ! $r ) {
-        print "skipping POP3 tests\n";
-        return;
-    };
-
-    my %auths = (
-        'POP3'          => { type => 'PASS',     descr => 'plain text' },
-        'POP3-APOP'     => { type => 'APOP',     descr => 'APOP' },
-        'POP3-CRAM-MD5' => { type => 'CRAM-MD5', descr => 'CRAM-MD5' },
-        'POP3-SSL'      => { type => 'PASS', descr => 'plain text', ssl => 1 },
-        'POP3-SSL-APOP' => { type => 'APOP', descr => 'APOP', ssl => 1 },
-        'POP3-SSL-CRAM-MD5' => { type => 'CRAM-MD5', descr => 'CRAM-MD5', ssl => 1 },
-    );
-
-    foreach ( sort keys %auths ) {
-        $self->pop3_auth( $_, $auths{$_} );
-    }
-
-    return 1;
-}
-
-sub pop3_auth {
-    my $self = shift;
-    my ( $name, $v ) = @_;
-
-    my $type  = $v->{'type'};
-    my $descr = $v->{'descr'};
-
-    my $user = $self->conf->{'toaster_test_email'}        || 'test2@example.com';
-    my $pass = $self->conf->{'toaster_test_email_pass'}   || 'cHanGeMe';
-    my $host = $self->conf->{'pop3_ip_address_listen_on'} || 'localhost';
-    $host = "localhost" if ( $host =~ /system|qmail|all/i );
-
-    my $pop = Mail::POP3Client->new(
-        HOST      => $host,
-        AUTH_MODE => $type,
-        USESSL    => $v->{ssl} ? 1 : 0,
-    );
-
-    $pop->User($user);
-    $pop->Pass($pass);
-    $pop->Connect() >= 0 || warn $pop->Message();
-    $self->toaster->test( "  $name authentication", ($pop->State() eq "TRANSACTION"));
-
-    if ( my @features = $pop->Capa() ) {
-        #print "  POP3 server supports: " . join( ",", @features ) . "\n";
-    }
-    $pop->Close;
 }
 
 sub php {
@@ -3417,19 +3325,15 @@ sub ripmime {
     if ( $ver eq "port" || $ver eq "1" ) {
 
         if ( $self->util->find_bin( "ripmime", fatal => 0 ) ) {
-            print "ripmime: is already installed...done.\n\n";
+            print "ripmime: already installed...done.\n\n";
             return 1;
         }
 
         if ( $OSNAME eq "freebsd" ) {
-            if ( $self->freebsd->install_port( "ripmime" ) ) {
-                return 1;
-            }
+            $self->freebsd->install_port( "ripmime" ) and return 1;
         }
         elsif ( $OSNAME eq "darwin" ) {
-            if ( $self->darwin->install_port( "ripmime" ) ) {
-                return 1;
-            }
+            $self->darwin->install_port( "ripmime" ) and return 1;
         }
 
         if ( $self->util->find_bin( "ripmime", fatal => 0 ) ) {
@@ -3446,8 +3350,7 @@ sub ripmime {
         ($installed) = $installed =~ /v(.*) - /;
 
         if ( $ver eq $installed ) {
-            print
-              "ripmime: the selected version ($ver) is already installed!\n";
+            print "ripmime: version ($ver) is already installed!\n";
             return 1;
         }
     }
@@ -3458,7 +3361,7 @@ sub ripmime {
         url            => '/ripmime',
         targets        => [ 'make', 'make install' ],
         bintest        => 'ripmime',
-        verbose          => 1,
+        verbose        => 1,
         source_sub_dir => 'mail',
     );
 }
@@ -3898,7 +3801,7 @@ sub spamassassin_sql_freebsd {
 
     # have we been here already?
     if ( -f "/usr/local/etc/mail/spamassassin/sql.cf" ) {
-        print "SpamAssassing database setup already done...skipping.\n";
+        print "SpamAssassin database setup already done...skipping.\n";
         return 1;
     };
 
@@ -4592,10 +4495,8 @@ sub startup_script_freebsd {
 };
 
 sub test {
-    shift;
     require Mail::Toaster::Setup::Test;
-    my $test = Mail::Toaster::Setup::Test->new;
-    return $test->run_all(@_);
+    return Mail::Toaster::Setup::Test->new;
 };
 
 sub ucspi_tcp {
@@ -5036,23 +4937,6 @@ Creates and installs the maildrop mailfilter file.
 Installs the maillogs script, creates the logging directories (toaster_log_dir/), creates the qmail supervise dirs, installs maillogs as a log post-processor and then builds the corresponding service/log/run file to use with each post-processor.
 
   $setup->maillogs();
-
-
-
-=item mattbundle
-
-Downloads and installs the latest version of MATT::Bundle.
-
-  $setup->mattbundle(verbose=>1);
-
-Don't do it. Matt::Bundle has been deprecated for years now.
-
-
-=item mysql
-
-Installs mysql server for you, based on your settings in toaster-watcher.conf. The actual code that does the work is in Mail::Toaster::Mysql so read the man page for Mail::Toaster::Mysql for more info.
-
-  $setup->mysql( );
 
 
 =item startup_script

@@ -357,9 +357,6 @@
 
 </dl>
 <pre>
-  send_log_postprocessor         = maillogs   # maillogs | none</pre>
-<p><strong>maillogs</strong> is a post-processor for your qmail logs, included with the toaster. It is required for RRDutil and isoqlog to generate their statistics.  At this time, there are no other log postprocessors available. Should a desirable one come along, we have a place to plug it in.</p>
-<pre>
   send_log_maxsize_bytes         = 1000000</pre>
 <p>It's important to make sure maxsize_bytes is larger than 5 minutes of logging. You can determine this by checking the size of the files in /var/log/mail/send. If any approach this file size, raise it. By default, toaster-watcher will trigger maillogs every 5 minutes, updating your mail message counters.</p>
 <pre>
@@ -436,7 +433,6 @@ Anything else is considered to be a hostname.</p>
   ##</pre>
 <pre>
   smtpd_log_method                = multilog
-  smtpd_log_postprocessor         = maillogs   # maillogs | none
   smtpd_log_maxsize_bytes         = 1000000    # must be &gt; 5 minutes of logging</pre>
 <p>These options are similar to the options for logging in the qmail-send section</p>
 <pre>
@@ -525,7 +521,6 @@ Anything else is considered to be a hostname.</p>
   ##</pre>
 <pre>
   pop3_log_method           = multilog   # multilog required for RRDutil
-  pop3_log_postprocessor    = maillogs   # maillogs | none
   pop3_log_maxsize_bytes    = 1000000    # make this &gt; 5 minutes of logging</pre>
 <p>These options are similar to the options for logging in the qmail-send section.</p>
 <pre>
@@ -573,7 +568,6 @@ Anything else is considered to be a hostname.</p>
   ##</pre>
 <pre>
   submit_log_method                = syslog
-  submit_log_postprocessor         = none       # maillogs | none
   submit_log_maxsize_bytes         = 1000000</pre>
 <p>It's important to make sure maxsize_bytes is larger than 5 minutes of logging. You can determine this by checking the size of the files in /var/log/mail/submit. If any approach this file size, raise it.</p>
 <pre>

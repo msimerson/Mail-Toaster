@@ -53,7 +53,7 @@ my $qmail = $toaster->qmail;
 : $section eq 'portmaster' ? $setup->portmaster
 
 #  Standard daemons & utilities
-: $section eq 'mysql'      ? $setup->mysql
+: $section eq 'mysql'      ? $toaster->mysql->install
 : $section eq 'lighttpd'   ? $setup->lighttpd
 : $section eq 'apache'     ? $setup->apache
 : $section eq 'apachessl'  ? $setup->apache(ver=>'ssl')
@@ -90,9 +90,9 @@ my $qmail = $toaster->qmail;
 : $section eq 'razor'       ? $setup->razor
 : $section eq 'maildrop'    ? $setup->maildrop->install
 : $section eq 'clamav'      ? $setup->clamav
-: $section eq 'simscan'     ? $setup->simscan
-: $section eq 'simconf'     ? $setup->simscan_conf
-: $section eq 'simtest'     ? $setup->simscan_test
+: $section eq 'simscan'     ? $setup->simscan->install
+: $section eq 'simconf'     ? $setup->simscan->config
+: $section eq 'simtest'     ? $setup->simscan->test
 : $section eq 'spamassassin'? $setup->spamassassin
 : $section eq 'allspam'     ? $setup->enable_all_spam
 
@@ -140,7 +140,7 @@ sub all {
 	$setup->dependencies  ;
 	$setup->openssl_conf  ;
 	$setup->ports         ;
-	$setup->mysql         ;
+	$toaster->mysql->install;
 	$setup->apache        ;
 	$setup->webmail       (fatal=>0 );
 	$setup->phpmyadmin    ;

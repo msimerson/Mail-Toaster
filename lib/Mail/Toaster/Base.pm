@@ -6,13 +6,14 @@ our $VERSION = '5.41';
 
 use Params::Validate ':all';
 
-our (@audit, $last_audit, @errors, $last_error, $verbose); # package variables
+our $verbose = 0;
+our (@audit, $last_audit, @errors, $last_error ); # package variables
 our ($conf, $log);
-our ($apache, $darwin, $dns, $freebsd, $qmail, $mysql, $setup, $toaster, $util );
+our ($apache, $darwin, $dns, $freebsd, $qmail, $logs, $mysql, $setup, $toaster, $util );
 
 our %std_opts = (
         test_ok => { type => BOOLEAN, optional => 1 },
-        verbose => { type => BOOLEAN, optional => 1, default => 1 },
+        verbose => { type => BOOLEAN, optional => 1, default => $verbose },
         fatal   => { type => BOOLEAN, optional => 1, default => 1 },
         quiet   => { type => BOOLEAN, optional => 1, default => 0 },
     );
@@ -30,28 +31,35 @@ sub apache {
     return $apache if ref $apache;
     require Mail::Toaster::Apache;
     return $apache = Mail::Toaster::Apache->new();
-}   
+}
 
 sub darwin {
     my $self = shift;
     return $darwin if ref $darwin;
     require Mail::Toaster::Darwin;
     return $darwin = Mail::Toaster::Darwin->new();
-}   
+}
 
 sub dns {
     my $self = shift;
     return $dns if ref $dns;
     require Mail::Toaster::DNS;
     return $dns = Mail::Toaster::DNS->new();
-}   
+}
 
 sub freebsd {
     my $self = shift;
     return $freebsd if ref $freebsd;
     require Mail::Toaster::FreeBSD;
     return $freebsd = Mail::Toaster::FreeBSD->new();
-}   
+}
+
+sub logs {
+    my $self = shift;
+    return $logs if ref $logs;
+    require Mail::Toaster::Logs;
+    return $logs = Mail::Toaster::Logs->new();
+}
 
 sub mysql {
     my $self = shift;

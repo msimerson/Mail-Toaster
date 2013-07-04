@@ -10,7 +10,7 @@ use warnings;
 #use File::Copy;
 #use File::Path;
 use English '-no_match_vars';
-#use Params::Validate qw( :all );
+use Params::Validate qw( :all );
 #use Sys::Hostname;
 
 use lib 'lib';
@@ -46,6 +46,12 @@ sub imap_auth_nossl {
     $self->toaster->test("checking Mail::IMAPClient", $r );
     if ( ! $r ) {
         print "skipping imap test authentications\n";
+        return;
+    };
+
+    eval "use Mail::IMAPClient";
+    if ( $EVAL_ERROR ) {
+        $self->audit("unable to load Mail::IMAPClient");
         return;
     };
 
@@ -101,7 +107,8 @@ sub imap_auth_ssl {
     my $socket = IO::Socket::SSL->new(
         PeerAddr => 'localhost',
         PeerPort => 993,
-        Proto    => 'tcp'
+        Proto    => 'tcp',
+        SSL_verify_mode => 'SSL_VERIFY_NONE',
     );
     $self->toaster->test( "  imap SSL connection", $socket);
     return if ! $socket;
@@ -134,14 +141,13 @@ sub pop3_auth {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
-    my @features;
-
     $OUTPUT_AUTOFLUSH = 1;
 
     my $r = $self->util->install_module( "Mail::POP3Client", verbose => 0,);
     $self->toaster->test("checking Mail::POP3Client", $r );
-    if ( ! $r ) {
-        print "skipping POP3 tests\n";
+    eval "use Mail::POP3Client";
+    if ( $EVAL_ERROR ) {
+        print "unable to load Mail::POP3Client, skipping POP3 tests\n";
         return;
     };
 
@@ -155,17 +161,57 @@ sub pop3_auth {
     );
 
     foreach ( sort keys %auths ) {
-        $self->pop3_auth( $_, $auths{$_} );
+        $self->pop3_auth_prot( $_, $auths{$_} );
     }
 
     return 1;
+}
+
+sub pop3_auth_prot {
+    my $self = shift;
+    my ( $name, $v ) = @_;
+
+    my $type  = $v->{'type'};
+    my $descr = $v->{'descr'};
+
+    my $user = $self->conf->{'toaster_test_email'}        || 'test2@example.com';
+    my $pass = $self->conf->{'toaster_test_email_pass'}   || 'cHanGeMe';
+    my $host = $self->conf->{'pop3_ip_address_listen_on'} || 'localhost';
+    $host = "localhost" if ( $host =~ /system|qmail|all/i );
+
+    my $pop = Mail::POP3Client->new(
+        HOST      => $host,
+        AUTH_MODE => $type,
+        $v->{ssl} ? ( USESSL => 1 ) : (),
+    );
+
+    if ( $v->{ssl} ) {
+        my $socket = IO::Socket::SSL->new( PeerAddr => $host,
+                                        PeerPort => 995,
+                                        SSL_verify_mode => 'SSL_VERIFY_NONE',
+                                        Proto    => 'tcp',
+                                        )
+            or do { warn "No socket!"; return };
+
+         $pop->Socket($socket);
+    }
+
+    $pop->User($user);
+    $pop->Pass($pass);
+    $pop->Connect() >= 0 || warn $pop->Message();
+    $self->toaster->test( "  $name authentication", ($pop->State eq 'TRANSACTION'));
+
+#   if ( my @features = $pop->Capa() ) {
+#       print "  POP3 server supports: " . join( ",", @features ) . "\n";
+#   }
+    $pop->Close;
 }
 
 sub smtp_auth {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my @modules = ('IO::Socket::INET', 'IO::Socket::SSL', 'Net::SSLeay', 'Socket qw(:DEFAULT :crlf)');
+    my @modules = ('IO::Socket::INET', 'IO::Socket::SSL', 'Net::SSLeay', 'Socket qw(:DEFAULT :crlf)','Net::SMTP_auth');
     foreach ( @modules ) {
         eval "use $_";
         die $@ if $@;
@@ -242,7 +288,7 @@ sub run_all {
 
     print "testing...\n";
 
-    $self->qmail;
+    $self->test_qmail;
     sleep 1;
     $self->daemontools;
     sleep 1;
@@ -269,7 +315,7 @@ sub run_all {
     sleep 1;
 
     if ( ! $self->util->yes_or_no( "skip the mail scanner tests?", timeout  => 10 ) ) {
-        $self->simscan->test;
+        $self->setup->simscan->test;
         print "\n\nFor more ways to test your Virus scanner, go here:
 \n\t http://www.testvirus.org/\n\n";
     };
@@ -314,10 +360,10 @@ sub auth {
 sub auth_setup {
     my $self = shift;
 
-    my $qmail_dir = $self->conf->{'qmail_dir'};
+    my $qmail_dir = $self->conf->{qmail_dir};
     my $assign    = "$qmail_dir/users/assign";
-    my $email     = $self->conf->{'toaster_test_email'};
-    my $pass      = $self->conf->{'toaster_test_email_pass'};
+    my $email     = $self->conf->{toaster_test_email};
+    my $pass      = $self->conf->{toaster_test_email_pass};
 
     my $domain = ( split( '@', $email ) )[1];
     print "test_auth: testing domain is: $domain.\n";
@@ -326,7 +372,7 @@ sub auth_setup {
         print "domain $domain is not set up.\n";
         return if ! $self->util->yes_or_no( "may I add it for you?", timeout => 30 );
 
-        my $vpdir = $self->conf->{'vpopmail_home_dir'};
+        my $vpdir = $self->conf->{vpopmail_home_dir};
         system "$vpdir/bin/vadddomain $domain $pass";
         system "$vpdir/bin/vadduser $email $pass";
     }
@@ -551,7 +597,7 @@ sub test_network {
     }
 }
 
-sub qmail {
+sub test_qmail {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
@@ -580,7 +626,7 @@ sub qmail {
         $self->conf->{'qmail_log_user'}    || 'qmaill',
       )
     {
-        $self->toaster->test("  $_", $self->user_exists($_) );
+        $self->toaster->test("  $_", $self->setup->user_exists($_) );
     }
 
     print "do the qmail groups exist?\n";

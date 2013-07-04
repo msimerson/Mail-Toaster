@@ -16,7 +16,8 @@ getopts('rv');
 my $verbose = $opt_v ? 1 : 0;
 print "maillogs $Mail::Toaster::Logs::VERSION: verbose mode enabled.\n" if $verbose;
 
-my $logs = Mail::Toaster::Logs->new(verbose=>$verbose);
+my $logs = Mail::Toaster::Logs->new;
+$logs->verbose($verbose);
 $logs->conf->{'logs_verbose'} = $verbose;
 
 $|++;
@@ -24,13 +25,7 @@ $|++;
 $logs->error( "basic tests fail, have you run toaster_setup.pl -s maillogs yet?")
     if ! $logs->verify_settings();
 
-my $iam = $logs->what_am_i() or pod2usage;
-
-   if ( $iam eq "maillogs" ) { $logs->parse_cmdline_flags( prot=>$ARGV[0] ) }
-elsif ( $iam eq "sendlog"  ) { $logs->roll_send_logs()  }
-elsif ( $iam eq "smtplog"  ) { $logs->roll_rbl_logs()   }
-elsif ( $iam eq "pop3log"  ) { $logs->roll_pop3_logs()  }
-else                         { pod2usage };
+$logs->parse_cmdline_flags( prot=>$ARGV[0] );
 
 0;
 
@@ -69,24 +64,12 @@ Maillogs is used in two different ways.
 
 In its simplest form, you just run maillogs and telling it which type of logs you want want to process. It parses the log files in real time, updates the counter files it maintains, and prints out the counters. 
 
-=item multilog post-processer 
-
-The multilog program (http://cr.yp.to/daemontools/multilog.html) has a poorly documented ability to run a postprocessor on logs after they reach a predetermined size (or are otherwise triggered). 
-
-This script is that postprocessor. To use maillogs as a post-processor, you must rename it to the the type of logs that it is processing. This is currently one of: pop3log, smtplog, sendlog. When run in this fashion, qmail will pipe its logs to multilog and once they reach the size determined in the log/run file, multilog will run the post-processing command. 
-
-When run as a post-processor, multilogs does not print anything, it simply processes through the logs and updates the counters. An optional feature is to have maillogs pipe the logs to cronolog which can archive your logs for you. This is the default behaviour.
-
-=back
-
-
 =head1 DESCRIPTION
 
 A script that:
 
    processes mail logs and generates counters from them.
    maintains counters for mail logs
-   functions as a postprocessor for multilog
    
 Currently handles log counting of the following types:
 
@@ -118,24 +101,16 @@ I have "farms" of mail servers that share a hostname. I needed a way to collect 
     parses them, saving counts of the logs active
     and stores them in counter files.
 
-
 =over 8
 
 =item rblsmtpd 
 
 For smtp logs we count denied RBL connections, spam and virus denials, invalid message formats, and other forms of SMTP phase rejection.
 
-
-=item qmail-send
-
-we log a slew of message statistics that are best understood by looking at the RRDutil graphs that "show" them.. 
-
-
 =item authentication
 
 For pop3, IMAP, webmail, and SMTP-AUTH, we count the number of 
 connections and the number of successful logins.
-
 
 =back
 
@@ -144,47 +119,13 @@ You can alter the locations of the logs files by editing the
 toaster.conf file included with this script. That file should be
 installed in /usr/local/etc.
 
-
-=head2	DESIGN CONSIDERATIONS
-
-
-=over 8
-
-=item * 
-
-Counters will be polled via SNMP. Script must be able to return counts nearly instantly, even when dealing with HUGE logs.
-
-=item * 
-
-Must work with multilog and syslog logging formats
-
-
-=item * 
-
-Outputs data in a format suitable for polling via SNMP
-
-
-=item * 
-
-Simple configuration
-
-
-=item * 
-
-Fail safe, errors must be noticed and reported but not fatal
-
-=back
-
-
 =head1 CONFIGURATION AND ENVIRONMENT
  
-Options are available in toaster.conf that govern the options available in maillogs. 
-
+Options are in toaster.conf
 
 =head1 INSTALLATION
 
 Installation is automatic when you install Mail-Toaster. The latest version can be downloaded from http://mail-toaster.org/
-
 
 =head1 DIAGNOSTICS
  
@@ -207,13 +148,6 @@ This program is a part of and requires Mail::Toaster to be installed.
   File::Path       - perl built-in
   Getopt::Std      - perl built-in
   Pod::Usage       - perl built-in
-
-
-=head1 BUGS AND LIMITATIONS
- 
-There are no known bugs in this module. 
-Please report problems to author.
-Patches are welcome.
 
 
 =head1 AUTHOR
