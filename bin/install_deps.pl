@@ -178,9 +178,9 @@ sub install_app_freebsd {
     my $category = $info->{category} || '*';
     my ($portdir) = glob "/usr/ports/$category/$name";
 
-    if ( $portdir && -d $portdir && chdir $portdir ) {
+    if ( $portdir && -d $portdir ) {
         print " from ports ($portdir)\n";
-        system "make install clean"
+        system "make -C $portdir install clean"
             and warn "'make install clean' failed for port $app\n";
     };
 };
@@ -291,12 +291,8 @@ sub install_module_freebsd {
         return;
     };
 
-    if ( ! chdir $portdir ) {
-        print "unable to cd to /usr/ports/$category/$portname\n";
-    };
-
     print " from ports ($portdir)\n";
-    system "make install clean"
+    system "make -C $portdir install clean"
         and warn "'make install clean' failed for port $module\n";
 }
 
