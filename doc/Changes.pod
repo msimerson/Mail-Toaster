@@ -1,6 +1,33 @@
 
 =head1 Mail Toaster Changes
 
+=head2 5.41 - Jul 04, 2013
+
+    config changes: vpopmaild disabled, roaming users disabled,
+        default log method changed from multilog to syslog
+    automatic startup for vpopmaild
+    removed maillogs postprocessor support (fragile)
+    vpopmail port install now honors most config settings
+
+=head2 5.40 - Apr 26, 2013
+
+    updated install_deps.pl
+    pod cleanups
+    updated contrib/swaks
+    training improvements for dspam
+
+=head2 5.38 - Apr 23, 2013
+
+    removed Proc::ProcessTable (causes test failures)
+    handfuls of Test::More tweaks
+    disabled defunct RBLs in config
+
+=head2 5.37 - Apr 18, 2013
+
+    added bin/email_restore.pl (thx Alex R.)
+    pkgng support additions (Rob Lensen)
+    some support for running with qpsmtpd
+
 =head2 5.35 - Oct 23, 2012
 
     api change for get_dir_files, clean_tmp_dir, file_delete

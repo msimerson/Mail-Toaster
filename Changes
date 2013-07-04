@@ -1,4 +1,27 @@
 Mail Toaster Changes
+  5.41 - Jul 04, 2013
+        config changes: vpopmaild disabled, roaming users disabled,
+            default log method changed from multilog to syslog
+        automatic startup for vpopmaild
+        removed maillogs postprocessor support (fragile)
+        vpopmail port install now honors most config settings
+
+  5.40 - Apr 26, 2013
+        updated install_deps.pl
+        pod cleanups
+        updated contrib/swaks
+        training improvements for dspam
+
+  5.38 - Apr 23, 2013
+        removed Proc::ProcessTable (causes test failures)
+        handfuls of Test::More tweaks
+        disabled defunct RBLs in config
+
+  5.37 - Apr 18, 2013
+        added bin/email_restore.pl (thx Alex R.)
+        pkgng support additions (Rob Lensen)
+        some support for running with qpsmtpd
+
   5.35 - Oct 23, 2012
         api change for get_dir_files, clean_tmp_dir, file_delete
         moved subs from Toaster to Utility: audit, error, dump_audit, dump_errors, has_module, find_config, find_readable, get_std_args, parse_config & parse_line
@@ -644,6 +667,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 8:
+    Around line 35:
         Non-ASCII character seen before =encoding in '•'. Assuming UTF-8
 
