@@ -359,39 +359,35 @@ sub extract_archive {
     my %args = $self->get_std_args( %p );
 
     my $r;
+    my %types = (
+        gz  => { bin => 'gunzip',  content => 'gzip',       },
+        bz2 => { bin => 'bunzip2', content => 'b(un)?zip2', }, # BSD bunzip2, Linux bzip2
+        xz  => { bin => 'xz',      content => 'xz',         },
+    );
 
     if ( !-e $archive ) {
-        if    ( -e "$archive.tar.gz" )  { $archive = "$archive.tar.gz" }
-        elsif ( -e "$archive.tgz" )     { $archive = "$archive.tgz" }
-        elsif ( -e "$archive.tar.bz2" ) { $archive = "$archive.tar.bz2" }
-        else {
-            return $self->error( "file $archive is missing!", %args );
-        }
+        foreach my $ext ( keys %types, map { 'tar.' . $_ } keys %types ) {
+            next if ! -e "$archive.$ext";
+            $archive = "$archive.$ext";
+            last;
+        };
     }
+    return $self->error( "file $archive is missing!", %args ) if ! -e $archive;
 
     $self->audit("found $archive");
 
-    $ENV{PATH} = '/bin:/usr/bin'; # do this or taint checks will blow up on ``
+    my $type
+        = $archive =~ /bz2$/ ? 'bz2'
+        : $archive =~ /gz$/  ? 'gz'
+        : $archive =~ /xz$/  ? 'xz'
+        :  return $self->error( 'unknown archive type', %args);
 
-    return $self->error( "unknown archive type: $archive", %args )
-        if $archive !~ /[bz2|gz]$/;
-
-    # find these binaries, we need them to inspect and expand the archive
+    # find binaries to inspect and expand the archive
     my $tar  = $self->find_bin( 'tar',  %args );
     my $file = $self->find_bin( 'file', %args );
 
-    my %types = (
-        gzip => { bin => 'gunzip',  content => 'gzip',       },
-        bzip => { bin => 'bunzip2', content => 'b(un)?zip2', },
-            # on BSD bunzip2, on Linux bzip2
-    );
-
-    my $type
-        = $archive =~ /bz2$/ ? 'bzip'
-        : $archive =~ /gz$/  ? 'gzip'
-        :  return $self->error( 'unknown archive type', %args);
-
     # make sure the archive contents match the file extension
+    $ENV{PATH} = '/bin:/usr/bin'; # prevent taint checks from barfing on ``
     return $self->error( "$archive not a $type compressed file", %args)
         unless grep ( /$types{$type}{content}/, `$file $archive` );
 
@@ -1028,10 +1024,11 @@ sub get_url {
     my %args = $self->get_std_args( %p );
 
     my ($ua, $response);
-    ## no critic ( ProhibitStringyEval )
-    eval "require LWP::Simple";
-    ## use critic
-    return $self->get_url_system( $url, %p ) if $EVAL_ERROR;
+    eval "require LWP::Simple"; ## no critic ( StringyEval )
+    if ( $EVAL_ERROR ) {
+        $self->audit( "LWP::Simple not installed" );
+        return $self->get_url_system( $url, %p );
+    };
 
     my $uri = URI->new($url);
     my @parts = $uri->path_segments;
@@ -1041,6 +1038,10 @@ sub get_url {
 
     $self->audit( "fetching $url" );
     eval { $response = LWP::Simple::mirror($url, $file_path ); };
+    if ( $EVAL_ERROR ) {
+        $self->audit( $EVAL_ERROR );
+        return;
+    };
 
     if ( $response ) {
         if ( $response == 404 ) {
@@ -1349,13 +1350,12 @@ sub install_from_source {
         );
     }
 
-    $self->audit( "install_from_source: building $package in $src");
+    $self->audit( "install_from_source: building $package in $src" );
 
     $self->install_from_source_cleanup($package,$src) or return;
     $self->install_from_source_get_files($package,$site,$url,$p{patch_url},$patches) or return;
 
-    $self->extract_archive( $package )
-        or return $self->error( "Couldn't expand $package: $!", %args );
+    $self->extract_archive( $package ) or return;
 
     # cd into the package directory
     my $sub_path;
@@ -1402,10 +1402,11 @@ sub install_from_source {
 
     # clean up the build sources
     chdir $src;
-    $self->syscmd( "rm -rf $package", %args ) if -d $package;
+    File::Path::rmtree($package) if -d $package;
 
-    $self->syscmd( "rm -rf $package/$sub_path", %args )
-        if defined $sub_path && -d "$package/$sub_path";
+    if ( defined $sub_path && -d "$package/$sub_path" ) {
+        File::Path::rmtree( "$package/$sub_path" );
+    };
 
     chdir $original_directory;
     return 1;
@@ -1439,8 +1440,8 @@ sub install_from_source_cleanup {
         src     => $src,
     ) or return $self->error( "OK then, skipping install.", fatal => 0);
 
-    print "install_from_source: removing previous build sources.\n";
-    return $self->syscmd( "rm -rf $package-*" );
+    $self->audit( "  removing previous build sources." );
+    File::Path::rmtree( "$package-*" ) or die $!;
 };
 
 sub install_from_source_get_files {
@@ -1454,22 +1455,17 @@ sub install_from_source_get_files {
     ) or return;
 
     if ( ! $patches || ! $patches->[0] ) {
-        $self->audit( "install_from_source: no patches to fetch." );
+        $self->audit( "  no patches" );
         return 1;
     };
 
     return $self->error( "oops! You supplied patch names to apply without a URL!")
         if ! $patch_url;
 
-
     foreach my $patch (@$patches) {
         next if ! $patch;
         next if -e $patch;
-
-        $self->audit( "install_from_source: fetching patch from $url");
-        my $url = "$patch_url/$patch";
-        $self->get_url( $url )
-            or return $self->error( "could not fetch $url" );
+        $self->get_url( "$patch_url/$patch" ) or return;
     };
 
     return 1;
@@ -1615,7 +1611,7 @@ sub install_module_from_src {
             print "\nokay, skipping install.\n";
             return;
         }
-        $self->syscmd( cmd => "rm -rf $module", %args );
+        File::Path::rmtree( "$module" ) or die $!;
     }
 
     $self->sources_get(
@@ -1650,7 +1646,7 @@ sub install_module_from_src {
         }
 
         chdir('..');
-        $self->syscmd( cmd => "rm -rf $file", verbose=>0);
+        File::Path::rmtree( $file ) or die $!;
         last;
     }
 
@@ -2055,7 +2051,7 @@ sub sources_get {
     foreach my $ext (@extensions) {
         my $tarball = "$package.$ext";
 
-        $self->audit( "sources_get: fetching $site$path/$tarball");
+        $self->audit( "sources_get: fetching ".$site . $path.'/'.$tarball);
 
         $self->get_url( "$site$path/$tarball", fatal => 0)
             or return $self->error( "couldn't fetch $site$path/$tarball", %args);
@@ -2106,7 +2102,7 @@ sub source_warning {
     }
 
     if ( !$self->yes_or_no( "\n\tMay I remove the sources for you?", timeout => $p{timeout} ) ) {
-        print "\nOK then, skipping $package install.\n\n";
+        print "\nskipping $package install.\n\n";
         return;
     };
 
