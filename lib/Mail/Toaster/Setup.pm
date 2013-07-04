@@ -2403,107 +2403,6 @@ sub has_module {
     !$EVAL_ERROR;
 };
 
-sub imap_test_auth {
-    my $self  = shift;
-    my %p = validate( @_, { $self->get_std_opts },);
-
-    return $p{test_ok} if defined $p{test_ok}; # for testing only
-
-    $self->imap_test_auth_nossl();
-    $self->imap_test_auth_ssl();
-};
-
-sub imap_test_auth_nossl {
-    my $self = shift;
-
-    my $r = $self->util->install_module("Mail::IMAPClient", verbose => 0);
-    $self->toaster->test("checking Mail::IMAPClient", $r );
-    if ( ! $r ) {
-        print "skipping imap test authentications\n";
-        return;
-    };
-
-    # an authentication that should succeed
-    my $imap = Mail::IMAPClient->new(
-        User     => $self->conf->{'toaster_test_email'} || 'test2@example.com',
-        Password => $self->conf->{'toaster_test_email_pass'} || 'cHanGeMe',
-        Server   => 'localhost',
-    );
-    if ( !defined $imap ) {
-        $self->toaster->test( "imap connection", $imap );
-        return;
-    };
-
-    $self->toaster->test( "authenticate IMAP user with plain passwords",
-        $imap->IsAuthenticated() );
-
-    my @features = $imap->capability
-        or warn "Couldn't determine capability: $@\n";
-    $self->audit( "Your IMAP server supports: " . join( ',', @features ) );
-    $imap->logout;
-
-    print "an authentication that should fail\n";
-    $imap = Mail::IMAPClient->new(
-        Server => 'localhost',
-        User   => 'no_such_user',
-        Pass   => 'hi_there_log_watcher'
-    )
-    or do {
-        $self->toaster->test( "imap connection that should fail", 0);
-        return 1;
-    };
-    $self->toaster->test( "  imap connection", $imap->IsConnected() );
-    $self->toaster->test( "  test auth that should fail", !$imap->IsAuthenticated() );
-    $imap->logout;
-    return;
-};
-
-sub imap_test_auth_ssl {
-    my $self = shift;
-
-    my $user = $self->conf->{'toaster_test_email'}      || 'test2@example.com';
-    my $pass = $self->conf->{'toaster_test_email_pass'} || 'cHanGeMe';
-
-    my $r = $self->util->install_module( "IO::Socket::SSL", verbose => 0,);
-    $self->toaster->test( "checking IO::Socket::SSL ", $r);
-    if ( ! $r ) {
-        print "skipping IMAP SSL tests due to missing SSL support\n";
-        return;
-    };
-
-    require IO::Socket::SSL;
-    my $socket = IO::Socket::SSL->new(
-        PeerAddr => 'localhost',
-        PeerPort => 993,
-        Proto    => 'tcp'
-    );
-    $self->toaster->test( "  imap SSL connection", $socket);
-    return if ! $socket;
-
-    print "  connected with " . $socket->get_cipher() . "\n";
-    print $socket ". login $user $pass\n";
-    ($r) = $socket->peek =~ /OK/i;
-    $self->toaster->test( "  auth IMAP SSL with plain password", $r ? 0 : 1);
-    print $socket ". logout\n";
-    close $socket;
-
-#  no idea why this doesn't work, so I just forge an authentication by printing directly to the socket
-#	my $imapssl = Mail::IMAPClient->new( Socket=>$socket, User=>$user, Password=>$pass) or warn "new IMAP failed: ($@)\n";
-#	$imapssl->IsAuthenticated() ? print "ok\n" : print "FAILED.\n";
-
-# doesn't work yet because courier doesn't support CRAM-MD5 via the vchkpw auth module
-#	print "authenticating IMAP user with CRAM-MD5...";
-#	$imap->connect;
-#	$imap->authenticate();
-#	$imap->IsAuthenticated() ? print "ok\n" : print "FAILED.\n";
-#
-#	print "logging out...";
-#	$imap->logout;
-#	$imap->IsAuthenticated() ? print "FAILED.\n" : print "ok.\n";
-#	$imap->IsConnected() ? print "connection open.\n" : print "connection closed.\n";
-
-}
-
 sub is_newer {
     my $self  = shift;
     my %p = validate( @_, { 'min' => SCALAR, 'cur' => SCALAR, $self->get_std_opts } );
@@ -6174,7 +6073,7 @@ sub vpopmail {
     shift;
     require Mail::Toaster::Setup::Vpopmail;
     my $vpopmail = Mail::Toaster::Setup::Vpopmail->new;
-    return $vpopmail->install(@_);
+    return $vpopmail;
 };
 
 sub vqadmin {

@@ -44,7 +44,7 @@ my $qmail = $toaster->qmail;
   $section eq 'pre'        ? $setup->dependencies
 : $section eq 'cpan'       ? $setup->cpan
 : $section eq 'docs'       ? $setup->docs
-: $section eq 'help'       ? pod2usage                 ( {-verbose=>1 } )
+: $section eq 'help'       ? pod2usage( {-verbose=>1 } )
 : $section eq 'config'     ? $setup->config
 : $section eq 'ssl'        ? $setup->openssl_conf
 
@@ -64,9 +64,9 @@ my $qmail = $toaster->qmail;
 : $section eq 'daemontools'? $setup->daemontools
 : $section eq 'ezmlm'      ? $setup->ezmlm
 : $section eq 'autorespond'? $setup->autorespond
-: $section eq 'vpopmail'   ? $setup->vpopmail
-: $section eq 'vpeconfig'  ? $setup->vpopmail_etc
-: $section eq 'vpopmysql'  ? $setup->vpopmail_mysql_privs
+: $section eq 'vpopmail'   ? $setup->vpopmail->install
+: $section eq 'vpeconfig'  ? $setup->vpopmail->etc
+: $section eq 'vpopmysql'  ? $setup->vpopmail->mysql_privs
 : $section eq 'vqadmin'    ? $setup->vqadmin
 : $section eq 'qmail'      ? $qmail->install_qmail
 : $section eq 'qmailconf'  ? $qmail->config
@@ -104,14 +104,14 @@ my $qmail = $toaster->qmail;
 : $section eq 'munin'       ? $setup->munin
 
 # test targets
-: $section eq 'test'        ? $setup->test
+: $section eq 'test'        ? $setup->test->run_all
 : $section eq 'filtertest'  ? $setup->simscan->test
-: $section eq 'authtest'    ? $setup->test_auth
+: $section eq 'authtest'    ? $setup->test->auth
 : $section eq 'proctest'    ? $toaster->check_processes
-: $section eq 'imap'        ? $setup->imap_test_auth
-: $section eq 'pop3'        ? $setup->pop3_test_auth
-: $section eq 'smtp'        ? $setup->smtp_test_auth
-: $section eq 'rbltest'     ? $setup->test_rbls
+: $section eq 'imap'        ? $setup->test->imap_auth
+: $section eq 'pop3'        ? $setup->test->pop3_auth
+: $section eq 'smtp'        ? $setup->test->smtp_auth
+: $section eq 'rbltest'     ? $setup->test->rbls
 : $section eq 'test2'       ? exit 0
 
 #  misc
@@ -137,29 +137,29 @@ sub all {
     $toaster->{'verbose'} = 1 if $verbose;
     $toaster->conf->{'toaster_verbose'} = 1 if $verbose;
 
-	$setup->dependencies  ();
-	$setup->openssl_conf  ();
-	$setup->ports         ();
-	$setup->mysql         ();
-	$setup->apache        ();
+	$setup->dependencies  ;
+	$setup->openssl_conf  ;
+	$setup->ports         ;
+	$setup->mysql         ;
+	$setup->apache        ;
 	$setup->webmail       (fatal=>0 );
-	$setup->phpmyadmin    ();
-	$setup->ucspi_tcp     ();
-	$setup->ezmlm         ();
-	$setup->vpopmail      ();
-	$setup->maildrop      ();
-	$setup->vqadmin       ();
-	$setup->qmailadmin    ();
-	$qmail->netqmail      ();
-	$setup->courier_imap  ();
-	$setup->dovecot       ();
-	$setup->sqwebmail     ();
-	$setup->squirrelmail  ();
-	$setup->roundcube     ();
-	$setup->filtering     ();
-	$setup->maillogs      ();
-	$setup->supervise     ();
-	$setup->test          ();
+	$setup->phpmyadmin    ;
+	$setup->ucspi_tcp     ;
+	$setup->ezmlm         ;
+	$setup->vpopmail->install;
+	$setup->maildrop      ;
+	$setup->vqadmin       ;
+	$setup->qmailadmin    ;
+	$qmail->netqmail      ;
+	$setup->courier_imap  ;
+	$setup->dovecot       ;
+	$setup->sqwebmail     ;
+	$setup->squirrelmail  ;
+	$setup->roundcube     ;
+	$setup->filtering     ;
+	$setup->maillogs      ;
+	$setup->supervise     ;
+	$setup->test->run_all ;
 }
 
 print "\n$0 script execution complete.\n";

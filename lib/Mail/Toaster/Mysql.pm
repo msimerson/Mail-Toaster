@@ -3,6 +3,7 @@ package Mail::Toaster::Mysql;
 use strict;
 use warnings;
 
+use DBI;
 use Carp;
 use Params::Validate ':all';
 use English '-no_match_vars';

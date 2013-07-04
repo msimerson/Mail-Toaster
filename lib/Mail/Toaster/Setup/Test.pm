@@ -1,4 +1,4 @@
-package Mail::Toaster::Test;
+package Mail::Toaster::Setup::Test;
 
 use strict;
 use warnings;
@@ -16,7 +16,7 @@ use English '-no_match_vars';
 use lib 'lib';
 use parent 'Mail::Toaster::Base';
 
-sub daemontools_test {
+sub daemontools {
     my $self = shift;
 
     print "checking daemontools binaries...\n";
@@ -29,7 +29,108 @@ sub daemontools_test {
     return 1;
 }
 
-sub pop3_test_auth {
+sub imap_auth {
+    my $self  = shift;
+    my %p = validate( @_, { $self->get_std_opts },);
+
+    return $p{test_ok} if defined $p{test_ok}; # for testing only
+
+    $self->imap_auth_nossl();
+    $self->imap_auth_ssl();
+};
+
+sub imap_auth_nossl {
+    my $self = shift;
+
+    my $r = $self->util->install_module("Mail::IMAPClient", verbose => 0);
+    $self->toaster->test("checking Mail::IMAPClient", $r );
+    if ( ! $r ) {
+        print "skipping imap test authentications\n";
+        return;
+    };
+
+    # an authentication that should succeed
+    my $imap = Mail::IMAPClient->new(
+        User     => $self->conf->{'toaster_test_email'} || 'test2@example.com',
+        Password => $self->conf->{'toaster_test_email_pass'} || 'cHanGeMe',
+        Server   => 'localhost',
+    );
+    if ( !defined $imap ) {
+        $self->toaster->test( "imap connection", $imap );
+        return;
+    };
+
+    $self->toaster->test( "authenticate IMAP user with plain passwords",
+        $imap->IsAuthenticated() );
+
+    my @features = $imap->capability
+        or warn "Couldn't determine capability: $@\n";
+    $self->audit( "Your IMAP server supports: " . join( ',', @features ) );
+    $imap->logout;
+
+    print "an authentication that should fail\n";
+    $imap = Mail::IMAPClient->new(
+        Server => 'localhost',
+        User   => 'no_such_user',
+        Pass   => 'hi_there_log_watcher'
+    )
+    or do {
+        $self->toaster->test( "imap connection that should fail", 0);
+        return 1;
+    };
+    $self->toaster->test( "  imap connection", $imap->IsConnected() );
+    $self->toaster->test( "  test auth that should fail", !$imap->IsAuthenticated() );
+    $imap->logout;
+    return;
+};
+
+sub imap_auth_ssl {
+    my $self = shift;
+
+    my $user = $self->conf->{'toaster_test_email'}      || 'test2@example.com';
+    my $pass = $self->conf->{'toaster_test_email_pass'} || 'cHanGeMe';
+
+    my $r = $self->util->install_module( "IO::Socket::SSL", verbose => 0,);
+    $self->toaster->test( "checking IO::Socket::SSL ", $r);
+    if ( ! $r ) {
+        print "skipping IMAP SSL tests due to missing SSL support\n";
+        return;
+    };
+
+    require IO::Socket::SSL;
+    my $socket = IO::Socket::SSL->new(
+        PeerAddr => 'localhost',
+        PeerPort => 993,
+        Proto    => 'tcp'
+    );
+    $self->toaster->test( "  imap SSL connection", $socket);
+    return if ! $socket;
+
+    print "  connected with " . $socket->get_cipher() . "\n";
+    print $socket ". login $user $pass\n";
+    ($r) = $socket->peek =~ /OK/i;
+    $self->toaster->test( "  auth IMAP SSL with plain password", $r ? 0 : 1);
+    print $socket ". logout\n";
+    close $socket;
+
+#  no idea why this doesn't work, so I just forge an authentication by printing directly to the socket
+#   my $imapssl = Mail::IMAPClient->new( Socket=>$socket, User=>$user, Password=>$pass) or warn "new IMAP failed: ($@)\n";
+#   $imapssl->IsAuthenticated() ? print "ok\n" : print "FAILED.\n";
+
+# doesn't work yet because courier doesn't support CRAM-MD5 via the vchkpw auth module
+#   print "authenticating IMAP user with CRAM-MD5...";
+#   $imap->connect;
+#   $imap->authenticate();
+#   $imap->IsAuthenticated() ? print "ok\n" : print "FAILED.\n";
+#
+#   print "logging out...";
+#   $imap->logout;
+#   $imap->IsAuthenticated() ? print "FAILED.\n" : print "ok.\n";
+#   $imap->IsConnected() ? print "connection open.\n" : print "connection closed.\n";
+
+}
+
+sub pop3_auth {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
@@ -60,7 +161,7 @@ sub pop3_test_auth {
     return 1;
 }
 
-sub smtp_test_auth {
+sub smtp_auth {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
@@ -78,10 +179,6 @@ sub smtp_test_auth {
     my $host = $self->conf->{'smtpd_listen_on_address'} || 'localhost';
        $host = 'localhost' if ( $host =~ /system|qmail|all/i );
 
-
-
-
-
     my $smtp = Net::SMTP_auth->new($host);
     $self->toaster->test( "connect to smtp port on $host", $smtp );
     return 0 if ! defined $smtp;
@@ -90,11 +187,11 @@ sub smtp_test_auth {
     $self->toaster->test( "  get list of SMTP AUTH methods", scalar @auths);
     $smtp->quit;
 
-    $self->smtp_test_auth_pass($host, \@auths);
-    $self->smtp_test_auth_fail($host, \@auths);
+    $self->smtp_auth_pass($host, \@auths);
+    $self->smtp_auth_fail($host, \@auths);
 };
 
-sub smtp_test_auth_pass {
+sub smtp_auth_pass {
     my $self = shift;
     my $host = shift;
     my $auths = shift or die "invalid params\n";
@@ -123,7 +220,7 @@ sub smtp_test_auth_pass {
     }
 }
 
-sub smtp_test_auth_fail {
+sub smtp_auth_fail {
     my $self = shift;
     my $host = shift;
     my $auths = shift or die "invalid params\n";
@@ -145,16 +242,16 @@ sub run_all {
 
     print "testing...\n";
 
-    $self->test_qmail;
+    $self->qmail;
     sleep 1;
-    $self->daemontools_test;
+    $self->daemontools;
     sleep 1;
-    $self->ucspi_test;
+    $self->ucspi;
     sleep 1;
 
     $self->dump_audit(quiet=>1);  # clear audit history
 
-    $self->test_supervised_procs;
+    $self->supervised_procs;
     sleep 1;
     $self->test_logging;
     sleep 1;
@@ -165,7 +262,7 @@ sub run_all {
     sleep 1;
     $self->test_network;
     sleep 1;
-    $self->test_crons;
+    $self->crons;
     sleep 1;
 
     $self->qmail->check_rcpthosts();
@@ -179,7 +276,7 @@ sub run_all {
     sleep 1;
 
     if ( ! $self->util->yes_or_no( "skip the authentication tests?", timeout  => 10) ) {
-        $self->test_auth();
+        $self->auth();
     };
 
     # there's plenty more room here for more tests.
@@ -197,15 +294,15 @@ sub run_all {
     print "\ntesting complete.\n";
 }
 
-sub test_auth {
+sub auth {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    $self->test_auth_setup or return;
+    $self->auth_setup or return;
 
-    $self->imap_test_auth;
-    $self->pop3_test_auth;
-    $self->smtp_test_auth;
+    $self->imap_auth;
+    $self->pop3_auth;
+    $self->smtp_auth;
 
     print
 "\n\nNOTICE: It is normal for some of the tests to fail. This test suite is useful for any mail server, not just a Mail::Toaster. \n\n";
@@ -214,7 +311,7 @@ sub test_auth {
     # other ?
 }
 
-sub test_auth_setup {
+sub auth_setup {
     my $self = shift;
 
     my $qmail_dir = $self->conf->{'qmail_dir'};
@@ -247,7 +344,7 @@ sub test_auth_setup {
     return 1;
 };
 
-sub test_crons {
+sub crons {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
@@ -454,7 +551,7 @@ sub test_network {
     }
 }
 
-sub test_qmail {
+sub qmail {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
@@ -500,7 +597,7 @@ sub test_qmail {
     }
 }
 
-sub test_supervised_procs {
+sub supervised_procs {
     my $self = shift;
 
     print "do supervise directories exist?\n";
@@ -538,7 +635,7 @@ sub test_supervised_procs {
     }
 };
 
-sub ucspi_test {
+sub ucspi {
     my $self  = shift;
 
     print "checking ucspi-tcp binaries...\n";
@@ -555,13 +652,6 @@ sub ucspi_test {
 
     return 1;
 }
-
-sub vpopmail {
-    shift @_;
-    require Mail::Toaster::Setup::Vpopmail;
-    my $vpopmail = Mail::Toaster::Setup::Vpopmail->new;
-    return $vpopmail->install(@_);
-};
 
 1;
 __END__;
