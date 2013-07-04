@@ -11,23 +11,21 @@ use_ok('Mail::Toaster::Setup');
 my $verbose = 0;
 my %test_params = ( fatal => 0, verbose => $verbose );
 
-
-# basic OO mechanism
 my $setup = Mail::Toaster::Setup->new;
-isa_ok( $setup, 'Mail::Toaster::Setup', 'setup object class' );
+isa_ok( $setup, 'Mail::Toaster::Setup', 'object class' );
 
 my $initial_working_directory = cwd;
 my @subs_to_test = qw/ apache autorespond clamav courier_imap cronolog
   daemontools djbdns dovecot expat ezmlm lighttpd munin mysql 
-  openssl_conf qmailadmin razor roundcube simscan spamassassin 
-  squirrelmail sqwebmail vpopmail vqadmin 
+  openssl_conf qmailadmin razor roundcube spamassassin 
+  squirrelmail sqwebmail vqadmin
 /;
 
 # 3 tests per sub
 foreach my $sub (@subs_to_test) {
 
     my $install_sub = "install_$sub";
-    my $before      = $setup->conf->{$install_sub};    # preserve initial settings
+    my $before = $setup->conf->{$install_sub};    # preserve initial settings
 
     $setup->conf->{$install_sub} = 1;                  # enable install in $conf
 
@@ -45,8 +43,8 @@ foreach my $sub (@subs_to_test) {
 }
 
 # config
-ok( $setup->config( test_ok => 1, %test_params ), 'config' );
-ok( !$setup->config( test_ok => 0, %test_params ), 'config' );
+ok( $setup->config->config( test_ok => 1, %test_params ), 'config' );
+ok( !$setup->config->config( test_ok => 0, %test_params ), 'config' );
 
 # dependencies
 ok( $setup->dependencies( test_ok => 1 ), 'dependencies' );

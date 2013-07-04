@@ -45,7 +45,7 @@ my $qmail = $toaster->qmail;
 : $section eq 'cpan'       ? $setup->cpan
 : $section eq 'docs'       ? $setup->docs
 : $section eq 'help'       ? pod2usage( {-verbose=>1 } )
-: $section eq 'config'     ? $setup->config
+: $section eq 'config'     ? $setup->config->config
 : $section eq 'ssl'        ? $setup->openssl_conf
 
 #  port management on FreeBSD and Darwin
@@ -88,7 +88,7 @@ my $qmail = $toaster->qmail;
 #  Mail Filtering
 : $section eq 'filter'      ? $setup->filtering
 : $section eq 'razor'       ? $setup->razor
-: $section eq 'maildrop'    ? $setup->maildrop
+: $section eq 'maildrop'    ? $setup->maildrop->install
 : $section eq 'clamav'      ? $setup->clamav
 : $section eq 'simscan'     ? $setup->simscan
 : $section eq 'simconf'     ? $setup->simscan_conf
@@ -130,7 +130,7 @@ my $qmail = $toaster->qmail;
 : pod2usage( {-verbose=>1} );
 
 sub all {
-	$setup->config        ( );
+	$setup->config->config;
 
     # re-initialize $conf with new settings.
     $setup->util->parse_config( "toaster-watcher.conf");
@@ -147,7 +147,7 @@ sub all {
 	$setup->ucspi_tcp     ;
 	$setup->ezmlm         ;
 	$setup->vpopmail->install;
-	$setup->maildrop      ;
+	$setup->maildrop->install;
 	$setup->vqadmin       ;
 	$setup->qmailadmin    ;
 	$qmail->netqmail      ;
