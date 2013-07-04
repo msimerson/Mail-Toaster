@@ -40,27 +40,76 @@ sub install_freebsd_port {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
-    my $version = $self->conf->{'install_vpopmail'};
+    my $conf = $self->conf;
+    my $version = $conf->{'install_vpopmail'};
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
-    my @defs = "WITH_CLEAR_PASSWD=yes";
-    push @defs, "WITH_LEARN_PASSWORDS=yes" if $self->conf->{vpopmail_learn_passwords};
-    push @defs, "WITH_IP_ALIAS=yes" if $self->conf->{vpopmail_ip_alias_domains};
-    push @defs, "WITH_QMAIL_EXT=yes" if $self->conf->{vpopmail_qmail_ext};
-    push @defs, "WITH_SINGLE_DOMAIN=yes" if $self->conf->{vpopmail_disable_many_domains};
-    push @defs, "WITH_MAILDROP=yes" if $self->conf->{vpopmail_maildrop};
-    push @defs, 'LOGLEVEL="p"';
+    my @defs = 'LOGLEVEL="p"';
 
-    if ( $self->conf->{'vpopmail_mysql'} ) {
-        $self->error( "vpopmail_mysql is enabled by install_mysql is not. Please correct your settings" ) if ! $self->conf->{install_mysql};
-        push @defs, "WITH_MYSQL=yes";
-        push @defs, "WITH_MYSQL_REPLICATION=yes" if $self->conf->{vpopmail_mysql_replication};
-        push @defs, "WITH_MYSQL_LIMITS=yes" if $self->conf->{vpopmail_mysql_limits};
-        push @defs, 'WITH_VALIAS=yes' if $self->conf->{vpopmail_valias};
+    my $learn = $conf->{vpopmail_learn_passwords}     ? 'SET' : 'UNSET';
+    my $ip_alias = $conf->{vpopmail_ip_alias_domains} ? 'SET' : 'UNSET';
+    my $qmail_ext= $conf->{vpopmail_qmail_ext}        ? 'SET' : 'UNSET';
+    my $single_dom=$conf->{vpopmail_disable_many_domains} ? 'SET' : 'UNSET';
+    my $maildrop = $conf->{vpopmail_maildrop}         ? 'SET' : 'UNSET';
+    my $mysql    = $conf->{'vpopmail_mysql'}          ? 'SET' : 'UNSET';
+    my $roaming  = $conf->{vpopmail_roaming_users}    ? 'SET' : 'UNSET';
+    my $mysql_rep= my $mysql_lim = my $sql_log = my $valias = 'UNSET';
+    my $auth_log = $conf->{vpopmail_auth_logging}     ? 'SET' : 'UNSET';
+
+    if ( $roaming eq 'SET' && $conf->{vpopmail_relay_clear_minutes} ) {
+        push @defs, 'RELAYCLEAR='.$conf->{vpopmail_relay_clear_minutes};
     };
 
-    return if ! $self->freebsd->install_port( "vpopmail", flags => join( ",", @defs ),);
+    if ( $mysql eq 'SET' ) {
+        $self->error( "vpopmail_mysql is enabled but install_mysql is not. Please correct your settings" ) if ! $conf->{install_mysql};
+        $mysql_rep = 'SET' if $conf->{vpopmail_mysql_replication};
+        $mysql_lim = 'SET' if $conf->{vpopmail_mysql_limits};
+        $valias    = 'SET' if $conf->{vpopmail_valias};
+        $sql_log   = 'SET' if $conf->{vpopmail_mysql_logging};
+    };
+
+    $self->freebsd->install_port( 'vpopmail',
+        flags => join( ',', @defs ),
+        options => "# installed by Mail::Toaster
+# Options for vpopmail-5.4.32_3
+_OPTIONS_READ=vpopmail-5.4.32_3
+_FILE_COMPLETE_OPTIONS_LIST=AUTH_LOG CLEAR_PASSWD DOCS DOMAIN_QUOTAS FILE_LOCKING FILE_SYNC FPIC IP_ALIAS LDAP LDAP_SASL LEARN_PASSWORDS MAILDROP MD5_PASSWORDS MYSQL MYSQL_LIMITS MYSQL_REPLICATION ONCHANGE_SCRIPT ORACLE PASSWD PGSQL QMAIL_EXT ROAMING SEEKABLE SINGLE_DOMAIN SMTP_AUTH_PATCH SPAMASSASSIN SPAMFOLDER SQL_LOG SQL_LOG_TRIM SUID_VCHKPW SYBASE USERS_BIG_DIR VALIAS
+OPTIONS_FILE_$auth_log+=AUTH_LOG
+OPTIONS_FILE_SET+=CLEAR_PASSWD
+OPTIONS_FILE_SET+=DOCS
+OPTIONS_FILE_UNSET+=DOMAIN_QUOTAS
+OPTIONS_FILE_SET+=FILE_LOCKING
+OPTIONS_FILE_UNSET+=FILE_SYNC
+OPTIONS_FILE_SET+=FPIC
+OPTIONS_FILE_$ip_alias+=IP_ALIAS
+OPTIONS_FILE_UNSET+=LDAP
+OPTIONS_FILE_UNSET+=LDAP_SASL
+OPTIONS_FILE_$learn+=LEARN_PASSWORDS
+OPTIONS_FILE_$maildrop+=MAILDROP
+OPTIONS_FILE_SET+=MD5_PASSWORDS
+OPTIONS_FILE_$mysql+=MYSQL
+OPTIONS_FILE_$mysql_lim+=MYSQL_LIMITS
+OPTIONS_FILE_$mysql_rep+=MYSQL_REPLICATION
+OPTIONS_FILE_UNSET+=ONCHANGE_SCRIPT
+OPTIONS_FILE_UNSET+=ORACLE
+OPTIONS_FILE_UNSET+=PASSWD
+OPTIONS_FILE_UNSET+=PGSQL
+OPTIONS_FILE_$qmail_ext+=QMAIL_EXT
+OPTIONS_FILE_$roaming+=ROAMING
+OPTIONS_FILE_SET+=SEEKABLE
+OPTIONS_FILE_$single_dom+=SINGLE_DOMAIN
+OPTIONS_FILE_UNSET+=SMTP_AUTH_PATCH
+OPTIONS_FILE_UNSET+=SPAMASSASSIN
+OPTIONS_FILE_UNSET+=SPAMFOLDER
+OPTIONS_FILE_$sql_log+=SQL_LOG
+OPTIONS_FILE_UNSET+=SQL_LOG_TRIM
+OPTIONS_FILE_UNSET+=SUID_VCHKPW
+OPTIONS_FILE_UNSET+=SYBASE
+OPTIONS_FILE_SET+=USERS_BIG_DIR
+OPTIONS_FILE_$valias+=VALIAS
+",
+    ) or return;
 
     my $vpopdir = $self->conf->{'vpopmail_home_dir'};
     my $docroot = $self->conf->{'toaster_http_docs'};
@@ -77,13 +126,14 @@ sub install_from_source {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
-    my $version = $self->conf->{'install_vpopmail'} || "5.4.33";
+    my $conf = $self->conf;
+    my $version = $conf->{'install_vpopmail'} || "5.4.33";
     my $package = "vpopmail-$version";
-    my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpopdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
 
     $self->create_user();   # add the vpopmail user/group
-    my $uid = getpwnam( $self->conf->{'vpopmail_user'} || "vpopmail" );
-    my $gid = getgrnam( $self->conf->{'vpopmail_group'} || "vchkpw"  );
+    my $uid = getpwnam( $conf->{'vpopmail_user'} || "vpopmail" );
+    my $gid = getgrnam( $conf->{'vpopmail_group'} || "vchkpw"  );
 
     my $installed = $self->installed_version();
 
@@ -103,16 +153,16 @@ sub install_from_source {
         my $mt_setting = 'vpopmail_' . $_;
         my $conf_arg = "--enable-$_";
         $conf_arg =~ s/_/-/g;
-        my $r = $self->conf->{$mt_setting} ? 'yes' : 'no';
+        my $r = $conf->{$mt_setting} ? 'yes' : 'no';
         $conf_args .= " $conf_arg=$r";
         print "$conf_arg=$r\n";
     };
 
     if ( ! $self->is_newer( min => "5.3.30", cur => $version ) ) {
-        if ( defined $self->conf->{'vpopmail_default_quota'} ) {
+        if ( defined $conf->{'vpopmail_default_quota'} ) {
             $conf_args .=
-              " --enable-defaultquota=$self->conf->{'vpopmail_default_quota'}";
-            print "default quota: $self->conf->{'vpopmail_default_quota'}\n";
+              " --enable-defaultquota=".$conf->{'vpopmail_default_quota'};
+            print "default quota: ".$conf->{'vpopmail_default_quota'}."\n";
         }
         else {
             $conf_args .= " --enable-defaultquota=100000000S,10000C";
@@ -123,8 +173,7 @@ sub install_from_source {
     $conf_args .= $self->roaming_users();
 
     if ( $OSNAME eq "darwin" && !-d "/usr/local/mysql"
-        && -d "/opt/local/include/mysql" )
-    {
+        && -d "/opt/local/include/mysql" ) {
         $conf_args .= " --enable-incdir=/opt/local/include/mysql";
         $conf_args .= " --enable-libdir=/opt/local/lib/mysql";
     }
@@ -132,7 +181,7 @@ sub install_from_source {
     my $tcprules = $self->util->find_bin( "tcprules", verbose=>0 );
     $conf_args .= " --enable-tcprules-prog=$tcprules";
 
-    my $src = $self->conf->{'toaster_src_dir'} || "/usr/local/src";
+    my $src = $conf->{'toaster_src_dir'} || "/usr/local/src";
 
     $self->util->cwd_source_dir( "$src/mail" );
 
@@ -148,7 +197,7 @@ sub install_from_source {
 
     $self->util->sources_get(
         'package' => $package,
-        site      => "http://" . $self->conf->{'toaster_sf_mirror'},
+        site      => "http://" . $conf->{'toaster_sf_mirror'},
         path      => "/vpopmail",
     );
 
@@ -161,7 +210,7 @@ sub install_from_source {
 
     $self->util->extract_archive( $tarball ) or die;
 
-    if ( $self->conf->{vpopmail_mysql} ) {
+    if ( $conf->{vpopmail_mysql} ) {
         $conf_args .= $self->mysql_options();
     };
     $conf_args .= $self->logging();
@@ -169,11 +218,14 @@ sub install_from_source {
     $conf_args .= $self->etc_passwd();
 
     # in case someone updates their toaster and not their config file
-    if ( defined $self->conf->{'vpopmail_qmail_ext'} && $self->conf->{'vpopmail_qmail_ext'} ) {
+    if ( defined $conf->{'vpopmail_qmail_ext'}
+              && $conf->{'vpopmail_qmail_ext'} ) {
         $conf_args .= " --enable-qmail-ext=y";
         print "qmail extensions: yes\n";
     }
-    if ( defined $self->conf->{'vpopmail_maildrop'} ) { $conf_args .= " --enable-maildrop=y"; };
+    if ( defined $conf->{'vpopmail_maildrop'} ) {
+        $conf_args .= " --enable-maildrop=y";
+    };
 
     print "fixup for longer passwords\n";
     system "sed -i -Ee '/^pw_clear_passwd char(/s/16/128/' vmysql.h";
@@ -535,7 +587,7 @@ sub mysql_privs {
     my %p = validate( @_, { $self->get_std_opts },);
 
     if ( !$self->conf->{'vpopmail_mysql'} ) {
-        print "vpopmail mysql_privs: mysql support not selected!\n";
+        print "vpopmail mysql_privs: mysql support not selected\n";
         return;
     }
 

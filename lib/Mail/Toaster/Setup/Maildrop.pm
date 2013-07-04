@@ -3,20 +3,13 @@ package Mail::Toaster::Setup::Maildrop;
 use strict;
 use warnings;
 
-#use Carp;
-#use Config;
-#use Cwd;
-#use Data::Dumper;
-#use File::Copy;
-#use File::Path;
 use English '-no_match_vars';
 use Params::Validate ':all';
-#use Sys::Hostname;
 
 use lib 'lib';
 use parent 'Mail::Toaster::Base';
 
-sub maildrop {
+sub install {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
@@ -29,6 +22,15 @@ sub maildrop {
 
     if ( $ver eq "port" || $ver eq "1" ) {
         if ( $OSNAME eq "freebsd" ) {
+            # pre-installing pcre supresses a dialog
+            $self->freebsd->install_port( "pcre",
+                    options => '# written by Mail::Toaster
+# Options for pcre-8.33
+_OPTIONS_READ=pcre-8.33
+_FILE_COMPLETE_OPTIONS_LIST=STACK_RECURSION
+OPTIONS_FILE_SET+=STACK_RECURSION
+',
+                    );
             $self->freebsd->install_port( "maildrop", flags => "WITH_MAILDIRQUOTA=1",);
         }
         elsif ( $OSNAME eq "darwin" ) {

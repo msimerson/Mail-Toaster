@@ -7,51 +7,40 @@ use Test::More;
 
 use lib "lib";
 
-my $mod = "Date::Parse";
-unless (eval "require $mod" )
-{
-	Test::More::plan( skip_all => "skipping tests, Date::Parse not installed yet");
+eval "require Date::Parse";
+if ( $@ ) {
+	plan skip_all => "Date::Parse not installed";
 }
-unless (-w "/var/log/mail")
-{
-	Test::More::plan( skip_all => "skipping tests, /var/log/mail not writable");
+
+if ( ! -w '/var/log/mail' ) {
+	plan skip_all => "/var/log/mail not writable";
 }
-plan 'no_plan';
+
+my $count_dir = "/var/log/mail/counters";
+unless ( -d $count_dir ) {
+	plan skip_all => "$count_dir does not existent";
+};
 
 require_ok( 'Mail::Toaster' );
 
-my $toaster = Mail::Toaster->new(verbose=>0);
-ok ( defined $toaster, 'Mail::Toaster object' );
-ok ( $toaster->isa('Mail::Toaster'), 'check object class' );
-
-my $util = $toaster->get_util;
+my $toaster = Mail::Toaster->new;
+isa_ok( $toaster, 'Mail::Toaster', 'object class' );
 
 my $maillogs_location = "bin/maillogs";
 
 ok( -e $maillogs_location, 'found maillogs');
 ok( -x $maillogs_location, 'is executable');
 
-unless ( -d "/var/log/mail/counters" &&
-         -s "/var/log/mail/counters/webmail.txt" ) {
-    exit;
-};
-
-
 my @log_types = qw( smtp send rbl imap pop3 webmail spamassassin );
 
 foreach my $type (@log_types) {
-    if ( $UID == 0 ) {
-        ok( $util->syscmd( "$maillogs_location $type",
-                fatal   => 0,
-                verbose   => 0,
-            ), "maillogs $type",
-        );
-    }
-    else {
-        ok( ! $util->syscmd( "$maillogs_location -a list -s matt -h From ",
-                fatal => 0,
-                verbose => 0,
-            ), "maillogs $type",
-        );
-    }
+    next if $UID != 0;
+    ok( $toaster->util->syscmd( "$maillogs_location $type",
+            fatal   => 0,
+            verbose   => 0,
+        ), "maillogs $type",
+    );
 }
+
+done_testing();
+exit;

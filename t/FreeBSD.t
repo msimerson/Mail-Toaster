@@ -24,7 +24,6 @@ isa_ok( $freebsd, 'Mail::Toaster::FreeBSD', 'check object class' );
     ok ( ! $freebsd->drive_spin_down( drive=>"0:1:0", test_ok=>0, verbose=>0), 'drive_spin_down');
 
 
-
 # get_port_category
 if ( -f '/usr/ports/Makefile' ) {
     my @ports = qw/ openssl p5-Net-DNS qmail gdbm /;
@@ -71,6 +70,7 @@ if ( -f '/usr/ports/Makefile' ) {
 # port_options
     ok ( $freebsd->port_options(
         port => 'p5-Tar-Diff',
+        cat  => 'test',
         opts => 'blah,test,deleteme\n',
         test_ok=>1,
     ), 'port_options');

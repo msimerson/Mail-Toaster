@@ -16,7 +16,7 @@ isa_ok( $setup, 'Mail::Toaster::Setup', 'object class' );
 
 my $initial_working_directory = cwd;
 my @subs_to_test = qw/ apache autorespond clamav courier_imap cronolog
-  daemontools djbdns dovecot expat ezmlm lighttpd munin mysql 
+  daemontools djbdns dovecot expat ezmlm lighttpd munin
   openssl_conf qmailadmin razor roundcube spamassassin 
   squirrelmail sqwebmail vqadmin
 /;

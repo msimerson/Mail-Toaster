@@ -3,7 +3,6 @@ package Mail::Toaster::FreeBSD;
 use strict;
 use warnings;
 
-#use Cwd; # included with POSIX
 use Carp;
 use File::Copy;
 use Params::Validate qw( :all );
@@ -32,6 +31,24 @@ sub drive_spin_down {
     return 1;
 }
 
+sub get_defines {
+    my ($self, $flags) = @_;
+
+    # flags are the "make -DWITH_OPTION" flags
+    return '' if ! $flags;
+
+    my $make_defines;
+    foreach my $def ( split( /,/, $flags ) ) {
+        if ( $def =~ /=/ ) {             # DEFINE=VALUE format, use as is
+            $make_defines .= " $def ";
+        }
+        else {
+            $make_defines .= " -D$def "; # otherwise, prepend the -D flag
+        }
+    }
+    return $make_defines;
+};
+
 sub get_pkg {
     my $self = shift;
     return 'pkg' if ! -x '/usr/sbin/pkg';
@@ -47,11 +64,8 @@ sub get_port_category {
     if ( ! $path ) {
         ($path) = glob("/usr/ports/*/$port/Makefile");
     };
-#warn "path: $path\n";
     return if ! $path;
-    my @bits = split( '/', $path );
-#warn "bits3: $bits[3]\n";
-    return $bits[3];
+    return (split '/', $path)[3];
 }
 
 sub get_version {
@@ -65,23 +79,19 @@ sub get_version {
 
 sub install_port {
     my $self = shift;
-    my $portname = shift or return $self->error("missing port/package name", fatal=>0);
-    my %p    = validate(
-        @_,
+    my $portname = shift or return $self->error("missing port/package name" );
+    my %p = validate( @_,
         {   dir      => { type => SCALAR, optional => 1 },
-            category => { type => SCALAR|UNDEF, optional => 1 },
-            check    => { type => SCALAR,  optional => 1 },
-            flags    => { type => SCALAR,  optional => 1 },
-            options  => { type => SCALAR,  optional => 1 },
+            category => { type => SCALAR, optional => 1 },
+            check    => { type => SCALAR, optional => 1 },
+            flags    => { type => SCALAR, optional => 1 },
+            options  => { type => SCALAR, optional => 1 },
             $self->get_std_opts,
         },
     );
 
     my $options = $p{options};
-    my %args = ( verbose => $p{verbose}, fatal => $p{fatal} );
-
-    my $make_defines = "";
-    my @defs;
+    my %args = $self->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
@@ -89,68 +99,46 @@ sub install_port {
     return 1 if $self->is_port_installed( $check, verbose=>1);
 
     my $port_dir = $p{dir} || $portname;
-    $port_dir =~ s/::/-/g if $port_dir =~ /::/;
+    $port_dir =~ s/::/-/g;
 
-    my $start_directory = Cwd::getcwd();
-		my $category = $p{category} || $self->get_port_category($portname)
-            or die "unable to find port directory for port $portname\n";
+    my $category = $p{category} || $self->get_port_category($portname)
+        or die "unable to find port directory for port $portname\n";
 
-		my $path = "/usr/ports/$category/$port_dir";
-		-d $path && chdir $path or croak "couldn't cd to $path: $!\n";
+    my $path = "/usr/ports/$category/$port_dir";
+    -d $path or $self->error( "missing $path: $!\n" );
 
     $self->util->audit("install_port: installing $portname");
 
-    # these are the "make -DWITH_OPTION" flags
-    if ( $p{flags} ) {
-        @defs = split( /,/, $p{flags} );
-        foreach my $def (@defs) {
-            if ( $def =~ /=/ ) {             # DEFINE=VALUE format, use as is
-                $make_defines .= " $def ";
-            }
-            else {
-                $make_defines .= " -D$def "; # otherwise, prepend the -D flag
-            }
-        }
-    }
+    my $make_defines = $self->get_defines($p{flags});
 
     if ($options) {
-        $self->port_options( port => $portname, opts => $options );
+        $self->port_options( port => $portname, cat => $category, opts => $options );
     }
 
     # reset our PATH, to make sure we use our system supplied tools
     $ENV{PATH} = "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin";
 
     # the vast majority of ports work great this way
-    print "running: make $make_defines install clean\n";
-    system "make clean";
-    system "make $make_defines";
-    system "make $make_defines install";
+    $self->audit( "running: make -C $path $make_defines install clean");
+    system "make -C $path clean";
+    system "make -C $path $make_defines";
+    system "make -C $path $make_defines install";
     if ( $portname eq "ezmlm-idx" ) {
-        copy( "work/ezmlm-0.53/ezmlmrc", "/usr/local/bin" );
+        copy( "$path/work/ezmlm-0.53/ezmlmrc", "/usr/local/bin" );
     }
-    system "make clean";
-
-    # return to our original working directory
-    chdir($start_directory);
+    system "make -C $path clean";
 
     return 1 if $self->is_port_installed( $check, verbose=>1 );
 
     $self->util->audit( "install_port: $portname install, FAILED" );
-    $self->install_port_try_manual( $portname, $path );
 
     if ( $portname =~ /\Ap5\-(.*)\z/ ) {
         my $p_name = $1;
         $p_name =~ s/\-/::/g;
-
-        print <<"EO_PERL_MODULE_MANUAL";
-Since it was a perl module that failed to install,  you could also try
-manually installing via CPAN. Try something like this:
-
-       perl -MCPAN -e 'install $p_name'
-
-EO_PERL_MODULE_MANUAL
+        $self->util->install_module_cpan($p_name) and return 1;
     };
 
+    $self->install_port_try_manual( $portname, $path );
     return $self->error( "Install of $portname failed. Please fix and try again.", %args);
 }
 
@@ -322,17 +310,16 @@ using the following commands:
         make
         make install clean
 
-    If that does not work, make sure your ports tree is up to date and try again. You
-can also check out the "Dealing With Broken Ports" article on the FreeBSD web site:
+    If that does not work, make sure your ports tree is up to date and
+    try again. See also "Dealing With Broken Ports":
 
         http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/ports-broken.html
 
-If none of those options work out, there may be something "unique" about your system
-that is the source of the  problem, or the port my just be broken. You have several
-choices for proceeding. You can:
+If manual installation fails, there may be something "unique" about your system
+or the port may be broken. You can:
 
     a. Wait until the port is fixed
-    b. Try fixing it yourself
+    b. Try fixing the port
     c. Get someone else to fix it
 
 EO_PORT_TRY_MANUAL
@@ -344,20 +331,23 @@ sub port_options {
         @_,
         {   port  => SCALAR,
             opts  => SCALAR,
+            cat   => SCALAR,
             $self->get_std_opts,
         },
     );
 
-    my ( $port, $opts ) = ( $p{port}, $p{opts} );
+    my ( $port, $cat, $opts ) = ( $p{port}, $p{cat}, $p{opts} );
     my %args = $self->toaster->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
-    if ( !-d "/var/db/ports/$port" ) {
-        $self->util->mkdir_system( dir => "/var/db/ports/$port", %args,);
+    my $opt_dir = "/var/db/ports/$cat".'_'.$port;
+    if ( !-d $opt_dir ) {
+        $self->util->mkdir_system( dir => $opt_dir, %args,);
     }
 
-    $self->util->file_write( "/var/db/ports/$port/options", lines => [$opts], %args );
+    my $prefix = '# This file installed by Mail::Toaster';
+    $self->util->file_write( "$opt_dir/options", lines => [$prefix,$opts], %args );
 }
 
 sub update_ports {

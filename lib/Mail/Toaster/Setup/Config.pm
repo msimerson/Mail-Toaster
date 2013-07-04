@@ -27,10 +27,10 @@ sub config {
 
     my $file_name = "toaster-watcher.conf";
     my $file_path = $self->util->find_config( $file_name );
-    $self->refresh_config( $file_path ) or return;
+    $self->setup->refresh_config( $file_path ) or return;
 
 ### start questions
-    $self->hostname();
+    $self->config_hostname();
     $self->postmaster();
     $self->test_email();
     $self->test_email_pass();
@@ -119,7 +119,7 @@ sub apply_tweaks {
     $self->util->file_write( $p{file}, lines => \@lines );
 };
 
-sub hostname {
+sub config_hostname {
     my $self = shift;
 
     return if ( $self->conf->{'toaster_hostname'} && $self->conf->{'toaster_hostname'} ne "mail.example.com" );
@@ -451,7 +451,7 @@ sub config_tweaks_mysql {
     $changes{'install_mysql'}   = '55      # 0, 1, 2, 3, 40, 41, 5, 55';
     $changes{'install_mysqld'}  = '1       # 0, 1';
     $changes{'vpopmail_mysql'}  = '1         # disables all mysql options';
-    $changes{'smtpd_use_mysql_relay_table'} = 1;
+    $changes{'smtpd_use_mysql_relay_table'} = 0;
     $changes{'install_squirrelmail_sql'}    = 1;
     $changes{'install_spamassassin_sql'}    = 1;
 
