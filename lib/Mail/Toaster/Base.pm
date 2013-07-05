@@ -4,10 +4,11 @@ use warnings;
 
 our $VERSION = '5.41';
 
+use Data::Dumper;
 use Params::Validate ':all';
 
-our $verbose = 0;
-our (@audit, $last_audit, @errors, $last_error ); # package variables
+our $verbose = our $last_audit = our $last_error = 0; # package variables
+our (@audit, @errors); # package wide message stacks
 our ($conf, $log);
 our ($apache, $darwin, $dns, $freebsd, $qmail, $logs, $mysql, $setup, $toaster, $util );
 
@@ -98,7 +99,7 @@ sub util {
 
 sub verbose {
     return $verbose if 1 == scalar @_;
-    return $verbose = $_[1];
+    return $verbose = $std_opts{verbose}{default} = $_[1];
 };
 
 sub conf {
@@ -125,9 +126,15 @@ sub dump_audit {
     my $self = shift;
     my %p = validate( @_, { %std_opts } );
 
-    scalar @audit or return;
-    return if ! $last_audit;
-    return if $last_audit == scalar @audit; # nothing new
+    if ( 0 == scalar @audit ) {
+        print "dump_audit: no audit messages\n" if $p{verbose};
+        return 1;
+    };
+
+    if ( $last_audit == scalar @audit ) {
+        print "dump_audit: all messages dumped\n" if $p{verbose};
+        return 1;
+    };
 
     if ( $p{quiet} ) {   # hide/mask unreported messages
         $last_audit = scalar @audit;
@@ -153,8 +160,7 @@ sub error {
     );
 
     my $location = $p{location};
-    my $verbose = $p{verbose};
-    my $fatal = $p{fatal};
+    my $verbose = $p{verbose} || $verbose;
 
     if ( $message ) {
         my @caller = $p{caller} || caller;
@@ -169,20 +175,22 @@ sub error {
         $message = $errors[-1];
     }
 
-    if ( $verbose || $fatal ) {
-        $self->dump_audit();
-        $self->dump_errors();
+    if ( $verbose || $p{fatal} ) {
+        $self->dump_audit;
+        $self->dump_errors;
     }
 
-    exit 1 if $fatal;
+    exit 1 if $p{fatal};
     return;
 }
 
 sub dump_errors {
     my $self = shift;
-    my $last_error or return;
 
-    return if $last_error == scalar @errors; # everything dumped
+    if ( $last_error == scalar @errors ) {
+        print "all error messages dumped!\n" if $verbose;
+        return 1;
+    };
 
     print "\n\t\t\t Error History Report \n\n";
     my $i = 0;
@@ -197,7 +205,7 @@ sub dump_errors {
     };
     print "\n";
     $last_error = $i;
-    return;
+    return 1;
 };
 
 sub get_std_args {
