@@ -4,7 +4,6 @@ use warnings;
 
 our $VERSION = '5.41';
 
-use Data::Dumper;
 use Params::Validate ':all';
 
 our $verbose = our $last_audit = our $last_error = 0; # package variables

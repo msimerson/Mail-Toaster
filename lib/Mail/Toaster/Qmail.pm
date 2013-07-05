@@ -3,11 +3,13 @@ package Mail::Toaster::Qmail;
 use strict;
 use warnings;
 
+use Carp;
 use English qw( -no_match_vars );
 use File::Copy;
 use File::Path;
 use Params::Validate qw( :all );
 use POSIX;
+use Sys::Hostname;
 
 use lib 'lib';
 use parent 'Mail::Toaster::Base';
@@ -15,18 +17,12 @@ use parent 'Mail::Toaster::Base';
 sub build_pop3_run {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
 
-    my $vdir       = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
-    my $qctrl      = $self->conf->{'qmail_dir'} . "/control";
-    my $qsupervise = $self->conf->{'qmail_supervise'} || '/var/qmail/supervise';
-
-    -d $qsupervise or
-        return $self->error( "$qsupervise does not exist!",fatal=>0);
+    $self->get_supervise_dir or return;
 
     my @lines = $self->toaster->supervised_do_not_edit_notice( vdir => 1 );
 
-    if ( $self->conf->{'pop3_hostname'} eq 'qmail' ) {
+    if ( $self->conf->{pop3_hostname} eq 'qmail' ) {
         push @lines, $self->supervised_hostname_qmail( prot => 'pop3' );
     };
 
@@ -36,8 +32,7 @@ sub build_pop3_run {
 
     $exec .= "\\\n\tqmail-popup ";
     $exec .= $self->toaster->supervised_hostname( prot => "pop3" );
-    $exec .= $chkpass;
-    $exec .= "qmail-pop3d Maildir ";
+    $exec .= "$chkpass qmail-pop3d Maildir ";
     $exec .= $self->toaster->supervised_log_method( prot => "pop3" );
 
     push @lines, $exec;
@@ -55,18 +50,14 @@ sub build_send_run {
 
     $self->audit( "generating send/run..." );
 
-    my $qsup = $self->conf->{'qmail_supervise'} or
-        return $self->error( "qmail_supervise not set in toaster-watcher.conf!",
-            fatal => 0 );
+    $self->get_supervise_dir or return;
 
-    $self->util->mkdir_system( dir => $qsup ) if !-d $qsup;
-
-    my $mailbox  = $self->conf->{'send_mailbox_string'} || "./Maildir/";
-    my $send_log = $self->conf->{'send_log_method'}     || "syslog";
+    my $mailbox  = $self->conf->{send_mailbox_string} || './Maildir/';
+    my $send_log = $self->conf->{send_log_method}     || 'syslog';
 
     my @lines = $self->toaster->supervised_do_not_edit_notice();
 
-    if ( $send_log eq "syslog" ) {
+    if ( $send_log eq 'syslog' ) {
         push @lines, "# use splogger to qmail-send logs to syslog\n
 # make changes in /usr/local/etc/toaster-watcher.conf
 exec qmail-start $mailbox splogger qmail\n";
@@ -97,13 +88,8 @@ sub build_smtp_run {
     my @smtp_run_cmd = $self->toaster->supervised_do_not_edit_notice( vdir => 1 );
     push @smtp_run_cmd, $self->smtp_set_qmailqueue();
 
-    # check for our control directory existence
-    my $qdir  = $self->conf->{'qmail_dir'};
-    my $qctrl = "$qdir/control";
-    return $self->error( "build_smtp_run failed. $qctrl is not a directory", fatal=>0)
-        unless -d $qctrl;
-
-    return if ! -d $self->conf->{'qmail_supervise'};
+    $self->get_control_dir or return; # verify control directory exists
+    $self->get_supervise_dir or return;
 
     push @smtp_run_cmd, $self->supervised_hostname_qmail( prot => "smtpd" )
         if $self->conf->{'smtpd_hostname'} eq "qmail";
@@ -140,22 +126,16 @@ sub build_submit_run {
 
     my $vdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
 
-    my @lines = $self->toaster->supervised_do_not_edit_notice( vdir => 1 );
+    $self->get_control_dir or return; # verify control directory exists
+    $self->get_supervise_dir or return;
 
-    push @lines, $self->smtp_set_qmailqueue( prot => 'submit' );
-
-    # don't subject authed clients to HELO tests since many (Outlook, OE)
-    # do not send a proper HELO. -twa, 2007-03-07
-    push @lines, 'export NOBADHELO=""
-
-';
-
-    my $qctrl = $self->conf->{'qmail_dir'} . "/control";
-    return $self->error( "  failed. $qctrl is not a directory", fatal=>0)
-        if ! -d $qctrl;
-
-    my $qsupervise = $self->conf->{'qmail_supervise'};
-    return if ! -d $qsupervise;
+    # NOBADHELO note: don't subject authed clients to HELO tests since many
+    # (Outlook, OE) do not send a proper HELO. -twa, 2007-03-07
+    my @lines = (
+            $self->toaster->supervised_do_not_edit_notice( vdir => 1 ),
+            $self->smtp_set_qmailqueue( prot => 'submit' ),
+            qq{export NOBADHELO=""\n\n},
+        );
 
     push @lines, $self->supervised_hostname_qmail( prot => "submit" )
         if $self->conf->{'submit_hostname'} eq "qmail";
@@ -170,8 +150,7 @@ sub build_submit_run {
             if ( $self->conf->{'submit_hostname'} && $self->conf->{'qmail_smtpd_auth_0.31'} );
 
         my $chkpass = $self->_set_checkpasswd_bin( prot => 'submit' ) or return;
-        $exec .= $chkpass;
-        $exec .= "/usr/bin/true ";
+        $exec .= "$chkpass /usr/bin/true ";
     }
 
     $exec .= $self->toaster->supervised_log_method( prot => "submit" ) or return;
@@ -182,31 +161,6 @@ sub build_submit_run {
     $self->util->file_write( $file, lines => \@lines ) or return;
     $self->install_supervise_run( tmpfile => $file, prot => 'submit' ) or return;
     return 1;
-}
-
-sub check_control {
-    my $self = shift;
-    my %p = validate( @_, { 'dir' => SCALAR, $self->get_std_opts } );
-
-    # used in qqtool.pl
-
-    my ( $dir, $fatal, $verbose ) = ( $p{dir}, $p{fatal}, $p{verbose} );
-
-    if ( -d $dir ) {
-        $self->audit( "check_control: checking $dir, ok" );
-        return 1;
-    }
-
-    my $qcontrol = $self->toaster->service_dir_get( prot => "send" );
-
-    $self->audit( "check_control: checking $qcontrol/$dir, FAILED" );
-    $self->audit( "
-	HEY! The control directory for qmail-send is not
-	in $dir where I expected. Please edit this script
-	and set $qcontrol to the appropriate directory!\n\n"
-    );
-
-    return;
 }
 
 sub check_rcpthosts {
@@ -269,16 +223,16 @@ sub config {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
     my %args = $self->toaster->get_std_args( %p );
-
-    my $qdir    = $self->conf->{'qmail_dir'}       || "/var/qmail";
-    my $tmp     = $self->conf->{'toaster_tmp_dir'} || "/tmp";
-    my $host    = $self->conf->{'toaster_hostname'};
-    if ( $host =~ /qmail|system/ ) { $host = `hostname`; chomp $host; };
-
     return $p{test_ok} if defined $p{test_ok};
 
-    my $postmaster = $self->conf->{'toaster_admin_email'};
-    my $ciphers    = $self->conf->{'openssl_ciphers'} || 'pci';
+    my $conf = $self->conf;
+    my $qdir = $conf->{qmail_dir}       || '/var/qmail';
+    my $tmp  = $conf->{toaster_tmp_dir} || '/tmp';
+    my $host = $conf->{toaster_hostname};
+       $host = hostname if $host =~ /(?:qmail|system)/;
+
+    my $postmaster = $conf->{toaster_admin_email};
+    my $ciphers    = $conf->{openssl_ciphers} || 'pci';
 
     if ( $ciphers =~ /^[a-z]+$/ ) {
         $ciphers = $self->setup->openssl_get_ciphers( $ciphers );
@@ -286,11 +240,11 @@ sub config {
 
     my @changes = (
         { file => 'control/me',                 setting => $host, },
-        { file => 'control/concurrencyremote',  setting => $self->conf->{'qmail_concurrencyremote'},},
-        { file => 'control/mfcheck',            setting => $self->conf->{'qmail_mfcheck_enable'},   },
-        { file => 'control/tarpitcount',        setting => $self->conf->{'qmail_tarpit_count'},     },
-        { file => 'control/tarpitdelay',        setting => $self->conf->{'qmail_tarpit_delay'},     },
-        { file => 'control/spfbehavior',        setting => $self->conf->{'qmail_spf_behavior'},     },
+        { file => 'control/concurrencyremote',  setting => $conf->{'qmail_concurrencyremote'},},
+        { file => 'control/mfcheck',            setting => $conf->{'qmail_mfcheck_enable'},   },
+        { file => 'control/tarpitcount',        setting => $conf->{'qmail_tarpit_count'},     },
+        { file => 'control/tarpitdelay',        setting => $conf->{'qmail_tarpit_delay'},     },
+        { file => 'control/spfbehavior',        setting => $conf->{'qmail_spf_behavior'},     },
         { file => 'alias/.qmail-postmaster',    setting => $postmaster,   },
         { file => 'alias/.qmail-root',          setting => $postmaster,   },
         { file => 'alias/.qmail-mailer-daemon', setting => $postmaster,   },
@@ -298,24 +252,7 @@ sub config {
         { file => 'control/tlsclientciphers',   setting => $ciphers },
     );
 
-    if ( $self->conf->{'vpopmail_mysql'} ) {
-        my $dbhost = $self->conf->{'vpopmail_mysql_repl_slave'}
-             or die "missing database server hostname\n";
-        my $dbport = $self->conf->{'vpopmail_mysql_repl_slave_port'}
-             or die "missing database server port\n";
-        my $dbname = $self->conf->{'vpopmail_mysql_database'}
-            or die "missing database name\n";
-        my $dbuser = $self->conf->{'vpopmail_mysql_user'}
-            or die "missing vpopmail SQL username\n";
-        my $password = $self->conf->{'vpopmail_mysql_pass'}
-            or die "missing vpopmail SQL pass\n";
-
-        push @changes, { file => 'control/sql', setting =>
-"server $dbhost\nport $dbport
-database $dbname\ntable relay
-user $dbuser\npass $password\ntime 1800\n"
-        };
-    };
+    push @changes, $self->control_sql if $conf->{vpopmail_mysql};
 
     $self->config_write( \@changes );
 
@@ -330,7 +267,7 @@ user $dbuser\npass $password\ntime 1800\n"
     chmod oct('0640'), "$control/sql";
     chmod oct('0644'), "$control/concurrencyremote";
 
-    $self->config_freebsd() if $OSNAME eq "freebsd";
+    $self->config_freebsd() if $OSNAME eq 'freebsd';
 
     # install the qmail control script (qmail cdb, qmail restart, etc)
     $self->control_create( %args );
@@ -453,24 +390,47 @@ sub config_write {
     }
 };
 
+sub control_sql {
+    my $self = shift;
+    my $conf = $self->conf;
+
+    my $dbhost = $conf->{vpopmail_mysql_repl_slave}
+            or die "missing db hostname\n";
+    my $dbport = $conf->{vpopmail_mysql_repl_slave_port}
+            or die "missing db server port\n";
+    my $dbname = $conf->{vpopmail_mysql_database}
+        or die "missing db name\n";
+    my $dbuser = $conf->{vpopmail_mysql_user}
+        or die "missing vpopmail SQL username\n";
+    my $password = $conf->{vpopmail_mysql_pass}
+        or die "missing vpopmail SQL pass\n";
+
+    return {
+        file => 'control/sql',
+        setting => "server $dbhost
+port $dbport
+database $dbname
+table relay
+user $dbuser
+pass $password
+time 1800
+",
+    };
+};
+
 sub control_create {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my ( $fatal, $verbose ) = ( $p{fatal}, $p{verbose} );
-
-    my $dl_site = $self->conf->{'toaster_dl_site'} || "http://www.tnpi.net";
-    my $dl_url  = $self->conf->{'toaster_dl_url'}  || "/internet/mail/toaster";
-    my $toaster_url = "$dl_site$dl_url";
-
-    my $qmaildir = $self->conf->{'qmail_dir'}         || "/var/qmail";
-    my $confdir  = $self->conf->{'system_config_dir'} || "/usr/local/etc";
-    my $tmp      = $self->conf->{'toaster_tmp_dir'}   || "/tmp";
-    my $prefix   = $self->conf->{'toaster_prefix'}    || "/usr/local";
+    my $conf     = $self->conf;
+    my $qmaildir = $conf->{qmail_dir}         || '/var/qmail';
+    my $confdir  = $conf->{system_config_dir} || '/usr/local/etc';
+    my $tmp      = $conf->{toaster_tmp_dir}   || '/tmp';
+    my $prefix   = $conf->{toaster_prefix}    || '/usr/local';
 
     my $qmailctl = "$qmaildir/bin/qmailctl";
 
-    return $p{'test_ok'} if defined $p{'test_ok'};
+    return $p{test_ok} if defined $p{test_ok};
 
     # install a new qmailcontrol if newer than existing one.
     $self->control_write( "$tmp/qmailctl", %p );
@@ -482,11 +442,8 @@ sub control_create {
         clean    => 1,
     );
 
-    if ($r) {
-        if ( $r == 1 ) { $r = "ok" }
-        else { $r = "ok (same)" }
-    }
-    else { $r = "FAILED"; }
+    if ($r) { $r = $r == 1 ? 'ok' : "ok (same)"; } else { $r = "FAILED"; };
+
     $self->audit( "control_create: installed $qmaildir/bin/qmailctl, $r" );
 
     $self->util->syscmd( "$qmailctl cdb", verbose=>0 );
@@ -852,6 +809,22 @@ sub get_qmailscanner_virus_sender_ips {
     foreach ( keys %hash ) { push @sorted, $_; delete $hash{$_} }
     return @sorted;
 }
+
+sub get_supervise_dir {
+    my $self = shift;
+    my $dir = $self->conf->{qmail_supervise} || '/var/qmail/supervise';
+    $self->util->mkdir_system( dir => $dir, fatal => 0 ) if ! -d $dir;
+    return $dir if -d $dir;
+    return $self->error( "$dir does not exist!",fatal=>0)
+};
+
+sub get_control_dir {
+    my $self = shift;
+    my $qmail_dir  = $self->conf->{'qmail_dir'} || '/var/qmail';
+    my $qctrl = "$qmail_dir/control";
+    return $qctrl if -d $qctrl;
+    return $self->error( "$qctrl directory does not exist", fatal=>0);
+};
 
 sub install_qmail {
     my $self = shift;
@@ -1747,7 +1720,7 @@ sub restart {
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     my $prot = $p{'prot'};
-    my $dir = $self->toaster->service_dir_get( prot => $prot ) or return;
+    my $dir = $self->toaster->service_dir_get( $prot ) or return;
 
     return $self->error( "no such dir: $dir!", fatal=>0 ) unless ( -d $dir || -l $dir );
 
@@ -1760,7 +1733,7 @@ sub send_start {
 
     my %args = ( verbose => $p{verbose}, fatal => $p{fatal} );
 
-    my $qcontrol = $self->toaster->service_dir_get( prot => "send" );
+    my $qcontrol = $self->toaster->service_dir_get( "send" );
 
     return $p{'test_ok'}  if defined $p{'test_ok'};
 
@@ -1804,7 +1777,7 @@ sub send_stop {
     my $svc    = $self->util->find_bin( "svc", verbose=>0 );
     my $svstat = $self->util->find_bin( "svstat", verbose=>0 );
 
-    my $qcontrol = $self->toaster->service_dir_get( prot => "send" );
+    my $qcontrol = $self->toaster->service_dir_get( "send" );
 
     return $self->error( "uh oh, the service directory $qcontrol is missing! Giving up.",
         %args ) unless $qcontrol;
@@ -2444,9 +2417,9 @@ If it succeeds in building the file, it will install it. You can optionally rest
     1 - success
 
 
-=item  check_control
+=item  check_service_dir
 
-Verify the existence of the qmail control directory (typically /var/qmail/control).
+Verify the existence of the qmail service directory (typically /service/[smtp|send|pop3]).
 
  arguments required:
     dir - the directory whose existence we test for

@@ -661,13 +661,13 @@ sub supervised_procs {
 
     my @active_service_dirs;
     foreach ( qw/ smtp send / ) {
-        push @active_service_dirs, $self->toaster->service_dir_get( prot => $_ );
+        push @active_service_dirs, $self->toaster->service_dir_get( $_ );
     }
 
-    push @active_service_dirs, $self->toaster->service_dir_get( prot => 'pop3' )
+    push @active_service_dirs, $self->toaster->service_dir_get( 'pop3' )
         if $self->conf->{'pop3_daemon'} eq 'qpop3d';
 
-    push @active_service_dirs, $self->toaster->service_dir_get( prot => "submit" )
+    push @active_service_dirs, $self->toaster->service_dir_get( "submit" )
         if $self->conf->{'submit_enable'};
 
     foreach ( $q_ser, @active_service_dirs ) {

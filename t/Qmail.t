@@ -73,16 +73,16 @@ $qmail->dump_audit( quiet => 1 );
 
 # service_dir_get
 	# a normal smtp invocation
-	ok( $qmail->toaster->service_dir_get( prot=>"smtp" ) eq "/var/service/smtp", 'service_dir_get smtp');
+	ok( $qmail->toaster->service_dir_get( "smtp" ) eq "/var/service/smtp", 'service_dir_get smtp');
 
 	# a normal invocation with a conf file shortcut
-	ok( $qmail->toaster->service_dir_get( prot=>"smtp" ) eq "/var/service/smtp", 'service_dir_get smtp');
+	ok( $qmail->toaster->service_dir_get( "smtp" ) eq "/var/service/smtp", 'service_dir_get smtp');
 
 	# a normal send invocation
-	ok( $qmail->toaster->service_dir_get( prot=>'send' ) eq "/var/service/send", 'service_dir_get send');
+	ok( $qmail->toaster->service_dir_get( 'send' ) eq "/var/service/send", 'service_dir_get send');
 
 	# a normal pop3 invocation
-	ok( $qmail->toaster->service_dir_get( prot=>"pop3" ) eq "/var/service/pop3", 'service_dir_get pop3');
+	ok( $qmail->toaster->service_dir_get( "pop3" ) eq "/var/service/pop3", 'service_dir_get pop3');
 
 $qmail->conf( $conf );
 $qmail->dump_audit( quiet => 1 );
@@ -114,13 +114,15 @@ $qmail->dump_audit( quiet => 1 );
         };
 	};
 
-# check_control
+# check_service_dir
 	my $qmail_dir = $conf->{'qmail_dir'} || "/var/qmail";
 	my $qmail_control_dir = $qmail_dir . "/control";
 
 	if ( -d $qmail_control_dir ) {
-		ok( $qmail->check_control( dir=> $qmail_control_dir, verbose=>0 ) , 'check_control' );
-		ok( ! $qmail->check_control( dir=>"/should-not-exist", verbose=>0 ) , 'check_control' );
+		ok( $qmail->check_service_dir( $qmail_control_dir, verbose=>0 ),
+                'check_service_dir' );
+		ok( ! $qmail->check_service_dir( "/should-not-exist", verbose=>0 ),
+                'check_service_dir' );
 	};
 
 
@@ -192,7 +194,7 @@ $qmail->dump_audit( quiet => 1 );
 	}
 
 # restart
-    my $send = $qmail->toaster->service_dir_get( prot=>'send');
+    my $send = $qmail->toaster->service_dir_get('send');
 	if ( -d $send ) {
 		ok( $qmail->restart( prot=>'send', test_ok=>1 ), 'restart send');
 	};

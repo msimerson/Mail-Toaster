@@ -1,6 +1,13 @@
 
 =head1 Mail Toaster Changes
 
+    abstracted some code into new control_sql method
+    added get_control_dir, get_supervise_dir (reduce duplicated code)
+    deleted Qmail::check_control (moved logic into qqtool.pl)
+    changed API of service_dir_get (1 positional arg)
+    updated port options for sqlite3 & openssl
+    fixes for audit & error logging
+
 =head2 5.41 - Jul 04, 2013
 
     config changes: vpopmaild disabled, roaming users disabled,

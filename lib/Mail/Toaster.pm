@@ -5,6 +5,7 @@ use warnings;
 
 our $VERSION = '5.41';
 
+use Carp;
 use Cwd;
 #use Data::Dumper;
 use English '-no_match_vars';
@@ -920,10 +921,9 @@ sub run_qmailscanner {
 
 sub service_dir_get {
     my $self = shift;
-    my %p = validate( @_, { prot => { type=>SCALAR } } );
+    my $prot = shift or croak "missing prot!";
 
-    my $prot = $p{prot};
-       $prot = 'smtp' if $prot eq 'smtpd'; # catch and fix legacy usage.
+    $prot = 'smtp' if $prot eq 'smtpd'; # catch and fix legacy usage.
 
     my @valid = qw/ send smtp pop3 submit qpsmtpd qmail-deliverable vpopmaild /;
     my %valid = map { $_=>1 } @valid;
@@ -935,7 +935,6 @@ sub service_dir_get {
     my $dir = "$svcdir/$prot";
 
     $self->audit("service dir for $prot is $dir");
-
     return $dir;
 }
 
@@ -962,7 +961,7 @@ sub service_symlinks {
 
     foreach my $prot ( @active_services ) {
 
-        my $svcdir = $self->service_dir_get( prot => $prot );
+        my $svcdir = $self->service_dir_get( $prot );
         my $supdir = $self->supervise_dir_get( prot => $prot );
 
         if ( ! -d $supdir ) {
@@ -1016,7 +1015,7 @@ sub service_symlinks_submit {
 sub service_symlinks_cleanup {
     my ($self, $prot ) = @_;
 
-    my $dir = $self->service_dir_get( prot => $prot );
+    my $dir = $self->service_dir_get( $prot );
 
     if ( -e $dir ) {
         $self->audit("deleting $dir because $prot isn't enabled!");
@@ -1748,7 +1747,7 @@ This is necessary because things such as service directories are now in /var/ser
 
 
  Example
-   $toaster->service_dir_get( prot=>'smtp' );
+   $toaster->service_dir_get( 'smtp' );
 
 
  arguments required:

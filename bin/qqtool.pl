@@ -26,8 +26,6 @@ and exit 0 if $UID != 0;
 
 pod2usage() if ! $opt_a;
 
-my $qcontrol = $toaster->service_dir_get( prot => "send" );
-
 # Make sure the qmail queue directory is set correctly
 my $qdir = $toaster->qmail->queue_check( verbose => $verbose, fatal=>0 );
 exit 0 unless $qdir;
@@ -96,7 +94,12 @@ sub message_delete {
 }
 
 sub messages_delete {
-    $toaster->qmail->check_control( dir => $qcontrol );
+
+    my $svc_dir = $toaster->service_dir_get( "send" );
+    if ( ! -d $svc_dir ) {
+        return $toaster->error( "The service directory does not exist: $svc_dir");
+    }
+    $toaster->audit( "checking control dir $svc_dir, ok" );
 
     my $r = $toaster->qmail->send_stop();
     die "qmail-send wouldn't die!\n" if ($r);
