@@ -1334,12 +1334,8 @@ sub install_from_source {
           $p{targets}, $p{patches}, $p{bintest} );
 
     my $patch_args = $p{patch_args} || '';
-    my $src = $p{source_dir} || "/usr/local/src";
-       $src .= "/$p{source_sub_dir}" if $p{source_sub_dir};
-
-    my $original_directory = cwd;
-
-    $self->cwd_source_dir( $src, %args );
+    my $srcdir = $p{source_dir} || "/usr/local/src";
+       $srcdir .= "/$p{source_sub_dir}" if $p{source_sub_dir};
 
     if ( $bintest && $self->find_bin( $bintest, fatal => 0, verbose => 0 ) ) {
         return if ! $self->yes_or_no(
@@ -1349,11 +1345,13 @@ sub install_from_source {
         );
     }
 
-    $self->audit( "install_from_source: building $package in $src" );
+    $self->audit( "install_from_source: building $package in $srcdir" );
 
-    $self->install_from_source_cleanup($package,$src) or return;
+    my $original_directory = cwd;
+    $self->cwd_source_dir( $srcdir, %args );
+
+    $self->install_from_source_cleanup($package,$srcdir) or return;
     $self->install_from_source_get_files($package,$site,$url,$p{patch_url},$patches) or return;
-
     $self->extract_archive( $package ) or return;
 
     # cd into the package directory
@@ -1371,10 +1369,10 @@ sub install_from_source {
 
         $self->audit( "found sources in $sub_path" ) if $sub_path;
         return $self->error( "FAILED to find $package sources!",fatal=>0)
-            unless ( -d $sub_path && chdir($sub_path) );
+            unless ( -d $sub_path && chdir $sub_path );
     }
 
-    $self->install_from_source_apply_patches($src, $patches, $patch_args) or return;
+    $self->install_from_source_apply_patches($srcdir, $patches, $patch_args) or return;
 
     # set default build targets if none are provided
     if ( !@$targets[0] ) {
@@ -1400,7 +1398,7 @@ sub install_from_source {
     }
 
     # clean up the build sources
-    chdir $src;
+    chdir $srcdir;
     File::Path::rmtree($package) if -d $package;
 
     if ( defined $sub_path && -d "$package/$sub_path" ) {
@@ -1440,7 +1438,11 @@ sub install_from_source_cleanup {
     ) or return $self->error( "OK then, skipping install.", fatal => 0);
 
     $self->audit( "  removing previous build sources." );
-    File::Path::rmtree( "$package-*" ) or die $!;
+    foreach my $dir ( glob "$package-*" ) {
+        File::Path::rmtree( $dir )
+            or return $self->error("failed to delete $package: $!");
+    };
+    return 1;
 };
 
 sub install_from_source_get_files {

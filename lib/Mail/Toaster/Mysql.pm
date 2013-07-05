@@ -235,7 +235,7 @@ sub install_darwin {
     croak "DarwinPorts is not installed.\n";
 }
 
-sub install_extras {
+sub install_freebsd_extras {
     my $self = shift;
 
     if ( $self->conf->{install_mysqld} ) {
@@ -268,7 +268,7 @@ sub install_freebsd {
 
     if ($installed == scalar @ports ) {
         $self->audit( "mysql->install: MySQL is installed" );
-        return $self->install_extras;
+        return $self->install_freebsd_extras;
     };
 
     # MySQL is not installed, lets do it!
@@ -305,14 +305,14 @@ sub install_freebsd {
 
     if ( ! $self->conf->{install_mysqld} ) {
         $self->audit( "installing MySQL client, ok" );
-        return $self->install_extras;
+        return $self->install_freebsd_extras;
     };
 
     return $self->error( "MySQL install FAILED" )
         if !$self->freebsd->is_port_installed( "mysql-server" );
 
     $self->audit( "installing MySQL client and server, ok" );
-    return $self->install_extras;
+    return $self->install_freebsd_extras;
 };
 
 sub is_newer {
