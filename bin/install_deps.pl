@@ -33,7 +33,7 @@ my $apps = [
 #   { app => 'mysql-server-5', info => { port => 'mysql50-server', dport=>'mysql5',  yum =>'mysql-server'} },
 #   { app => 'apache22'      , info => { port => 'apache22',       dport=>'',     yum => 'httpd' } },
 #   { app => 'mod_perl2'     , info => { port => 'mod_perl2',      dport=>'',     yum => 'mod_perl' } },
-    { app => 'rsync'         , info => { }, },
+#   { app => 'rsync'         , info => { }, },
 ];
 
 $EUID == 0 or die "You will have better luck if you run me as root.\n";
