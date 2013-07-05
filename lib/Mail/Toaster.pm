@@ -962,7 +962,7 @@ sub service_symlinks {
     foreach my $prot ( @active_services ) {
 
         my $svcdir = $self->service_dir_get( $prot );
-        my $supdir = $self->supervise_dir_get( prot => $prot );
+        my $supdir = $self->supervise_dir_get( $prot );
 
         if ( ! -d $supdir ) {
             $self->audit( "skipping symlink to $svcdir because target $supdir doesn't exist.");
@@ -1079,9 +1079,7 @@ sub sqwebmail_clean_cache {
 
 sub supervise_dir_get {
     my $self = shift;
-    my %p = validate( @_, { prot => { type=>SCALAR } } );
-
-    my $prot = $p{prot};
+    my $prot = shift or croak "missing prot!";
 
     my $sdir = $self->conf->{'qmail_supervise'};
     $sdir = "/var/supervise" if ( !-d $sdir && -d '/var/supervise'); # legacy
@@ -1125,7 +1123,7 @@ sub supervise_dirs_create {
 
     foreach my $prot ( @sdirs ) {
 
-        my $dir = $self->supervise_dir_get( prot => $prot );
+        my $dir = $self->supervise_dir_get( $prot );
         if ( -d $dir ) {
             $self->audit( "supervise_dirs_create: $dir, ok (exists)", %args );
             next;
@@ -1158,7 +1156,7 @@ sub supervised_dir_test {
     return $p{test_ok} if defined $p{test_ok};
 
     if ( ! $dir ) {
-        $dir = $self->supervise_dir_get( prot => $prot ) or return;
+        $dir = $self->supervise_dir_get( $prot ) or return;
     }
 
     return $self->error("directory $dir does not exist", %args )
@@ -1312,7 +1310,7 @@ sub supervised_log_rotate {
     return $self->error( "root privs are needed to rotate logs.",fatal=>0)
         if $UID != 0;
 
-    my $dir = $self->supervise_dir_get( prot => $prot ) or return;
+    my $dir = $self->supervise_dir_get( $prot ) or return;
 
     return $self->error( "the supervise directory '$dir' is missing", fatal=>0)
         if ! -d $dir;
@@ -1786,7 +1784,7 @@ This populates the supervised service directory (default: /var/service) with sym
 
 =item supervise_dir_get
 
-  my $dir = $toaster->supervise_dir_get( prot=>"smtp" );
+  my $dir = $toaster->supervise_dir_get( "smtp" );
 
 This sub just sets the supervise directory used by the various qmail
 services (qmail-smtpd, qmail-send, qmail-pop3d, qmail-submit). It sets

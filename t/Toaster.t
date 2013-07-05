@@ -102,7 +102,7 @@ if ( -d "/var/service" ) {
 }
 
 # supervise_dir_get 
-ok ( $toaster->supervise_dir_get( prot=>"send" ), 'supervise_dir_get');
+ok ( $toaster->supervise_dir_get( "send" ), 'supervise_dir_get');
 
 
 # supervise_dirs_create

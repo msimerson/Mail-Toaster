@@ -469,7 +469,7 @@ sub control_create {
     }
     else {
         $self->build_send_run();
-        my $dir = $self->toaster->supervise_dir_get( prot => 'send' );
+        my $dir = $self->toaster->supervise_dir_get( 'send' );
         copy( "$dir/run", "$qmaildir/rc" ) and
             $self->audit( "control_create: created $qmaildir/rc.");
         chmod oct('0755'), "$qmaildir/rc";
@@ -982,7 +982,7 @@ sub install_qmail_control_files {
     return $p{'test_ok'} if defined $p{'test_ok'};
 
     foreach my $prot (qw/ pop3 send smtp submit /) {
-        my $supdir = $self->toaster->supervise_dir_get( prot => $prot);
+        my $supdir = $self->toaster->supervise_dir_get( $prot);
         my $run_f = "$supdir/run";
 
         if ( -e $run_f ) {
@@ -1060,7 +1060,7 @@ sub install_supervise_run {
     if ( !$destination ) {
         return $self->error( "you didn't set destination or prot!" ) if !$prot;
 
-        my $dir = $self->toaster->supervise_dir_get( prot => $prot )
+        my $dir = $self->toaster->supervise_dir_get( $prot )
             or return $self->error( "no sup dir for $prot found" );
         $destination = "$dir/run";
     }
@@ -1107,7 +1107,7 @@ sub install_qmail_control_log_files {
 
         die "invalid protocol: $serv!\n" unless $valid_prots{$serv};
 
-        my $supervisedir = $self->toaster->supervise_dir_get( prot => $serv );
+        my $supervisedir = $self->toaster->supervise_dir_get( $serv );
         my $run_f = "$supervisedir/log/run";
 
         $self->audit( "install_qmail_control_log_files: preparing $run_f");
