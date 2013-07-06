@@ -941,7 +941,6 @@ sub service_dir_get {
 sub service_symlinks {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
 
     my @active_services = 'send';
     push @active_services, 'vpopmaild' if $self->conf->{vpopmail_daemon};
@@ -1163,7 +1162,11 @@ sub supervised_dir_test {
         unless ( -d $dir || -l $dir );
     $self->test( "exists, $dir", -d $dir, %args );
 
-    return $self->error("$dir/run does not exist!", %args ) if ! -f "$dir/run";
+    if ( ! -f "$dir/run" ) {
+        $self->qmail->install_qmail_control_files;
+        return $self->error("$dir/run does not exist!", %args )
+            if ! -f "$dir/run";
+    };
     $self->test( "exists, $dir/run", -f "$dir/run", %args);
 
     return $self->error("$dir/run is not executable", %args ) if ! -x "$dir/run";
@@ -1183,7 +1186,11 @@ sub supervised_dir_test {
     $self->test( "exists, $dir/log", -d "$dir/log", %args );
 
     # make sure the supervise/log/run file exists
-    return $self->error( "$dir/log/run does not exist", %args ) if ! -f "$dir/log/run";
+    if ( ! -f "$dir/log/run" ) {
+        $self->qmail->install_qmail_control_log_files;
+        return $self->error( "$dir/log/run does not exist", %args )
+            if ! -f "$dir/log/run";
+    };
     $self->test( "exists, $dir/log/run", -f "$dir/log/run", %args );
 
     # check the log/run file permissions
@@ -1446,14 +1453,18 @@ sub supervised_tcpserver_cdb {
         $self->audit( "  expanded to $cdb" );
     }
 
+    if ( ! -e $cdb ) {
+        $self->setup->tcp_smtp( etc_dir => "$vdir/etc" );
+        $self->setup->tcp_smtp_cdb( etc_dir => "$vdir/etc" );
+    };
+
     $self->error( "$cdb selected but not readable" ) if ! -r $cdb;
     return "\\\n\t-x $cdb ";
 };
 
-
 1;
 __END__
-
+sub {}
 
 =head1 NAME
 
@@ -1882,8 +1893,6 @@ The primary means of configuration for Mail::Toaster is via toaster-watcher.conf
 =head1 BUGS AND LIMITATIONS
 
 Report to author or submit patches on GitHub.
-
-=head1 TODO
 
 =head1 AUTHOR
 

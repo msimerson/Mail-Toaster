@@ -306,7 +306,7 @@ sub vpopmail_etc {
         mkdir( $vetc, oct('0775') ) or carp "failed to create $vetc: $!\n";
     }
 
-    $self->install_default_tcp_smtp( etc_dir => $vetc );
+    $self->setup->tcp_smtp( etc_dir => $vetc );
 
     my $qmail_control = "$qdir/bin/qmailctl";
     if ( -x $qmail_control ) {
@@ -338,78 +338,6 @@ sub etc_passwd {
 
     print "system password accounts: no\n";
 };
-
-sub install_default_tcp_smtp {
-    my $self  = shift;
-    my %p = validate( @_, {
-            'etc_dir' => SCALAR,
-        },
-    );
-
-    my $etc_dir = $p{'etc_dir'};
-
-    # test for an existing one
-    if ( -f "$etc_dir/tcp.smtp" ) {
-        my $count = $self->util->file_read( "$etc_dir/tcp.smtp" );
-        return if $count != 1;
-        # back it up
-        $self->util->archive_file( "$etc_dir/tcp.smtp" );
-    }
-
-    my $qdir = $self->conf->{'qmail_dir'};
-
-    my @lines = <<"EO_TCP_SMTP";
-# RELAYCLIENT="" means IP can relay
-# RBLSMTPD=""    means DNSBLs are ignored for this IP
-# QMAILQUEUE=""  is the qmail queue process, defaults to $qdir/bin/qmail-queue
-#
-#    common QMAILQUEUE settings:
-# QMAILQUEUE="$qdir/bin/qmail-queue"
-# QMAILQUEUE="$qdir/bin/simscan"
-#
-#      handy test settings
-# 127.:allow,RELAYCLIENT="",RBLSMTPD="",QMAILQUEUE="$qdir/bin/simscan"
-# 127.:allow,RELAYCLIENT="",RBLSMTPD="",QMAILQUEUE="$qdir/bin/qscanq/bin/qscanq"
-127.0.0.1:allow,RELAYCLIENT="",RBLSMTPD=""
-
-EO_TCP_SMTP
-    my $block = 1;
-
-    if ( $self->conf->{'vpopmail_enable_netblocks'} ) {
-
-        if (
-            $self->util->yes_or_no(
-                  "Do you need to enable relay access for any netblocks? :
-
-NOTE: If you are an ISP and have dialup pools, this is where you want
-to enter those netblocks. If you have systems that should be able to
-relay through this host, enter their IP/netblocks here as well.\n\n"
-            )
-          )
-        {
-            do {
-                $block = $self->util->ask( "the netblock to add (empty to finish)" );
-                push @lines, "$block:allow" if $block;
-            } until ( !$block );
-        }
-    }
-
-    #no Smart::Comments;
-    push @lines, <<"EO_QMAIL_SCANNER";
-#
-# Allow anyone with reverse DNS set up
-#=:allow
-#    soft block on no reverse DNS
-#:allow,RBLSMTPD="Blocked - Reverse DNS queries for your IP fail. Fix your DNS!"
-#    hard block on no reverse DNS
-#:allow,RBLSMTPD="-Blocked - Reverse DNS queries for your IP fail. You cannot send me mail."
-#    default allow
-#:allow,QMAILQUEUE="$qdir/bin/simscan"
-:allow
-EO_QMAIL_SCANNER
-
-    $self->util->file_write( "$etc_dir/tcp.smtp", lines => \@lines );
-}
 
 sub installed_version {
     my $self = shift;
@@ -452,8 +380,8 @@ sub logging {
 
 sub post_install {
     my $self = shift;
-    $self->vpopmail_etc();
-    $self->mysql_privs();
+    $self->vpopmail_etc;
+    $self->mysql_privs;
     $self->util->install_module( "vpopmail" ) if $self->{conf}{install_ezmlm_cgi};
     print "vpopmail: complete.\n";
     return 1;

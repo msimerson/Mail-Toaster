@@ -355,9 +355,6 @@ The domain quota feature has been broken on vpopmail almost forever. Even when i
 The default quota option is deprecated in vpopmail 5.4.0 and higher. See ~vpopmail/etc/vlimits.default to control default limits.
 
   vpopmail_disable_many_domains  = 0
-  vpopmail_enable_netblocks      = 0
-
-If you have netblocks to enable when you first install and build vpopmail, set this to 1 and during the build it'll prompt you to enter the netblocks. toaster_setup will then build and install your ~vpopmail/etc/tcp.smtp file. You can also rebuild that that file by deleting it and running C<toaster_setup -s vpeconfig>. 
 
   filtering_spamassassin_method  = site   # site | user | domain
 

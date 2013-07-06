@@ -226,8 +226,6 @@ sub config {
     return $p{test_ok} if defined $p{test_ok};
 
     my $conf = $self->conf;
-    my $qdir = $conf->{qmail_dir}       || '/var/qmail';
-    my $tmp  = $conf->{toaster_tmp_dir} || '/tmp';
     my $host = $conf->{toaster_hostname};
        $host = hostname if $host =~ /(?:qmail|system)/;
 
@@ -259,7 +257,7 @@ sub config {
     my $uid = getpwnam('vpopmail');
     my $gid = getgrnam('vchkpw');
 
-    my $control = "$qdir/control";
+    my $control = $self->get_control_dir;
     chown( $uid, $gid, "$control/servercert.pem" );
     chown( $uid, $gid, "$control/sql" );
     chmod oct('0640'), "$control/servercert.pem";
@@ -981,7 +979,7 @@ sub install_qmail_control_files {
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    foreach my $prot (qw/ pop3 send smtp submit /) {
+    foreach my $prot ( qw/ pop3 send smtp submit / ) {
         my $supdir = $self->toaster->supervise_dir_get( $prot);
         my $run_f = "$supdir/run";
 
@@ -2561,7 +2559,7 @@ Patch info is here: http://mail-toaster.org/patches/
 
 When qmail is first installed, it needs some supervised run files to run under tcpserver and daemontools. This sub generates the qmail/supervise/*/run files based on your settings. Perpetual updates are performed by toaster-watcher.pl.
 
-  $qmail->install_qmail_control_files();
+  $qmail->install_qmail_control_files;
 
  arguments optional:
 
