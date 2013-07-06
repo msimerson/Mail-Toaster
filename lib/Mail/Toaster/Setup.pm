@@ -3653,7 +3653,7 @@ exec setuidgid $user multilog t s4096 n20 \
   !"tryto -pv tcpclient -v \$LOGSERVERIP \$PORT sh -c 'cat >&7'" \
   \${LOGDIR}/$serv
 EO_SOCKLOG
-    $self->util->file_write( $run_f, lines => \@socklog_run_file, mode => oct('0755') );
+    $self->util->file_write( $run_f, lines => \@socklog_run_file, mode => '0755' );
     print "done.\n";
 }
 
@@ -4601,7 +4601,7 @@ sub tcp_smtp {
 :allow
 EO_TCP_SMTP
 ;
-    $self->util->file_write( "$etc_dir/tcp.smtp", lines => \@lines );
+    $self->util->file_write( "$etc_dir/tcp.smtp", lines => \@lines, mode => '0644' );
 }
 
 sub tcp_smtp_cdb {

@@ -292,13 +292,9 @@ sub vpopmail_etc {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
-    my @lines;
+    my $vetc = $self->get_vpop_etc;
 
-    my $vpopdir = $self->get_vpop_dir;
-    my $vetc    = $self->get_vpop_etc;
-    my $qdir    = $self->conf->{'qmail_dir'};
-
-    mkpath( $vetc, oct('0775') ) unless -d $vetc;
+    mkpath( $vetc, oct('0775') ) if ! -d $vetc;
 
     if ( -d $vetc ) { print "$vetc already exists.\n"; }
     else {
@@ -308,10 +304,11 @@ sub vpopmail_etc {
 
     $self->setup->tcp_smtp( etc_dir => $vetc );
 
+    my $qdir = $self->qmail->get_qmail_dir;
     my $qmail_control = "$qdir/bin/qmailctl";
     if ( -x $qmail_control ) {
         print " vpopmail_etc: rebuilding tcp.smtp.cdb\n";
-        $self->util->syscmd( "$qmail_control cdb", verbose => 0 );
+        $self->util->syscmd( "$qmail_control cdb" );
     }
 }
 

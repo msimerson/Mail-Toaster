@@ -839,7 +839,7 @@ sub supervised_procs {
     # check supervised directories
     foreach ( qw/ smtp send pop3 submit / ) {
         $self->toaster->test( "  $q_sup/$_",
-            $self->toaster->supervised_dir_test( prot => $_, verbose=>1 ) );
+            $self->toaster->supervised_dir_test( $_, verbose=>1 ) );
     }
 
     print "do service directories exist?\n";

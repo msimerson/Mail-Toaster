@@ -124,7 +124,7 @@ sub build_submit_run {
     return $self->error( "SMTPd config values failed tests!", %p )
         if ! $self->_test_smtpd_config_values();
 
-    my $vdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vdir = $self->setup->vpopmail->get_vpop_dir;
 
     $self->get_control_dir or return; # verify control directory exists
     $self->get_supervise_dir or return;
@@ -524,6 +524,7 @@ sub control_write {
     my $prefix = $self->conf->{'toaster_prefix'} || "/usr/local";
     my $tcprules = $self->util->find_bin( 'tcprules', %p );
     my $svc      = $self->util->find_bin( 'svc', %p );
+    my $vpopetc = $self->setup->vpopmail->get_vpop_etc;
 
     print $FILE_HANDLE <<EOQMAILCTL;
 #!/bin/sh
@@ -570,18 +571,18 @@ case "\$1" in
 		$svc -u $qdir/supervise/smtp
 	;;
 	cdb)
-		if [ -s ~vpopmail/etc/tcp.smtp ]
+		if [ -s $vpopetc/tcp.smtp ]
 		then
-			$tcprules ~vpopmail/etc/tcp.smtp.cdb ~vpopmail/etc/tcp.smtp.tmp < ~vpopmail/etc/tcp.smtp
-			chmod 644 ~vpopmail/etc/tcp.smtp*
-			echo "Reloaded ~vpopmail/etc/tcp.smtp."
+			$tcprules $vpopetc/tcp.smtp.cdb $vpopetc/tcp.smtp.tmp < $vpopetc/tcp.smtp
+			chmod 644 $vpopetc/tcp.smtp*
+			echo "Reloaded $vpopetc/tcp.smtp."
 		fi
 
-		if [ -s ~vpopmail/etc/tcp.submit ]
+		if [ -s $vpopetc/tcp.submit ]
 		then
-			$tcprules ~vpopmail/etc/tcp.submit.cdb ~vpopmail/etc/tcp.submit.tmp < ~vpopmail/etc/tcp.submit
-			chmod 644 ~vpopmail/etc/tcp.submit*
-			echo "Reloaded ~vpopmail/etc/tcp.submit."
+			$tcprules $vpopetc/tcp.submit.cdb $vpopetc/tcp.submit.tmp < $vpopetc/tcp.submit
+			chmod 644 $vpopetc/tcp.submit*
+			echo "Reloaded $vpopetc/tcp.submit."
 		fi
 
 		if [ -s /etc/tcp.smtp ]
@@ -892,7 +893,7 @@ sub install_qmail {
 
     my $src      = $self->conf->{'toaster_src_dir'}   || "/usr/local/src";
     my $qmaildir = $self->get_qmail_dir;
-    my $vpopdir  = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpopdir  = $self->setup->vpopmail->get_vpop_dir;
     my $mysql = $self->conf->{'qmail_mysql_include'}
       || "/usr/local/lib/mysql/libmysqlclient.a";
     my $dl_site = $self->conf->{'toaster_dl_site'} || "http://www.tnpi.net";
@@ -1217,7 +1218,7 @@ sub netqmail {
     my $package = $p{package};
     my $ver     = $self->conf->{'install_netqmail'} || "1.05";
     my $src     = $self->conf->{'toaster_src_dir'}  || "/usr/local/src";
-    my $vhome   = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vhome   = $self->setup->vpopmail->get_vpop_dir;
 
     $package ||= "netqmail-$ver";
 
@@ -1303,7 +1304,7 @@ sub netqmail_chkuser_fixups {
 sub netqmail_conf_cc {
     my $self = shift;
 
-    my $vpopdir    = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpopdir    = $self->setup->vpopmail->get_vpop_dir;
     my $domainkeys = $self->conf->{'qmail_domainkeys'};
 
     # make changes to conf-cc
@@ -1358,7 +1359,7 @@ sub netqmail_conf_fixups {
     $self->util->file_write( "conf-qmail", lines => [$qmaildir] );
 
     print "netqmail: fixing up conf-vpopmail\n";
-    my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpopdir = $self->setup->vpopmail->get_vpop_dir;
     $self->util->file_write( "conf-vpopmail", lines => [$vpopdir] );
 
     print "netqmail: fixing up conf-mysql\n";
@@ -1473,7 +1474,7 @@ sub netqmail_get_patches {
 
 sub netqmail_makefile_fixups {
     my $self = shift;
-    my $vpopdir    = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpopdir = $self->setup->vpopmail->get_vpop_dir;
 
     # find the openssl libraries
     my $prefix = $self->conf->{'toaster_prefix'} || "/usr/local/";
@@ -2005,7 +2006,7 @@ sub UpdateVirusBlocks {
     my $ips   = $p{'ips'};
     my $time  = $self->conf->{'qs_block_virus_senders_time'};
     my $relay = $self->conf->{'smtpd_relay_database'};
-    my $vpdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpdir = $self->setup->vpopmail->get_vpop_dir;
 
     if ( $relay =~ /^vpopmail_home_dir\/(.*)\.cdb$/ ) {
         $relay = "$vpdir/$1";
@@ -2077,11 +2078,7 @@ sub UpdateVirusBlocks {
 ";
     }
 
-    my $tcprules = $self->util->find_bin( "tcprules" );
-    $self->util->syscmd( "$tcprules $vpdir/etc/tcp.smtp.cdb $vpdir/etc/tcp.smtp.tmp "
-            . "< $vpdir/etc/tcp.smtp",
-    );
-    chmod oct('0644'), "$vpdir/etc/tcp.smtp*";
+    $self->setup->tcp_smtp( etc_dir => "$vpdir/etc" );
 }
 
 sub _memory_explanation {

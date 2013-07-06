@@ -25,8 +25,7 @@ sub test {
     my $result = shift;
 
     my %p = validate(@_, { $self->get_std_opts } );
-    return if defined $p{test_ok} && ! $p{verbose};
-    return if ! $p{verbose};
+    return $p{test_ok} if defined $p{test_ok};
 
     print $mess;
     defined $result or do { print "\n"; return; };
