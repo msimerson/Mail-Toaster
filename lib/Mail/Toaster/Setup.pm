@@ -4567,9 +4567,11 @@ sub tcp_smtp {
     my $etc_dir = $p{etc_dir};
 
     # test for an existing one
-    if ( -f "$etc_dir/tcp.smtp" ) {
+    if ( -s "$etc_dir/tcp.smtp" ) {
         my $count = $self->util->file_read( "$etc_dir/tcp.smtp" );
-        return if $count != 1;
+        if ( $count > 1 ) {
+            return $self->audit("$etc_dir/tcp.smtp has customizations");
+        };
         $self->util->archive_file( "$etc_dir/tcp.smtp" ); # back it up
     }
 

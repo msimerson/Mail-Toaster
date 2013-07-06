@@ -21,19 +21,19 @@ sub install {
         return;
     }
 
-    my $version = $self->conf->{'install_vpopmail'} || "5.4.33";
+    my $version = $self->conf->{install_vpopmail} || '5.4.33';
 
     if ( $OSNAME eq "freebsd" ) {
     # always install the port version, so subsequent ports will
     # find it registered in the ports db.
-        $self->install_freebsd_port();
+        $self->install_freebsd_port;
     }
 
     if ( $version ne 'port' ) {
         $self->install_from_source( %p );
     };
 
-    return $self->post_install();
+    return $self->post_install;
 };
 
 sub install_freebsd_port {
@@ -290,26 +290,22 @@ sub default_domain {
 
 sub vpopmail_etc {
     my $self  = shift;
-    my %p = validate( @_, { $self->get_std_opts },);
+    my %p = validate( @_, { $self->get_std_opts } );
 
     my $vetc = $self->get_vpop_etc;
 
     mkpath( $vetc, oct('0775') ) if ! -d $vetc;
 
-    if ( -d $vetc ) { print "$vetc already exists.\n"; }
+    if ( -d $vetc ) {
+        print "$vetc already exists.\n";
+    }
     else {
         print "creating $vetc\n";
         mkdir( $vetc, oct('0775') ) or carp "failed to create $vetc: $!\n";
     }
 
     $self->setup->tcp_smtp( etc_dir => $vetc );
-
-    my $qdir = $self->qmail->get_qmail_dir;
-    my $qmail_control = "$qdir/bin/qmailctl";
-    if ( -x $qmail_control ) {
-        print " vpopmail_etc: rebuilding tcp.smtp.cdb\n";
-        $self->util->syscmd( "$qmail_control cdb" );
-    }
+    $self->setup->tcp_smtp_cdb( etc_dir => $vetc );
 }
 
 sub etc_passwd {

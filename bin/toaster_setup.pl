@@ -11,7 +11,7 @@ GetOptions ( 'section=s' => \my $section, 'verbose' => \my $verbose );
 $verbose = 0 unless defined $verbose;
 
 use lib 'lib';
-use Mail::Toaster 5.41;
+use Mail::Toaster 5.42;
 my $toaster = Mail::Toaster->new;
 $toaster->verbose($verbose);
 
@@ -141,22 +141,24 @@ sub all {
 	$setup->openssl_conf  ;
 	$setup->ports         ;
 	$toaster->mysql->install;
-	$setup->apache        ;
-	$setup->webmail       (fatal=>0 );
-	$setup->phpmyadmin    ;
 	$setup->ucspi_tcp     ;
 	$setup->ezmlm         ;
 	$setup->vpopmail->install;
+	$qmail->netqmail      ;
 	$setup->maildrop->install;
+	$setup->dovecot       ;
+	$setup->apache        ;
+	$setup->lighttpd      ;
+	$setup->webmail       (fatal=>0);
 	$setup->vqadmin       ;
 	$setup->qmailadmin    ;
-	$qmail->netqmail      ;
-	$setup->courier_imap  ;
-	$setup->dovecot       ;
 	$setup->sqwebmail     ;
 	$setup->squirrelmail  ;
 	$setup->roundcube     ;
+	$setup->clamav        ;
 	$setup->filtering     ;
+#   $setup->spamassassin  ;  # included with filtering
+#	$setup->simscan       ;  # included "
 	$setup->maillogs      ;
 	$setup->supervise     ;
 	$setup->test->run_all ;
