@@ -283,11 +283,7 @@ sub test {
     }
 
     $ENV{"QMAILQUEUE"} = $scan;
-    $self->toaster->email_send( type => "clean" );
-    $self->toaster->email_send( type => "attach" );
-    $self->toaster->email_send( type => "virus" );
-    $self->toaster->email_send( type => "clam" );
-    $self->toaster->email_send( type => "spam" );
+    $self->setup->test->email_send;
 }
 
 1;

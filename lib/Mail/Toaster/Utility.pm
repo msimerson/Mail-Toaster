@@ -17,7 +17,7 @@ use File::Spec;
 use File::stat;
 use Params::Validate qw(:all);
 use Scalar::Util qw( openhandle );
-use URI;
+#use URI;  # required in get_url
 
 use lib 'lib';
 use parent 'Mail::Toaster::Base';
@@ -1032,6 +1032,8 @@ sub get_url {
         return $self->get_url_system( $url, %p );
     };
 
+    eval "require URI";  ## no critic ( StringyEval )
+    return $self->error( $@, fatal => $p{fatal} ) if $@;
     my $uri = URI->new($url);
     my @parts = $uri->path_segments;
     my $file = $parts[-1];  # everything after the last / in the URL
@@ -1105,6 +1107,8 @@ sub get_url_system {
     my $timeout = $p{timeout} || 0;
     if ( ! $timeout ) {
         $self->syscmd( $fetchcmd, %args ) or return;
+        eval "require URI";  ## no critic ( StringyEval )
+        return $self->error( $@, fatal => $p{fatal} ) if $@;
         my $uri = URI->new($url);
         my @parts = $uri->path_segments;
         my $file = $parts[-1];  # everything after the last / in the URL
@@ -1275,7 +1279,7 @@ sub install_if_changed_copy {
 
         if ( $clean ) {
             move( $newfile, $existing ) or
-                return $self->error( "failed copy $newfile to $existing", %$args);
+                return $self->error( "failed move $newfile to $existing", %$args);
         }
         else {
             copy( $newfile, $existing ) or
@@ -1745,7 +1749,7 @@ sub is_writable {
         return 1;
     }
 
-    return $self->error( "  $file not writable by " . getpwuid($>) . "$nl$nl", %args ) if ! -w $file;
+    return $self->error( "  $file not writable by " . getpwuid($>) . "$nl$nl", frames=>2, %args ) if ! -w $file;
 
     $self->audit( "$file is writable" );
     return 1;

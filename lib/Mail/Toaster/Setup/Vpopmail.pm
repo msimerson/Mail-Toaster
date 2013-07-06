@@ -111,7 +111,7 @@ OPTIONS_FILE_$valias+=VALIAS
 ",
     ) or return;
 
-    my $vpopdir = $self->conf->{'vpopmail_home_dir'};
+    my $vpopdir = $self->get_vpop_dir;
     my $docroot = $self->conf->{'toaster_http_docs'};
 
     # add a symlink so docs are web browsable
@@ -129,7 +129,7 @@ sub install_from_source {
     my $conf = $self->conf;
     my $version = $conf->{'install_vpopmail'} || "5.4.33";
     my $package = "vpopmail-$version";
-    my $vpopdir = $conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpopdir = $self->get_vpop_dir;
 
     $self->create_user();   # add the vpopmail user/group
     my $uid = getpwnam( $conf->{'vpopmail_user'} || "vpopmail" );
@@ -270,13 +270,13 @@ sub default_domain {
     };
 
     if ( $self->is_newer( min => "5.3.22", cur => $version ) ) {
-        my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
-        $self->util->file_write( "$vpopdir/etc/defaultdomain",
+        my $vpopetc = $self->get_vpop_etc;
+        $self->util->file_write( "$vpopetc/defaultdomain",
             lines => [ $default_domain ],
             verbose => 0,
         );
 
-        $self->util->chown( "$vpopdir/etc/defaultdomain",
+        $self->util->chown( "$vpopetc/defaultdomain",
             uid  => $self->conf->{'vpopmail_user'}  || "vpopmail",
             gid  => $self->conf->{'vpopmail_group'} || "vchkpw",
         );
@@ -294,11 +294,11 @@ sub vpopmail_etc {
 
     my @lines;
 
-    my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
-    my $vetc    = "$vpopdir/etc";
+    my $vpopdir = $self->get_vpop_dir;
+    my $vetc    = $self->get_vpop_etc;
     my $qdir    = $self->conf->{'qmail_dir'};
 
-    mkdir( $vpopdir, oct('0775') ) unless ( -d $vpopdir );
+    mkpath( $vetc, oct('0775') ) unless -d $vetc;
 
     if ( -d $vetc ) { print "$vetc already exists.\n"; }
     else {
@@ -339,10 +339,21 @@ sub etc_passwd {
     print "system password accounts: no\n";
 };
 
+sub get_vpop_etc {
+    my $self = shift;
+    my $base = $self->get_vpop_dir;
+    return "$base/etc";
+};
+
+sub get_vpop_dir {
+    my $self = shift;
+    return $self->{conf}{vpopmail_home_dir} || '/usr/local/vpopmail';
+};
+
 sub installed_version {
     my $self = shift;
 
-    my $vpopdir = $self->{conf}{vpopmail_home_dir} || '/usr/local/vpopmail';
+    my $vpopdir = $self->get_vpop_dir;
     return if ! -x "$vpopdir/bin/vpasswd";
 
     my $installed = `$vpopdir/bin/vpasswd -v | head -1 | cut -f2 -d" "`;
@@ -464,9 +475,9 @@ sub create_user {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts } );
 
-    my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
-    my $vpuser  = $self->conf->{'vpopmail_user'}     || "vpopmail";
-    my $vpgroup = $self->conf->{'vpopmail_group'}    || "vchkpw";
+    my $vpopdir = $self->get_vpop_dir;
+    my $vpuser  = $self->conf->{vpopmail_user}  || 'vpopmail';
+    my $vpgroup = $self->conf->{vpopmail_group} || 'vchkpw';
 
     my $uid = getpwnam($vpuser);
     my $gid = getgrnam($vpgroup);
@@ -529,7 +540,7 @@ sub mysql_privs {
     my $user = $self->conf->{'vpopmail_mysql_user'} || $self->conf->{vpopmail_mysql_repl_user};
     my $pass = $self->conf->{'vpopmail_mysql_pass'} || $self->conf->{vpopmail_mysql_repl_pass};
 
-    my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpopdir = $self->get_vpop_dir;
 
     my @lines = "$my_read|0|$user|$pass|$db";
     if ($mysql_repl) {

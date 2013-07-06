@@ -2,8 +2,9 @@ package Mail::Toaster::Base;
 use strict;
 use warnings;
 
-our $VERSION = '5.41';
+our $VERSION = '5.42';
 
+use Carp;
 use Params::Validate ':all';
 
 our $verbose = our $last_audit = our $last_error = 0; # package variables
@@ -122,9 +123,10 @@ sub audit {
 
 sub dump_audit {
     my $self = shift;
-    my %p = validate( @_, { 
+    my %p = validate( @_, {
             quiet   => { type => BOOLEAN, optional => 1, default => 0 },
-            %std_opts } 
+            %std_opts,
+            }
         );
 
     if ( 0 == scalar @audit ) {
@@ -153,33 +155,29 @@ sub dump_audit {
 
 sub error {
     my $self = shift;
-    my $message = shift;
+    my $message = shift or carp "why call error w/o message?";
     my %p = validate( @_,
-        {   location => { type => SCALAR,  optional => 1, },
+        {   location => { type => SCALAR, optional => 1 },
+            frames   => { type => SCALAR, optional => 1, default => 0 },
             %std_opts,
         },
     );
 
-    my $location = $p{location};
-    my $verbose = $p{verbose} || $verbose;
-
     if ( $message ) {
-        my @caller = $p{caller} || caller;
-
         # append message and location to the error stack
-        push @errors, {
-            errmsg => $message,
-            errloc => $location || join( ", ", $caller[0], $caller[2] ),
-            };
+        my @call = caller $p{frames};
+        my $location = $p{location};
+        if ( ! $location && scalar @call ) {
+            $location = join( ', ', $call[0], $call[2] );
+        };
+        push @errors, { errmsg => $message, errloc => $location };
     }
     else {
         $message = $errors[-1];
     }
 
-    if ( $verbose || $p{fatal} ) {
-        $self->dump_audit;
-        $self->dump_errors;
-    }
+    $self->dump_audit if $self->verbose;
+    $self->dump_errors if $p{fatal};
 
     exit 1 if $p{fatal};
     return;
@@ -199,7 +197,7 @@ sub dump_errors {
         $i++;
         next if $i < $last_error;
         my $msg = $_->{errmsg};
-        my $loc = " at $_->{errloc}";
+        my $loc = $_->{errloc} ? " at $_->{errloc}" : '';
         print $msg;
         for (my $j=length($msg); $j < 90-length($loc); $j++) { print '.'; };
         print " $loc\n";

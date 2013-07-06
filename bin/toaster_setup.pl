@@ -107,7 +107,7 @@ my $qmail = $toaster->qmail;
 : $section eq 'test'        ? $setup->test->run_all
 : $section eq 'filtertest'  ? $setup->simscan->test
 : $section eq 'authtest'    ? $setup->test->auth
-: $section eq 'proctest'    ? $toaster->check_processes
+: $section eq 'proctest'    ? $toaster->check_running_processes
 : $section eq 'imap'        ? $setup->test->imap_auth
 : $section eq 'pop3'        ? $setup->test->pop3_auth
 : $section eq 'smtp'        ? $setup->test->smtp_auth

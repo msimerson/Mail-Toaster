@@ -198,8 +198,8 @@ SKIP: {
     ok( $util->cwd_source_dir( $tmp ), 'cwd_source_dir' );
 
     my $url = "http://www.mail-toaster.org/etc/maildrop-qmail-domain";
-    ok( $util->get_url( $url ), 'get_url' );
-    ok( $util->get_url( $url, dir => $tmp ), 'get_url');
+    ok( $util->get_url( $url, fatal=>0 ), 'get_url' );
+    ok( $util->get_url( $url, dir => $tmp, fatal=>0 ), 'get_url');
 }
 
 chdir($cwd);
@@ -274,8 +274,7 @@ my $before = sprintf "%lo", $st->mode & 07777;
 
 # change the permissions to something slightly unique
 if ( lc($OSNAME) ne 'irix' ) {
-# not sure why this doesn't work on IRIX, and since IRIX is EOL and nearly 
-# extinct, I'm not too motivated to find out why.
+# this doesn't work on IRIX. IRIX is EOL and nearly extinct
     ok( $util->chmod(
             file_or_dir => $rwtest,   mode        => '0700',
             fatal       => 0,

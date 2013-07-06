@@ -26,7 +26,6 @@
 	<li><a href="#configuration_and_environment">CONFIGURATION AND ENVIRONMENT</a></li>
 	<li><a href="#dependencies">DEPENDENCIES</a></li>
 	<li><a href="#bugs_and_limitations">BUGS AND LIMITATIONS</a></li>
-	<li><a href="#todo">TODO</a></li>
 	<li><a href="#author">AUTHOR</a></li>
 	<li><a href="#copyright_and_licence">COPYRIGHT AND LICENCE</a></li>
 </ul>
@@ -68,7 +67,7 @@
 <pre>
     # clean up messages in Trash folders that exceed X days
     foreach my $maildir ( @all_maildirs ) {
-        $toaster-&gt;maildir_clean_trash( path =&gt; $maildir );
+        $toaster-&gt;maildir_clean_trash( $maildir );
     };</pre>
 <p>These functions can all be called indivually, see the working
 examples in the aforementioned scripts or the t/Toaster.t file.</p>
@@ -146,55 +145,6 @@ context to help them understand the methods that are subsequently described.</p>
 <p>This sub trawls through the mail system pruning all messages that exceed the threshholds defined in toaster-watcher.conf.</p>
 <p>Peter Brezny suggests adding another option which is good. Set a window during which the cleaning script can run so that it is not running during the highest load times.</p>
 </dd>
-<dt><strong><a name="email_send" class="item">email_send</a></strong></dt>
-
-<dd>
-<pre>
-  ############ email_send ####################
-  # Usage      : $toaster-&gt;email_send(type=&gt;&quot;clean&quot; );
-  #            : $toaster-&gt;email_send(type=&gt;&quot;spam&quot;  );
-  #            : $toaster-&gt;email_send(type=&gt;&quot;attach&quot;);
-  #            : $toaster-&gt;email_send(type=&gt;&quot;virus&quot; );
-  #            : $toaster-&gt;email_send(type=&gt;&quot;clam&quot;  );
-  #
-  # Purpose    : send test emails to test the content scanner
-  # Returns    : 1 on success
-  # Parameters : type (clean, spam, attach, virus, clam)
-  # See Also   : email_send_[clean|spam|...]</pre>
-<p>Email test routines for testing a mail toaster installation.</p>
-<p>This sends a test email of a specified type to the postmaster email address configured in toaster-watcher.conf.</p>
-</dd>
-<dt><strong><a name="email_send_attach" class="item">email_send_attach</a></strong></dt>
-
-<dd>
-<pre>
-  ######### email_send_attach ###############
-  # Usage      : internal only
-  # Purpose    : send an email with a .com attachment
-  # Parameters : an email address
-  # See Also   : email_send</pre>
-<p>Sends a sample test email to the provided address with a .com file extension. If attachment scanning is enabled, this should trigger the content scanner (simscan/qmailscanner/etc) to reject the message.</p>
-</dd>
-<dt><strong><a name="email_send_clam" class="item">email_send_clam</a></strong></dt>
-
-<dd>
-<p>Sends a test clam.zip test virus pattern, testing to verify that the AV engine catches it.</p>
-</dd>
-<dt><strong><a name="email_send_clean" class="item">email_send_clean</a></strong></dt>
-
-<dd>
-<p>Sends a test clean email that the email filters should not block.</p>
-</dd>
-<dt><strong><a name="email_send_eicar" class="item">email_send_eicar</a></strong></dt>
-
-<dd>
-<p>Sends an email message with the Eicar virus inline. It should trigger the AV engine and block the message.</p>
-</dd>
-<dt><strong><a name="email_send_spam" class="item">email_send_spam</a></strong></dt>
-
-<dd>
-<p>Sends a sample spam message that SpamAssassin should block.</p>
-</dd>
 <dt><strong><a name="get_toaster_cgibin" class="item">get_toaster_cgibin</a></strong></dt>
 
 <dd>
@@ -220,9 +170,7 @@ context to help them understand the methods that are subsequently described.</p>
 <dd>
 <pre>
   ########### maildir_clean_spam #############
-  # Usage      : $toaster-&gt;maildir_clean_spam(
-  #                  path =&gt; '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster-&gt;maildir_clean_spam( '/domains/example.com/user' );
   # Purpose    : Removes spam that exceeds age as defined in t-w.conf.
   # Returns    : 0 - failure, 1 - success
   # Parameters : path - path to a maildir</pre>
@@ -244,9 +192,7 @@ context to help them understand the methods that are subsequently described.</p>
 <dd>
 <pre>
   ############################################
-  # Usage      : $toaster-&gt;maildir_clean_trash(
-  #                 path =&gt; '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster-&gt;maildir_clean_trash( '/domains/example.com/user' );
   # Purpose    : expire old messages in Trash folders
   # Returns    : 0 - failure, 1 - success
   # Results    : a Trash folder with messages older than X days pruned
@@ -259,9 +205,7 @@ context to help them understand the methods that are subsequently described.</p>
 <dd>
 <pre>
   ############################################
-  # Usage      : $toaster-&gt;maildir_clean_sent(
-  #                 path =&gt; '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster-&gt;maildir_clean_sent( '/domains/example.com/user' );
   # Purpose    : expire old messages in Sent folders
   # Returns    : 0 - failure, 1 - success
   # Results    : messages over X days in Sent folders are deleted
@@ -273,9 +217,7 @@ context to help them understand the methods that are subsequently described.</p>
 <dd>
 <pre>
   ############ maildir_clean_new #############
-  # Usage      : $toaster-&gt;maildir_clean_new(
-  #                 path =&gt; '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster-&gt;maildir_clean_new( '/domains/example.com/user' );
   # Purpose    : expire unread messages older than X days
   # Returns    : 0 - failure, 1 - success
   # Parameters : path - path to a maildir
@@ -288,9 +230,7 @@ context to help them understand the methods that are subsequently described.</p>
 <dd>
 <pre>
   ############################################
-  # Usage      : $toaster-&gt;maildir_clean_ham(
-  #                 path =&gt; '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster-&gt;maildir_clean_ham( '/domains/example.com/user' );
   # Purpose    : prune read email messages
   # Returns    : 0 - failure, 1 - success
   # Results    : an INBOX minus read messages older than X days
@@ -302,7 +242,7 @@ context to help them understand the methods that are subsequently described.</p>
 <dd>
 <p>Create the supervised services directory (if it doesn't exist).</p>
 <pre>
-        $toaster-&gt;service_dir_create();</pre>
+        $toaster-&gt;service_dir_create;</pre>
 <p>Also sets the permissions to 775.</p>
 </dd>
 <dt><strong><a name="service_dir_get" class="item">service_dir_get</a></strong></dt>
@@ -311,7 +251,7 @@ context to help them understand the methods that are subsequently described.</p>
 <p>This is necessary because things such as service directories are now in /var/service by default but older versions of my toaster installed them in /service. This will detect and adjust for that.</p>
 <pre>
  Example
-   $toaster-&gt;service_dir_get( prot=&gt;'smtp' );</pre>
+   $toaster-&gt;service_dir_get( 'smtp' );</pre>
 <pre>
  arguments required:
    prot is one of these protocols: smtp, pop3, submit, send</pre>
@@ -349,7 +289,7 @@ context to help them understand the methods that are subsequently described.</p>
 
 <dd>
 <pre>
-  my $dir = $toaster-&gt;supervise_dir_get( prot=&gt;&quot;smtp&quot; );</pre>
+  my $dir = $toaster-&gt;supervise_dir_get( &quot;smtp&quot; );</pre>
 <p>This sub just sets the supervise directory used by the various qmail
 services (qmail-smtpd, qmail-send, qmail-pop3d, qmail-submit). It sets
 the values according to your preferences in toaster-watcher.conf. If
@@ -394,13 +334,13 @@ that are a different than mine, like a LWQ install.</p>
 <dd>
 <p>Restarts a supervised process.</p>
 </dd>
-<dt><strong><a name="check_processes" class="item">check_processes</a></strong></dt>
+<dt><strong><a name="check_running_processes" class="item">check_running_processes</a></strong></dt>
 
 <dd>
 <p>Tests to see if all the processes on your Mail::Toaster that should be running in fact are.</p>
 <pre>
  usage:
-    $toaster-&gt;check_processes();</pre>
+    $toaster-&gt;check_running_processes;</pre>
 <pre>
  arguments optional:
     verbose</pre>
@@ -442,10 +382,6 @@ that are a different than mine, like a LWQ install.</p>
 <hr />
 <h1><a name="bugs_and_limitations">BUGS AND LIMITATIONS</a></h1>
 <p>Report to author or submit patches on GitHub.</p>
-<p>
-</p>
-<hr />
-<h1><a name="todo">TODO</a></h1>
 <p>
 </p>
 <hr />

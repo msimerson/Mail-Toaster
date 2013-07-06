@@ -2,36 +2,36 @@
 use strict;
 use warnings;
 
-our $VERSION = '1.13';
+our $VERSION = '1.14';
 
 use vars qw/ $opt_a $opt_h $opt_q $opt_s $opt_v $remotes $locals /;
 
 use English;
 use Getopt::Std;
-use Params::Validate qw( :all );
+use Params::Validate ':all';
 use Pod::Usage;
 
 getopts('a:h:q:s:v');
 
 use lib 'lib';
-use Mail::Toaster 5.40;
+use Mail::Toaster 5.42;
 
-my $verbose   = $opt_v ? 1 : 0;
-my $toaster = Mail::Toaster->new( verbose => $verbose );
+my $toaster = Mail::Toaster->new;
+$toaster->verbose( $opt_v ? 1 : 0 );
 
 print "           Qmail Queue Tool   v $VERSION\n\n";
-print "NOTICE: only the root user has permission to read the email queues.
-Since you are not root, I am giving up. Have a nice day!\n"
+print "Only the root user has permission to read the queue.
+You are not root, goodbye!\n"
 and exit 0 if $UID != 0;
 
 pod2usage() if ! $opt_a;
 
 # Make sure the qmail queue directory is set correctly
-my $qdir = $toaster->qmail->queue_check( verbose => $verbose, fatal=>0 );
+my $qdir = $toaster->qmail->queue_check( fatal=>0 );
 exit 0 unless $qdir;
 
 # if a queue is specified, only check it.
-print "$0, getting list of messages in delivery queues..." if $verbose;
+print "$0, getting list of messages in delivery queues..." if $opt_v;
 if ($opt_q) {
     $opt_q eq "remote" ? $remotes = messages_get("remote")
   : $opt_q eq "local"  ? $locals  = messages_get("local")
@@ -44,7 +44,7 @@ else {
     print "\n";
 }
 
-print "done.\n" if $verbose;
+print "done.\n" if $opt_v;
 
   $opt_a eq "list"   ? messages_list  ( $remotes, $locals )
 : $opt_a eq "delete" ? messages_delete( $remotes, $locals )
@@ -57,7 +57,6 @@ exit 0;
 # -----------------------------------------------------------------------------
 #       Subroutines. No user servicable parts below this line!                #
 # -----------------------------------------------------------------------------
-
 
 sub message_delete {
     my ( $tree, $id ) = @_;
@@ -341,6 +340,9 @@ sub messages_get {
     return \@messages;
 }
 
+1;
+__END__
+sub {}
 
 =head1 NAME
 
@@ -472,7 +474,6 @@ http://www.mail-toaster.org/
 
 =head1 COPYRIGHT
 
-Copyright 2003-2010, The Network People, Inc. All Rights Reserved.
+Copyright 2003-2013, The Network People, Inc. All Rights Reserved.
 
 =cut
-

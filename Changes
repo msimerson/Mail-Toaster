@@ -1,4 +1,13 @@
 Mail Toaster Changes
+        install tcp.smtp during tests, if missing
+        conf: removed vpopmail_enable_netblocks option (barely used, if at all)
+        abstracted some code into new control_sql method
+        added get_control_dir, get_supervise_dir (reduce duplicated code)
+        deleted Qmail::check_control (moved logic into qqtool.pl)
+        changed API of service_dir_get (1 positional arg)
+        updated port options for sqlite3 & openssl
+        fixes for audit & error logging
+
   5.41 - Jul 04, 2013
         config changes: vpopmaild disabled, roaming users disabled,
             default log method changed from multilog to syslog
@@ -667,6 +676,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 35:
+    Around line 44:
         Non-ASCII character seen before =encoding in '•'. Assuming UTF-8
 

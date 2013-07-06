@@ -333,7 +333,7 @@ sub courier_imap {
 
     return $p{test_ok} if defined $p{test_ok};
 
-    my $ver = $self->conf->{'install_courier_imap'} or do {
+    my $ver = $self->conf->{install_courier_imap} or do {
         $self->audit( "courier: installing, skipping (disabled)" );
         $self->courier_startup_freebsd() if $OSNAME eq 'freebsd'; # enable startup
         return;
@@ -594,6 +594,8 @@ sub courier_startup_freebsd {
     my $prefix  = $self->conf->{'toaster_prefix'} || "/usr/local";
     my $confdir = $self->conf->{'system_config_dir'} || "/usr/local/etc";
 
+    return 1 if ! $self->freebsd->is_port_installed( 'courier-imap' );
+
     # cleanup stale links, created long ago when rc.d files had .sh endings
     foreach ( qw/ imap imapssl pop3 pop3ssl / ) {
         if ( -e "$prefix/sbin/$_" ) {
@@ -820,7 +822,7 @@ sub dependencies {
 
     return $p{test_ok} if defined $p{test_ok}; # for testing
 
-    my $qmaildir = $self->conf->{'qmail_dir'} || "/var/qmail";
+    my $qmaildir = $self->qmail->get_qmail_dir;
 
     if ( $OSNAME eq "freebsd" ) {
         $self->dependencies_freebsd();
@@ -1193,6 +1195,7 @@ sub dovecot_1_conf {
         return 1;
     };
 
+    my $qmaildir = $self->qmail->get_qmail_dir;
     $self->config->apply_tweaks(
         file => $dconf,
         changes => [
@@ -1218,11 +1221,11 @@ sub dovecot_1_conf {
             },
             {   search  => "#ssl_cert_file = /etc/ssl/certs/dovecot.pem",
                 replace => "#ssl_cert_file = /etc/ssl/certs/dovecot.pem
-ssl_cert_file = /var/qmail/control/servercert.pem",
+ssl_cert_file = $qmaildir/control/servercert.pem",
             },
             {   search  => "#ssl_key_file = /etc/ssl/private/dovecot.pem",
                 replace => "#ssl_key_file = /etc/ssl/private/dovecot.pem
-ssl_key_file = /var/qmail/control/servercert.pem",
+ssl_key_file = $qmaildir/control/servercert.pem",
             },
             {   search  => "#login_greeting = Dovecot ready.",
                 replace => "#login_greeting = Dovecot ready.
@@ -1253,7 +1256,7 @@ first_valid_gid = 89",
             },
             {   search  => "  sendmail_path = /usr/sbin/sendmail",
                 replace => "#  sendmail_path = /usr/sbin/sendmail
-  sendmail_path = /var/qmail/bin/sendmail",
+  sendmail_path = $qmaildir/bin/sendmail",
             },
             {   search  => "auth_username_format = %Ln",
                 replace => "#auth_username_format = %Ln
@@ -1341,16 +1344,17 @@ login_greeting = Mail Toaster (Dovecot) ready.",
         ],
     );
 
+    my $qmaildir = $self->qmail->get_qmail_dir;
     $self->config->apply_tweaks(
         file => "$dconf/conf.d/10-ssl.conf",
         changes => [
             {   search  => "ssl_cert = </etc/ssl/certs/dovecot.pem",
                 replace => "#ssl_cert = </etc/ssl/certs/dovecot.pem
-ssl_cert = </var/qmail/control/servercert.pem",
+ssl_cert = <$qmaildir/control/servercert.pem",
             },
             {   search  => "ssl_key = </etc/ssl/private/dovecot.pem",
                 replace => "#ssl_key = </etc/ssl/private/dovecot.pem
-ssl_key = </var/qmail/control/servercert.pem",
+ssl_key = <$qmaildir/control/servercert.pem",
             },
         ],
     );
@@ -1394,7 +1398,7 @@ mail_location = maildir:~/Maildir",
         file => "$dconf/conf.d/15-lda.conf",
         changes => [
             {   search  => "#sendmail_path = /usr/sbin/sendmail",
-                replace => "#sendmail_path = /usr/sbin/sendmail\nsendmail_path = /var/qmail/bin/sendmail",
+                replace => "#sendmail_path = /usr/sbin/sendmail\nsendmail_path = $qmaildir/bin/sendmail",
             },
         ],
     );
@@ -1487,7 +1491,7 @@ sub dovecot_start {
 sub enable_all_spam {
     my $self  = shift;
 
-    my $qmail_dir = $self->conf->{'qmail_dir'} || "/var/qmail";
+    my $qmail_dir = $self->qmail->get_qmail_dir;
     my $spam_cmd  = $self->conf->{'qmailadmin_spam_command'} ||
         '| /usr/local/bin/maildrop /usr/local/etc/mail/mailfilter';
 
@@ -2018,7 +2022,7 @@ sub isoqlog_conf {
     my $htdocs = $self->conf->{'toaster_http_docs'} || "/usr/local/www/data";
     my $hostn  = $self->conf->{'toaster_hostname'}  || hostname;
     my $logdir = $self->conf->{'qmail_log_base'}    || "/var/log/mail";
-    my $qmaild = $self->conf->{'qmail_dir'}         || "/var/qmail";
+    my $qmaild = $self->qmail->get_qmail_dir;
     my $prefix = $self->conf->{'toaster_prefix'}    || "/usr/local";
 
     push @lines, <<EO_ISOQLOG;
@@ -2386,6 +2390,7 @@ sub maillogs {
         unless ( defined $uid && defined $gid );
 
     $self->toaster->supervise_dirs_create( verbose=>1 );
+
     $self->maillogs_create_dirs();
 
     $self->cronolog();
@@ -2510,9 +2515,10 @@ sub munin_node {
         ],
     );
 
+    my $qmdir = $self->qmail->get_qmail_dir;
     $self->util->file_write( "$munin_etc/plugin-conf.d/plugins.conf",
         append => 1,
-        lines => [ "\n[qmailqstat]\nuser qmails\nenv.qmailstat /var/qmail/bin/qmail-qstat"],
+        lines => [ "\n[qmailqstat]\nuser qmails\nenv.qmailstat $qmdir/bin/qmail-qstat"],
     ) if ! `grep qmailqstat "$munin_etc/plugin-conf.d/plugins.conf"`;
 
     my @setup_links = `/usr/local/sbin/munin-node-configure --suggest --shell`;
@@ -3128,8 +3134,8 @@ sub qmailadmin_freebsd_port {
     }
     push @args, "WEBDATADIR=\"$docroot_sub\"";
     push @args, 'WEBDATASUBDIR="qmailadmin"';
-    push @args, 'QMAIL_DIR="'.$conf->{'qmail_dir'}.'"'
-        if $conf->{'qmail_dir'} ne '/var/qmail';
+    push @args, 'QMAIL_DIR="'.$conf->{qmail_dir}.'"'
+        if $conf->{qmail_dir} ne '/var/qmail';
 
     if ( $spam eq 'SET' && $conf->{'qmailadmin_spam_command'} ) {
         push @args, 'SPAM_COMMAND="'.$conf->{'qmailadmin_spam_command'}.'"';
@@ -3208,22 +3214,7 @@ clamd_socket /var/run/clamav/clamd.sock max_size 3072
 - edit run file QPUSER=vpopmail
 - services start
 - clamdscan plugin modification:
-
-# cat qmail-deliverable/run
-#!/bin/sh
-MAXRAM=50000000
-BIN=/usr/local/bin
-PATH=/usr/local/vpopmail/bin
-exec $BIN/softlimit -m $MAXRAM $BIN/qmail-deliverabled -f 2>&1
-
-# cat vpopmaild/run
-#!/bin/sh
-BIN=/usr/local/bin
-VPOPDIR=/usr/local/vpopmail
-exec 2>&1
-exec $BIN/tcpserver -vHRD 127.0.0.1 89 $VPOPDIR/bin/vpopmaild
 ';
-
 };
 
 sub razor {
@@ -3613,9 +3604,9 @@ sub socklog {
     else {
         print "\n\nNOTICE: Be sure to install socklog!!\n\n";
     }
-    $self->socklog_qmail_control( "send", $ip, $user, undef, $logdir );
-    $self->socklog_qmail_control( "smtp", $ip, $user, undef, $logdir );
-    $self->socklog_qmail_control( "pop3", $ip, $user, undef, $logdir );
+    $self->socklog_qmail_control( 'send', $ip, $user, $logdir );
+    $self->socklog_qmail_control( 'smtp', $ip, $user, $logdir );
+    $self->socklog_qmail_control( 'pop3', $ip, $user, $logdir );
 
     unless ( -d $logdir ) {
         mkdir( $logdir, oct('0755') ) or croak "socklog: couldn't create $logdir: $!";
@@ -3633,11 +3624,12 @@ sub socklog {
 }
 
 sub socklog_qmail_control {
-    my ( $self, $serv, $ip, $user, $supervise, $log ) = @_;
+    my ( $self, $serv, $ip, $user, $log ) = @_;
 
     $ip        ||= "192.168.2.9";
     $user      ||= "qmaill";
-    $supervise ||= "/var/qmail/supervise";
+    my $qmdir = $self->qmail->get_qmail_dir;
+    my $supervise = $self->qmail->get_supervise_dir;
     $log       ||= "/var/log/mail";
 
     my $run_f = "$supervise/$serv/log/run";
@@ -3654,18 +3646,14 @@ LOGDIR=$log
 LOGSERVERIP=$ip
 PORT=10116
 
-PATH=/var/qmail/bin:/usr/local/bin:/usr/bin:/bin
+PATH=$qmdir/bin:/usr/local/bin:/usr/bin:/bin
 export PATH
 
 exec setuidgid $user multilog t s4096 n20 \
   !"tryto -pv tcpclient -v \$LOGSERVERIP \$PORT sh -c 'cat >&7'" \
   \${LOGDIR}/$serv
 EO_SOCKLOG
-    $self->util->file_write( $run_f, lines => \@socklog_run_file );
-
-#	open(my $RUN, ">", $run_f) or croak "socklog_qmail_control: couldn't open for write: $!";
-#	close $RUN;
-    chmod oct('0755'), $run_f or croak "socklog: couldn't chmod $run_f: $!";
+    $self->util->file_write( $run_f, lines => \@socklog_run_file, mode => oct('0755') );
     print "done.\n";
 }
 
@@ -4434,9 +4422,6 @@ sub supervise {
 
     return $p{test_ok} if defined $p{test_ok};
 
-    my $supervise = $self->conf->{'qmail_supervise'} || "/var/qmail/supervise";
-    my $prefix    = $self->conf->{'toaster_prefix'}  || "/usr/local";
-
     $self->toaster->supervise_dirs_create(%p);
     $self->toaster->service_dir_create(%p);
 
@@ -4577,9 +4562,9 @@ sub startup_script_freebsd {
 
 sub tcp_smtp {
     my $self  = shift;
-    my %p = validate( @_, { 'etc_dir' => SCALAR } );
+    my %p = validate( @_, { etc_dir => SCALAR } );
 
-    my $etc_dir = $p{'etc_dir'};
+    my $etc_dir = $p{etc_dir};
 
     # test for an existing one
     if ( -f "$etc_dir/tcp.smtp" ) {
@@ -4588,7 +4573,7 @@ sub tcp_smtp {
         $self->util->archive_file( "$etc_dir/tcp.smtp" ); # back it up
     }
 
-    my $qdir = $self->conf->{'qmail_dir'};
+    my $qdir = $self->qmail->get_qmail_dir;
 
     my @lines = <<"EO_TCP_SMTP";
 # RELAYCLIENT="" means IP can relay
@@ -4625,10 +4610,10 @@ sub tcp_smtp_cdb {
     my $dir = $p{etc_dir};
 
     my $tcprules = $self->util->find_bin('tcprules');
-    $self->util->syscmd( "$tcprules $dir/tcp.smtp.cdb $dir/etc/tcp.smtp.tmp < $dir/etc/tcp.smtp" )
+    $self->util->syscmd( "$tcprules $dir/tcp.smtp.cdb $dir/tcp.smtp.tmp < $dir/tcp.smtp" )
         or return;
-    chmod 0644, "$dir/etc/tcp.smtp";
-    chmod 0644, "$dir/etc/tcp.smtp.cdb";
+    chmod 0644, "$dir/tcp.smtp";
+    chmod 0644, "$dir/tcp.smtp.cdb";
     print "Reloaded $dir/tcp.smtp";
     return 1;
 };

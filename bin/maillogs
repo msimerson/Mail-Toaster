@@ -2,10 +2,7 @@
 use strict;
 use warnings;
 
-use Date::Parse;
-use File::Path;
 use Getopt::Std;
-use Pod::Usage;
 
 use lib 'lib';
 use Mail::Toaster::Logs 5.41;
@@ -23,12 +20,11 @@ $logs->conf->{'logs_verbose'} = $verbose;
 $|++;
 
 $logs->error( "basic tests fail, have you run toaster_setup.pl -s maillogs yet?")
-    if ! $logs->verify_settings();
+    if ! $logs->verify_settings(fatal=>0);
 
 $logs->parse_cmdline_flags( prot=>$ARGV[0] );
 
 0;
-
 __END__
 
 =head1 NAME

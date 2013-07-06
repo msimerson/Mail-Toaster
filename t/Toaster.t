@@ -112,34 +112,23 @@ $toaster->dump_audit(quiet => 1);
 
 # supervised_dir_test
 ok(
-    $toaster->supervised_dir_test( prot => 'smtp', test_ok => 1,),
+    $toaster->supervised_dir_test( 'smtp', test_ok => 1,),
     'supervised_dir_test smtp'
 );
 
 ok(
-    $toaster->supervised_dir_test( prot => 'submit', test_ok => 1,),
+    $toaster->supervised_dir_test( 'submit', test_ok => 1,),
     'supervised_dir_test submit'
 );
 
 ok(
-    $toaster->supervised_dir_test( prot => 'send', test_ok => 1,),
+    $toaster->supervised_dir_test( 'send', test_ok => 1,),
     'supervised_dir_test send'
 );
 
-# check_processes
-ok( $toaster->check_processes( test_ok=> 1), 'check_processes' );
+# check_running_processes
+ok( $toaster->check_running_processes( test_ok=> 1), 'check_running_processes' );
 
-# email_send
-
-# email_send_attach
-
-# email_send_clam
-
-# email_send_clean
-
-# email_send_eicar
-
-# email_send_spam
 
 # get_toaster_htdocs
 ok( $toaster->get_toaster_htdocs(), 'get_toaster_htdocs' );
@@ -156,19 +145,15 @@ my $setuidgid = $toaster->util->find_bin( "setuidgid", fatal=>0, verbose=>0 );
 foreach ( qw/ smtpd pop3 submit / ) {
 
 # supervised_hostname
-    ok( $toaster->supervised_hostname( prot => $_ ), 
-        "supervised_hostname $_" );
+    ok( $toaster->supervised_hostname( $_ ), "supervised_hostname $_" );
 
 # supervised_multilog
     if ( $setuidgid ) {
-        ok( $toaster->supervised_multilog( prot => $_, fatal=>0 ),
-            "supervised_multilog $_"
-        );
+        ok( $toaster->supervised_multilog( $_, fatal=>0 ), "supervised_multilog $_");
     };
 
 # supervised_log_method
-    ok( $toaster->supervised_log_method( prot => $_ ), 
-        "supervised_log_method $_");
+    ok( $toaster->supervised_log_method( $_ ), "supervised_log_method $_");
 };
 
 

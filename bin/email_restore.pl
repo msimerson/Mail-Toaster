@@ -1,17 +1,17 @@
 #!/usr/bin/perl
-
 use strict;
 use warnings;
 
 use Data::Dumper;
-use DateTime;
-use English qw/ no_match_vars /;
+use English 'no_match_vars';
 use File::stat;
 use Getopt::Long;
 use Pod::Usage;
 use Sys::Hostname;
 
 die "This script must be run as root\n" if $UID != 0;
+die "DateTime not installed" if ! eval "use DateTime";
+die "DateTime not installed" if $@;
 
 GetOptions (
    'dir=s'      => \my $backup_dir,

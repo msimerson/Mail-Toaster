@@ -1,6 +1,11 @@
 
 =head1 Mail Toaster Changes
 
+    lazy load some modules, so 'make test' runs w/o dependencies
+    added supervise/run file creation for qmail-deliverabled and vpopmaild
+    moved email_send* tests from Toaster to Setup/Tests.pm
+    replaced hard coded vpopmail dir with $vpopmail->get_vpop_dir
+    replaced many hard coded '/var/qmail' paths with $qmail->get_qmail_dir
     install tcp.smtp during tests, if missing
     conf: removed vpopmail_enable_netblocks option (barely used, if at all)
     abstracted some code into new control_sql method

@@ -3,8 +3,8 @@ package Mail::Toaster::Mysql;
 use strict;
 use warnings;
 
-use DBI;
 use Carp;
+#use DBI; # eval'ed in connect
 use Params::Validate ':all';
 use English '-no_match_vars';
 
@@ -92,6 +92,9 @@ sub connect {
     my $dbv = $self->db_vars($dot);
     my $dsn = "DBI:$dbv->{'driver'}:database=$dbv->{'db'};"
         . "host=$dbv->{'host'};port=$dbv->{'port'}";
+
+    eval "use DBI";
+    return $self->error($@) if $@;
 
     $dbh = DBI->connect( $dsn, $dbv->{'user'}, $dbv->{'pass'},
                 { RaiseError => 0, AutoCommit => $ac } );

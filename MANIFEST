@@ -125,6 +125,7 @@ t/Mysql.t
 t/Qmail.t
 t/qqtool.t
 t/Setup.t
+t/Setup.Test.t
 t/toaster-watcher.t
 t/Toaster.t
 t/toaster_setup.t

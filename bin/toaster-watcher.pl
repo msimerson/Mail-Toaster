@@ -51,7 +51,6 @@ $toaster->run_qmailscanner( %args );
 $toaster->clean_mailboxes( %args );
 $toaster->learn_mailboxes( %args );
 $toaster->process_logfiles( %args );
-$toaster->check_cron( %args );
 
 $toaster->qmail->rebuild_ssl_temp_keys( %args );
 $toaster->qmail->rebuild_simscan_control( %args );

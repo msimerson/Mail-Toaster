@@ -19,8 +19,6 @@ use version;
 use lib 'lib';
 use parent 'Mail::Toaster::Base';
 
-use vars qw/ $INJECT /;
-
 sub test {
     my $self = shift;
     my $mess = shift or croak "test with no args?!";
@@ -33,20 +31,21 @@ sub test {
     print $mess;
     defined $result or do { print "\n"; return; };
     for ( my $i = length($mess); $i <=  65; $i++ ) { print '.' };
-    print $result ? 'ok' : 'FAILED'; 
+    print $result ? 'ok' : 'FAILED';
     print "\n";
 };
 
 sub build_vpopmaild_run {
     my $self = shift;
-    my %p = validate( @_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
 
-    return if ! $self->conf->{vpopmail_daemon};
+    if ( ! $self->conf->{vpopmail_daemon} ) {
+        $self->audit( "skipping vpopmaild/run" );
+        return;
+    };
 
     $self->audit( "generating vpopmaild/run..." );
 
-    my @lines = $self->toaster->supervised_do_not_edit_notice();
+    my @lines = $self->toaster->supervised_do_not_edit_notice;
 
     push @lines, q{#!/bin/sh
 exec 1>/dev/null 2>&1
@@ -62,57 +61,57 @@ exec env - PATH="/usr/bin:/bin:/usr/local/bin:/opt/local/bin" \
 
 sub check {
     my $self = shift;
-    my %p = validate(@_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
 
-    $self->check_permissions( %args );
-    $self->check_processes( %args );
-    $self->check_watcher_log_size( %args );
+    $self->check_permissions_twc;   # toaster-watcher.conf
+    $self->check_permissions_tc;    # toaster.conf
+
+    $self->check_running_processes;
+    $self->check_watcher_log_size;
 
     # check that we can't SMTP AUTH with random user names and passwords
 
     # make sure the supervised processes are configured correctly.
-    foreach my $svc ( qw/ smtp send pop3 submit vpopmaild qmail-deliverable / ) {
-        $self->supervised_dir_test( prot => $svc, %args );
+    foreach my $svc ( $self->get_daemons ) {
+        $self->supervised_dir_test( $svc );
     };
 
+    $self->check_cron_dccd;
     return 1;
 }
 
-sub check_permissions {
+sub check_permissions_tc {
     my $self = shift;
-    my %p = validate(@_, { $self->get_std_opts } );
-
-    # check permissions on toaster-watcher.conf
     my $etc = $self->conf->{'system_config_dir'} || '/usr/local/etc';
-    my $twconf = "$etc/toaster-watcher.conf";
-    if ( -f $twconf ) {
-        my $mode = $self->util->file_mode( file=>$twconf, verbose=>0 );
-        $self->audit( "file mode of $twconf is $mode.", %p);
-        my $others = substr($mode, -1, 1);
-        if ( $others > 0 ) {
-            chmod 0600, $twconf;
-            $self->audit( "Changed the permissions on $twconf to 0600" );
-        }
-    };
-
-    # check permissions on toaster.conf
-    $twconf = "$etc/toaster.conf";
-    if ( -f $twconf ) {
-        my $mode = $self->util->file_mode(file=>$twconf, verbose=>0);
-        $self->audit( "file mode of $twconf is $mode", %p);
-        my $others = substr($mode, -1, 1);
-        if ( ! $others ) {
-            chmod 0644, $twconf;
-            $self->audit( "Changed the permissions on $twconf to 0644");
-        }
-    };
+    my $conf = "$etc/toaster.conf";
+    return if ! -f $conf;
+    my $mode = $self->util->file_mode(file=>$conf, verbose=>0);
+    $self->audit( "file mode of $conf is $mode" );
+    my $others = substr($mode, -1, 1);
+    return 1 if $others;
+    chmod 0644, $conf;
+    $self->audit( "Changed the permissions on $conf to 0644");
+    return 1;
 };
 
-sub check_processes {
+sub check_permissions_twc {
+    my $self = shift;
+    my $etc = $self->conf->{'system_config_dir'} || '/usr/local/etc';
+    my $conf = "$etc/toaster-watcher.conf";
+    return if ! -f $conf;
+
+    my $mode = $self->util->file_mode( file=>$conf, verbose=>0 );
+    $self->audit( "file mode of $conf is $mode." );
+    my $others = substr($mode, -1, 1);
+    if ( $others > 0 ) {
+        chmod 0600, $conf;
+        $self->audit( "Changed the permissions on $conf to 0600" );
+    }
+    return 1;
+};
+
+sub check_running_processes {
     my $self = shift;
     my %p = validate(@_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
     my $conf = $self->conf;
 
     $self->audit( "checking running processes");
@@ -120,7 +119,7 @@ sub check_processes {
     my @processes = qw/ svscan qmail-send multilog /;
 
     push @processes, "httpd"              if $conf->{install_apache};
-    push @processes, "httpd"              if $conf->{install_lighttpd};
+    push @processes, "lighttpd"           if $conf->{install_lighttpd};
     push @processes, "mysqld"             if $conf->{install_mysqld};
     push @processes, "snmpd"              if $conf->{install_snmp};
     push @processes, "clamd", "freshclam" if $conf->{install_clamav};
@@ -134,26 +133,17 @@ sub check_processes {
     };
 
     foreach (@processes) {
-        $self->test( "  $_", $self->util->is_process_running($_), %args );
+        $self->test( "  $_", $self->util->is_process_running($_) );
     }
 
     return 1;
 }
 
-sub check_cron {
-    my $self = shift;
-    my %p = validate(@_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
-
-    return $self->audit("unable to check cron jobs on $OSNAME")
-        if $OSNAME ne "freebsd";
-
-    $self->audit( "checking cron jobs");
-    $self->check_cron_dccd();
-};
-
 sub check_cron_dccd {
     my $self = shift;
+
+    return $self->audit("unable to check dcc cron jobs on $OSNAME")
+        if $OSNAME ne "freebsd";
 
     return if ! -f '/usr/local/dcc/libexec/cron-dccd';
 
@@ -190,11 +180,11 @@ sub check_watcher_log_size {
 sub learn_mailboxes {
     my $self = shift;
     my %p = validate(@_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
-
     return $p{test_ok} if defined $p{test_ok};
 
-    $self->learn_mailboxes_setup() or return;
+    my $days = $self->conf->{maildir_learn_interval}
+        or return $self->error( 'learn_mailboxes: disabled', fatal => 0 );
+
     my $find = $self->util->find_bin( 'find', verbose=>0 );
 
     foreach my $d ( $self->get_maildir_paths() ) {  # every email box
@@ -205,82 +195,73 @@ sub learn_mailboxes {
         my ($user,$domain) = (split('/', $d))[-1,-2];
         my $email = lc($user) . '@'. lc($domain);
 
-        my $age = $self->conf->{'maildir_learn_interval'} * 86400;
+        my $age = $self->conf->{maildir_learn_interval} * 86400;
         if ( -f "$d/learn.log" ) {
             $age = time - stat("$d/learn.log")->ctime;
         };
 
-        my %counter = ( spam => 0, ham => 0 );
-        my %messages = ( ham => [], spam => [] );
+        my $counter = $self->learn_mailbox($email, $d, $find, $age);
+        next if ! $counter->{ham} && ! $counter->{spam};
 
-        foreach my $dir ( $self->get_maildir_folders( $d, $find ) ) {
-            my $type = 'ham';
-            $type = 'spam' if $dir =~ /spam|junk/i;
-
-            foreach my $message ( $self->get_maildir_messages($dir, $age) ) {
-                $counter{$type}++;  # throttle learning for really big maildirs
-                next if $counter{$type} > 10000 && $counter{$type} % 50 != 0;
-                next if $counter{$type} >  5000 && $counter{$type} % 25 != 0;
-                next if $counter{$type} >  2500 && $counter{$type} % 10 != 0;
-
-                $self->train_dspam( $type, $message, $email );
-                push @{$messages{$type}}, $message; # for SA training
-            };
-        };
-
-        $self->train_spamassassin($d, \%messages );
-
-        if ( $counter{'ham'} || $counter{'spam'} ) {
-            $self->util->logfile_append( file => "$d/learn.log",
-                prog => $0,
-                lines => [ "trained $counter{'ham'} hams and $counter{'spam'} spams" ],
-                verbose => 0,
-            );
-        };
+        $self->util->logfile_append( file => "$d/learn.log",
+            prog => $0,
+            lines => [ "trained $counter->{'ham'} hams and $counter->{'spam'} spams" ],
+            verbose => 0,
+        );
     }
 }
 
-sub learn_mailboxes_setup {
-    my $self = shift;
-    my %p = validate(@_, { $self->get_std_opts } );
+sub learn_mailbox {
+    my ($self, $email, $d, $find, $age) = $_;
 
-    my $days = $self->conf->{'maildir_learn_interval'}
-        or return $self->error(
-        'skip learning because maildir_learn_interval is disabled', fatal => 0 );
+    my %counter = ( spam => 0, ham => 0 );
+    my %messages = ( ham => [], spam => [] );
 
-    return 1;
+    foreach my $dir ( $self->get_maildir_folders( $d, $find ) ) {
+        my $type = 'ham';
+        $type = 'spam' if $dir =~ /(?:spam|junk)/i;
+
+        foreach my $message ( $self->get_maildir_messages($dir, $age) ) {
+            $counter{$type}++;  # throttle learning for really big maildirs
+            next if $counter{$type} > 10000 && $counter{$type} % 50 != 0;
+            next if $counter{$type} >  5000 && $counter{$type} % 25 != 0;
+            next if $counter{$type} >  2500 && $counter{$type} % 10 != 0;
+
+            $self->train_dspam( $type, $message, $email );
+            push @{$messages{$type}}, $message; # for SA training
+        };
+    };
+
+    $self->train_spamassassin($d, \%messages );
+    return \%counter;
 };
 
 sub train_spamassassin {
     my ($self, $d, $messages ) = @_;
 
-    return if ! $self->{'install_spamassassin'};
-    my $salearn = '/usr/local/bin/sa-learn';
+    return if ! $self->{install_spamassassin};
+    my $salearn = $self->util->find_bin('sa-learn');
 
-    if ( scalar @{$messages->{'ham'}} ) {
-        my $hamlist  = "$d/learned-ham-messages";
-        $self->util->file_write($hamlist, lines => $messages->{ham}, verbose=>0 );
-        $self->util->syscmd( "$salearn --ham -f $hamlist", verbose=>0 );
-    }
-    if ( scalar @{$messages->{'spam'}} ) {
-        my $spamlist = "$d/learned-spam-messages";
-        $self->util->file_write($spamlist, lines => $messages->{spam}, verbose=>0 );
-        $self->util->syscmd( "$salearn --spam -f $spamlist", verbose=>0 );
-    }
+    foreach my $t ( qw/ ham spam / ) {
+        my $list = $messages->{$t};
+        next if ! scalar @$list;
+        my $file = "$d/learned-$t-messages";
+        $self->util->file_write($file, lines => $list, verbose=>0 );
+        $self->util->syscmd( "$salearn --$t -f $file", verbose=>0 );
+    };
 };
 
 sub train_dspam {
     my ($self, $type, $file, $email) = @_;
     if ( ! $self->conf->{install_dspam} ) {
-        $self->audit( "skipping dspam training, install_dspam is not set");
+        $self->audit( "skip dspam training, install_dspam unset");
         return;
     };
-    if ( ! -f $file ) {   # file moved (due to user action)
+    if ( ! -f $file ) {   # file moved (due to MUA action)
         $self->audit( "skipping dspam train of $file, it moved");
         return;
     };
-    #$self->audit($file);
-    my $dspam = '/usr/local/bin/dspamc';
+    my $dspam = $self->util->find_bin('dspamc');
     if ( ! -x $dspam ) {
         $self->audit("skipping, could not exec $dspam");
         return;
@@ -324,23 +305,13 @@ sub train_dspam {
 sub clean_mailboxes {
     my $self = shift;
     my %p = validate(@_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
 
     return $p{test_ok} if defined $p{test_ok};
 
-    my $days = $self->conf->{'maildir_clean_interval'} or
-        return $self->audit( 'skipping maildir cleaning, not enabled in config' );
+    my $days = $self->conf->{maildir_clean_interval} or
+        return $self->audit( 'skip maildir clean, config' );
 
-    my $log_base = $self->conf->{'qmail_log_base'} || '/var/log/mail';
-    my $clean_log = "$log_base/clean.log";
-    $self->audit( "clean log file is: $clean_log");
-
-    # create the log file if it does not exist
-    if ( ! -e $clean_log ) {
-        $self->util->file_write( $clean_log, lines => ["created file"], %args );
-        return if ! -e $clean_log;
-    }
-
+    my $clean_log = $self->get_clean_log;
     if ( -M $clean_log <= $days ) {
         $self->audit( "skipping, $clean_log is less than $days old");
         return 1;
@@ -350,7 +321,6 @@ sub clean_mailboxes {
         file  => $clean_log,
         prog  => $0,
         lines => ["clean_mailboxes running."],
-        %args,
     ) or return;
 
     $self->audit( "checks passed, cleaning");
@@ -360,17 +330,17 @@ sub clean_mailboxes {
     foreach my $maildir (@every_maildir_on_server) {
 
         if ( ! $maildir || ! -d $maildir ) {
-            $self->audit( "$maildir does not exist, skipping!");
+            $self->audit( "$maildir does not exist");
             next;
         };
 
         $self->audit( "  processing $maildir");
 
-        $self->maildir_clean_ham( path=>$maildir );
-        $self->maildir_clean_new( path=>$maildir );
-        $self->maildir_clean_sent( path=>$maildir );
-        $self->maildir_clean_trash( path=>$maildir );
-        $self->maildir_clean_spam( path=>$maildir );
+        $self->maildir_clean_ham( $maildir );
+        $self->maildir_clean_new( $maildir );
+        $self->maildir_clean_sent( $maildir );
+        $self->maildir_clean_trash( $maildir );
+        $self->maildir_clean_spam( $maildir );
     };
 
     return 1;
@@ -379,24 +349,21 @@ sub clean_mailboxes {
 sub clear_open_smtp {
     my $self = shift;
 
-    return if ! $self->conf->{'vpopmail_roaming_users'};
+    return if ! $self->conf->{vpopmail_roaming_users};
 
-    my $vpopdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+    my $vpopdir = $self->conf->{vpopmail_home_dir} || '/usr/local/vpopmail';
 
     if ( ! -x "$vpopdir/bin/clearopensmtp" ) {
         return $self->error( "cannot find clearopensmtp program!",fatal=>0 );
     };
 
-    $self->audit( "running clearopensmtp");
     $self->util->syscmd( "$vpopdir/bin/clearopensmtp" );
 };
 
 sub maildir_clean_spam {
     my $self = shift;
-    my %p = validate( @_, { path  => { type=>SCALAR } } );
-
-    my $path = $p{path};
-    my $days = $self->conf->{'maildir_clean_Spam'} or return;
+    my $path = shift or croak "missing maildir!";
+    my $days = $self->conf->{maildir_clean_Spam} or return;
     my $spambox = "$path/Maildir/.Spam";
 
     return $self->error( "clean_spam: skipped because $spambox does not exist.",fatal=>0)
@@ -411,9 +378,7 @@ sub maildir_clean_spam {
 
 sub maildir_clean_trash {
     my $self = shift;
-    my %p = validate( @_, { 'path' => { type=>SCALAR  } } );
-
-    my $path = $p{path};
+    my $path = shift or croak "missing maildir!";
     my $trash = "$path/Maildir/.Trash";
     my $days = $self->conf->{'maildir_clean_Trash'} or return;
 
@@ -429,11 +394,9 @@ sub maildir_clean_trash {
 
 sub maildir_clean_sent {
     my $self = shift;
-    my %p = validate( @_, { 'path' => { type=>SCALAR,  }, },);
-
-    my $path = $p{path};
+    my $path = shift or croak "missing maildir!";
     my $sent = "$path/Maildir/.Sent";
-    my $days = $self->conf->{'maildir_clean_Sent'} or return;
+    my $days = $self->conf->{maildir_clean_Sent} or return;
 
     if ( ! -d $sent ) {
         $self->audit("clean_sent: skipped because $sent does not exist.");
@@ -449,11 +412,9 @@ sub maildir_clean_sent {
 
 sub maildir_clean_new {
     my $self = shift;
-    my %p = validate( @_, { 'path' => { type=>SCALAR,  }, },);
-
-    my $path = $p{path};
+    my $path = shift or croak "missing maildir!";
     my $unread = "$path/Maildir/new";
-    my $days = $self->conf->{'maildir_clean_Unread'} or return;
+    my $days = $self->conf->{maildir_clean_Unread} or return;
 
     if ( ! -d $unread ) {
         $self->audit( "clean_new: skipped because $unread does not exist.");
@@ -467,220 +428,55 @@ sub maildir_clean_new {
 
 sub maildir_clean_ham {
     my $self = shift;
-    my %p = validate( @_, { 'path' => { type=>SCALAR, }, }, );
-
-    my $path = $p{path};
+    my $path = shift or croak "missing maildir!";
     my $read = "$path/Maildir/cur";
-    my $days = $self->conf->{'maildir_clean_Read'} or return;
+    my $days = $self->conf->{maildir_clean_Read} or return;
 
     if ( ! -d $read ) {
-        $self->audit( "clean_ham: skipped because $read does not exist.");
-        return 0;
+        $self->audit( "clean_ham: skipped, $read does not exist.");
+        return;
     }
 
     $self->audit( "clean_ham: cleaning read messages older than $days days");
-    my $find = $self->util->find_bin( "find", verbose=>0 );
+    my $find = $self->util->find_bin( 'find', verbose=>0 );
     $self->util->syscmd( "$find $read -type f -mtime +$days -exec rm {} \\;" );
 }
 
-sub email_send {
+sub get_daemons {
     my $self = shift;
-    my %p = validate( @_, { 'type' => { type=>SCALAR }, $self->get_std_opts } );
+    my $active = shift;
+    return qw/ smtp send pop3 submit qmail-deliverable qpsmtpd vpopmaild / if ! $active;
 
-    my $type = $p{'type'};
-
-    my $email = $self->conf->{'toaster_admin_email'} || "root";
-
-    my $qdir = $self->conf->{'qmail_dir'} || "/var/qmail";
-    return 0 unless -x "$qdir/bin/qmail-inject";
-
-    ## no critic
-    unless ( open( $INJECT, "| $qdir/bin/qmail-inject -a -f \"\" $email" ) ) {
-        warn "FATAL: couldn't send using qmail-inject!\n";
-        return;
+    my @list = qw/ send pop3 /;
+    if ( $self->conf->{smtpd_daemon} && 'qpsmtpd' eq $self->conf->{smtpd_daemon} ) {
+        push @list, 'vpopmaild' if $self->conf->{vpopmail_daemon};
+        push @list, 'qmail-deliverable', 'qpsmtpd';
     }
-    ## use critic
+    else {
+        push @list, 'smtp';
+    };
+    if ( ! $self->conf->{submit_daemon} || 'qmail' eq $self->conf->{submit_daemon} ) {
+        push @list, 'submit';
+    };
 
-    if    ( $type eq "clean" )  { $self->email_send_clean($email) }
-    elsif ( $type eq "spam" )   { $self->email_send_spam($email) }
-    elsif ( $type eq "virus" )  { $self->email_send_eicar($email) }
-    elsif ( $type eq "attach" ) { $self->email_send_attach($email) }
-    elsif ( $type eq "clam" )   { $self->email_send_clam($email) }
-    else { print "man Mail::Toaster to figure out how to use this!\n" }
+    return @list;
+};
 
-    close $INJECT;
+sub get_clean_log {
+    my $self = shift;
 
-    return 1;
-}
+    my $dir = $self->conf->{'qmail_log_base'} || '/var/log/mail';
+    my $clean_log = "$dir/clean.log";
 
-sub email_send_attach {
+    $self->audit( "clean log file is: $clean_log");
 
-    my ( $self, $email ) = @_;
-
-    print "\n\t\tSending .com test attachment - should fail.\n";
-    print $INJECT <<"EOATTACH";
-From: Mail Toaster Testing <$email>
-To: Email Administrator <$email>
-Subject: Email test (blocked attachment message)
-Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="gKMricLos+KVdGMg"
-Content-Disposition: inline
-
---gKMricLos+KVdGMg
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-
-This is an example of an Email message containing a virus. It should
-trigger the virus scanner, and not be delivered.
-
-If you are using qmail-scanner, the server admin should get a notification.
-
---gKMricLos+KVdGMg
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: attachment; filename="Eicar.com"
-
-00000000000000000000000000000000000000000000000000000000000000000000
-
---gKMricLos+KVdGMg--
-
-EOATTACH
-
-}
-
-sub email_send_clam {
-
-    my ( $self, $email ) = @_;
-
-    print "\n\t\tSending ClamAV test virus - should fail.\n";
-    print $INJECT <<EOCLAM;
-From: Mail Toaster testing <$email>
-To: Email Administrator <$email>
-Subject: Email test (virus message)
-
-This is a viral message containing the clam.zip test virus pattern. It should be blocked by any scanning software using ClamAV.
-
-
---Apple-Mail-7-468588064
-Content-Transfer-Encoding: base64
-Content-Type: application/zip;
-        x-unix-mode=0644;
-        name="clam.zip"
-Content-Disposition: attachment;
-        filename=clam.zip
-
-UEsDBBQAAAAIALwMJjH9PAfvAAEAACACAAAIABUAY2xhbS5leGVVVAkAA1SjO0El6E1BVXgEAOgD
-6APzjQpgYGJgYGBh4Gf4/5+BYQeQrQjEDgxSDAQBIwPD7kIBBwbjAwEB3Z+DgwM2aDoYsKStqfy5
-y5ChgndtwP+0Aj75fYYML5/+38J5VnGLz1nFJB4uRqaCMnEmOT8eFv1bZwRQjTwA5Degid0C8r+g
-icGAt2uQn6uPsZGei48PA4NrRWZJQFF+cmpxMUNosGsQVNzZx9EXKJSYnuqUX+HI8Axqlj0QBLgy
-MPgwMjIkOic6wcx8wNDXyM3IJAkMFAYGNoiYA0iPAChcwDwwGxRwjFA9zAxcEIYCODDBgAlMCkDE
-QDTUXmSvtID8izeQaQOiQWHiGBbLAPUXsl+QwAEAUEsBAhcDFAAAAAgAvAwmMf08B+8AAQAAIAIA
-AAgADQAAAAAAAAAAAKSBAAAAAGNsYW0uZXhlVVQFAANUoztBVXgAAFBLBQYAAAAAAQABAEMAAAA7
-AQAAAAA=
-
---Apple-Mail-7-468588064
-
-
-EOCLAM
-
-}
-
-sub email_send_clean {
-
-    my ( $self, $email ) = @_;
-
-    print "\n\t\tsending a clean message - should arrive unaltered\n";
-    print $INJECT <<EOCLEAN;
-From: Mail Toaster testing <$email>
-To: Email Administrator <$email>
-Subject: Email test (clean message)
-
-This is a clean test message. It should arrive unaltered and should also pass any virus or spam checks.
-
-EOCLEAN
-
-}
-
-sub email_send_eicar {
-
-    my ( $self, $email ) = @_;
-
-    # http://eicar.org/anti_virus_test_file.htm
-    # X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
-
-    print "\n\t\tSending the EICAR test virus - should fail.\n";
-    print $INJECT <<EOVIRUS;
-From: Mail Toaster testing <$email'>
-To: Email Administrator <$email>
-Subject: Email test (eicar virus test message)
-Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="gKMricLos+KVdGMg"
-Content-Disposition: inline
-
---gKMricLos+KVdGMg
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-
-This is an example email containing a virus. It should trigger any good virus
-scanner.
-
-If it is caught by AV software, it will not be delivered to its intended
-recipient (the email admin). The Qmail-Scanner administrator should receive
-an Email alerting him/her to the presence of the test virus. All other
-software should block the message.
-
---gKMricLos+KVdGMg
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: attachment; filename="sneaky.txt"
-
-X5O!P%\@AP[4\\PZX54(P^)7CC)7}\$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!\$H+H*
-
---gKMricLos+KVdGMg--
-
-EOVIRUS
-      ;
-
-}
-
-sub email_send_spam {
-
-    print "\n\t\tSending a sample spam message - should fail\n";
-
-    print $INJECT 'Return-Path: sb55sb55@yahoo.com
-Delivery-Date: Mon, 19 Feb 2001 13:57:29 +0000
-Return-Path: <sb55sb55@yahoo.com>
-Delivered-To: jm@netnoteinc.com
-Received: from webnote.net (mail.webnote.net [193.120.211.219])
-   by mail.netnoteinc.com (Postfix) with ESMTP id 09C18114095
-   for <jm7@netnoteinc.com>; Mon, 19 Feb 2001 13:57:29 +0000 (GMT)
-Received: from netsvr.Internet (USR-157-050.dr.cgocable.ca [24.226.157.50] (may be forged))
-   by webnote.net (8.9.3/8.9.3) with ESMTP id IAA29903
-   for <jm7@netnoteinc.com>; Sun, 18 Feb 2001 08:28:16 GMT
-From: sb55sb55@yahoo.com
-Received: from R00UqS18S (max1-45.losangeles.corecomm.net [216.214.106.173]) by netsvr.Internet with SMTP (Microsoft Exchange Internet Mail Service Version 5.5.2653.13)
-   id 1429NTL5; Sun, 18 Feb 2001 03:26:12 -0500
-DATE: 18 Feb 01 12:29:13 AM
-Message-ID: <9PS291LhupY>
-Subject: anti-spam test: checking SpamAssassin [if present] (There yours for FREE!)
-To: undisclosed-recipients:;
-
-Congratulations! You have been selected to receive 2 FREE 2 Day VIP Passes to Universal Studios!
-
-Click here http://209.61.190.180
-
-As an added bonus you will also be registered to receive vacations discounted 25%-75%!
-
-
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-This mailing is done by an independent marketing co.
-We apologize if this message has reached you in error.
-Save the Planet, Save the Trees! Advertise via E mail.
-No wasted paper! Delete with one simple keystroke!
-Less refuse in our Dumps! This is the new way of the new millennium
-To be removed please reply back with the word "remove" in the subject line.
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-';
-}
+    # create the log file if it does not exist
+    if ( ! -e $clean_log ) {
+        $self->util->file_write( $clean_log, lines => ["created file"] );
+        return if ! -e $clean_log;
+    }
+    return $clean_log;
+};
 
 sub get_dspam_class {
     my ($self, $file) = @_;
@@ -698,29 +494,17 @@ sub get_dspam_class {
     return if ! $dspam_status || ! $signature;
     my ($class) = $dspam_status =~ /^X-DSPAM-Result:\s+([\w]+)\,/
         or return;
-    return lc($class);
-};
-
-sub get_fatal {
-    my ($self, $fatal) = @_;
-    return $fatal if defined $fatal;
-    return $self->{fatal};
+    return lc $class;
 };
 
 sub get_maildir_paths {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
 
-    my $vpdir = $self->conf->{'vpopmail_home_dir'};
+    my $vpdir = $self->conf->{vpopmail_home_dir};
 
     # this method requires a SQL query for each domain
-    my $qdir  = $self->conf->{'qmail_dir'} || "/var/qmail";
-
-    my @all_domains = $self->qmail->get_domains_from_assign(
-        assign => "$qdir/users/assign",
-        fatal  => 0,
-    );
+    my @all_domains = $self->qmail->get_domains_from_assign(fatal=> 0);
 
     return $self->error( "No domains found in qmail/users/assign",fatal=>0 )
         unless $all_domains[0];
@@ -731,7 +515,7 @@ sub get_maildir_paths {
     my @paths;
     foreach (@all_domains) {
         my $domain_name = $_->{'dom'};
-        #$self->audit( "  processing $domain_name mailboxes.", %args);
+        #$self->audit( "  processing $domain_name mailboxes." );
         my @list_of_maildirs = `$vpdir/bin/vuserinfo -d -D $domain_name`;
         push @paths, @list_of_maildirs;
     }
@@ -768,7 +552,12 @@ sub get_maildir_messages {
     my @recents;
     my $oldest = time - $age;
 
-    find( {wanted=> sub { -f && stat($_)->ctime > $oldest && push @recents, $File::Find::name; }, no_chdir=>1}, $dir);
+    find( { wanted =>
+                sub { -f && stat($_)->ctime > $oldest
+                         && push @recents, $File::Find::name;
+                    },
+            no_chdir=>1,
+        }, $dir );
 
     #print "found " . @recents . " messages in $dir\n";
     chomp @recents;
@@ -780,21 +569,19 @@ sub get_toaster_htdocs {
     my %p = validate( @_, { $self->get_std_opts } );
 
     # if available, use the configured location
-    if ( defined $self->conf && $self->conf->{'toaster_http_docs'} ) {
-        return $self->conf->{'toaster_http_docs'};
+    if ( defined $self->conf && $self->conf->{toaster_http_docs} ) {
+        return $self->conf->{toaster_http_docs};
     }
 
-    # otherwise, check the usual locations
-    my @dirs = (
+    # check the usual locations
+    foreach my $dir (
         "/usr/local/www/toaster",       # toaster
         "/usr/local/www/data/mail",     # legacy
         "/usr/local/www/mail",
         "/Library/Webserver/Documents", # Mac OS X
         "/var/www/html",                # Linux
         "/usr/local/www/data",          # FreeBSD
-    );
-
-    foreach my $dir ( @dirs ) {
+            ) {
         return $dir if -d $dir;
     };
 
@@ -803,96 +590,60 @@ sub get_toaster_htdocs {
 
 sub get_toaster_cgibin {
     my $self = shift;
-    my %p = validate( @_, { $self->get_std_opts } );
 
-    # if it is set, then use it.
-    if ( defined $self->conf && defined $self->conf->{'toaster_cgi_bin'} ) {
-        return $self->conf->{'toaster_cgi_bin'};
-    }
+    # if set, use.
+    return $self->conf->{toaster_cgi_bin} if defined $self->conf->{toaster_cgi_bin};
 
-    # Mail-Toaster preferred
-    if ( -d "/usr/local/www/cgi-bin.mail" ) {
-        return "/usr/local/www/cgi-bin.mail";
-    }
-
-    # FreeBSD default
-    if ( -d "/usr/local/www/cgi-bin" ) {
-        return "/usr/local/www/cgi-bin";
-    }
-
-    # linux
-    if ( -d "/var/www/cgi-bin" ) {
-        return "/var/www/cgi-bin";
-    }
+    # Mail-Toaster
+    return "/usr/local/www/cgi-bin.mail" if -d "/usr/local/www/cgi-bin.mail";
+    return "/usr/local/www/cgi-bin" if -d "/usr/local/www/cgi-bin"; # FreeBSD
+    return "/var/www/cgi-bin" if -d "/var/www/cgi-bin"; # linux
 
     # Mac OS X standard location
     if ( -d "/Library/WebServer/CGI-Executables" ) {
         return "/Library/WebServer/CGI-Executables";
     }
 
-    # all else has failed, we must try to predict
+    # all else failed, try to predict
     return $OSNAME eq "linux"  ? "/var/www/cgi-bin"
          : $OSNAME eq "darwin" ? "/Library/WebServer/CGI-Executables"
          : $OSNAME eq "netbsd" ? "/var/apache/cgi-bin"
          : "/usr/local/www/cgi-bin"   # last resort
          ;
-
 }
 
 sub get_toaster_logs {
     my $self = shift;
-
-    # if it is set, then use it.
-    if ( defined $self->conf->{'qmail_log_base'} ) {
-        return $self->conf->{'qmail_log_base'};
-    };
-
-    return "/var/log/mail";   # default to /var/log/mail
-}
-
-sub get_toaster_conf {
-    my $self = shift;
-
-    # if it is set, then use it.
-    if ( defined $self->conf->{'system_config_dir'} ) {
-        return $self->conf->{'system_config_dir'};
-    };
-
-	return $OSNAME eq "darwin"  ? "/opt/local/etc"  # Mac OS X
-	     : $OSNAME eq "freebsd" ? "/usr/local/etc"  # FreeBSD
-	     : $OSNAME eq "linux"   ? "/etc"            # Linux
-	     : "/usr/local/etc"                         # reasonably good guess
-	     ;
-
+    return $self->conf->{logs_base} || $self->conf->{qmail_log_base} || '/var/log/mail';
 }
 
 sub process_logfiles {
     my $self = shift;
+    my $conf = $self->conf;
 
-    my $pop3_logs = $self->conf->{pop3_log_method} || $self->conf->{'logs_pop3d'};
-    my $smtpd = $self->conf->{'smtpd_daemon'} || 'qmail';
-    my $submit = $self->conf->{'submit_daemon'} || 'qmail';
+    my $pop3_logs = $conf->{pop3_log_method} || $conf->{logs_pop3d};
+    my $smtpd  = $conf->{smtpd_daemon}  || 'qmail';
+    my $submit = $conf->{submit_daemon} || 'qmail';
 
-    $self->supervised_log_rotate( prot => 'send' );
-    $self->supervised_log_rotate( prot => 'smtp' ) if $smtpd eq 'qmail';
-    $self->supervised_log_rotate( prot => 'submit' ) if $self->conf->{submit_enable} && $submit eq 'qmail';
-    $self->supervised_log_rotate( prot => 'pop3'   ) if $pop3_logs eq 'qpop3d';
+    $self->supervised_log_rotate('send'  );
+    $self->supervised_log_rotate('smtp'  ) if $smtpd eq 'qmail';
+    $self->supervised_log_rotate('submit') if $conf->{submit_enable} && $submit eq 'qmail';
+    $self->supervised_log_rotate('pop3'  ) if $pop3_logs eq 'qpop3d';
 
-    $self->logs->compress_yesterdays_logs( file=>"sendlog" );
-    $self->logs->compress_yesterdays_logs( file=>"smtplog" ) if $smtpd eq 'qmail';
-    $self->logs->compress_yesterdays_logs( file=>"pop3log" ) if $pop3_logs eq "qpop3d";
+    $self->logs->compress_yesterdays_logs( "sendlog" );
+    $self->logs->compress_yesterdays_logs( "smtplog" ) if $smtpd eq 'qmail';
+    $self->logs->compress_yesterdays_logs( "pop3log" ) if $pop3_logs eq 'qpop3d';
 
-    $self->logs->purge_last_months_logs() if $self->conf->{'logs_archive_purge'};
+    $self->logs->purge_last_months_logs() if $conf->{logs_archive_purge};
 
     return 1;
 };
 
 sub run_isoqlog {
     my $self = shift;
+    return if ! $self->conf->{install_isoqlog};
 
-    return if ! $self->conf->{'install_isoqlog'};
-
-    my $isoqlog = $self->util->find_bin( "isoqlog", verbose=>0,fatal => 0 )
+    my $isoqlog = $self->util->find_bin( 'isoqlog', verbose=>0 )
         or return;
 
     system "$isoqlog >/dev/null" or return 1;
@@ -901,21 +652,14 @@ sub run_isoqlog {
 
 sub run_qmailscanner {
     my $self = shift;
-
-    return if ! ( $self->conf->{'install_qmailscanner'}
-        && $self->conf->{'qs_quarantine_process'} );
+    return if ! $self->conf->{install_qmailscanner};
+    return if ! $self->conf->{qs_quarantine_process};
 
     $self->audit( "checking qmail-scanner quarantine.");
-
-    my $qs_verbose = $self->conf->{'qs_quarantine_verbose'};
-    $qs_verbose++ if $self->{verbose};
-
-    my @list = $self->qmail->get_qmailscanner_virus_sender_ips( $qs_verbose );
-
-    $self->audit( "found " . scalar @list . " infected files" ) if scalar @list;
+    my @list = $self->qmail->get_qmailscanner_virus_sender_ips;
 
     $self->qmail->UpdateVirusBlocks( ips => \@list )
-        if $self->conf->{'qs_block_virus_senders'};
+        if $self->conf->{qs_block_virus_senders};
 };
 
 sub service_dir_get {
@@ -924,11 +668,10 @@ sub service_dir_get {
 
     $prot = 'smtp' if $prot eq 'smtpd'; # catch and fix legacy usage.
 
-    my @valid = qw/ send smtp pop3 submit qpsmtpd qmail-deliverable vpopmaild /;
-    my %valid = map { $_=>1 } @valid;
+    my %valid = map { $_ => 1 } $self->get_daemons;
     return $self->error( "invalid service: $prot",fatal=>0) if ! $valid{$prot};
 
-    my $svcdir = $self->conf->{'qmail_service'} || '/var/service';
+    my $svcdir = $self->conf->{qmail_service} || '/var/service';
        $svcdir = "/service" if ( !-d $svcdir && -d '/service' ); # legacy
 
     my $dir = "$svcdir/$prot";
@@ -939,22 +682,13 @@ sub service_dir_get {
 
 sub service_symlinks {
     my $self = shift;
-    my %p = validate( @_, { $self->get_std_opts } );
 
     my @active_services = 'send';
-    push @active_services, 'vpopmaild' if $self->conf->{vpopmail_daemon};
 
-    my $r = $self->service_symlinks_smtp();
-    push @active_services, $r if $r;
-
-    $r = $self->service_symlinks_submit();
-    push @active_services, $r if $r;
-
-    if ( $self->conf->{pop3_enable} || $self->conf->{'pop3_daemon'} eq 'qpop3d' ) {
-        push @active_services, 'pop3';
-    }
-    else {
-        $self->service_symlinks_cleanup( 'pop3' );
+    foreach ( qw/ smtp submit pop3 vpopmaild / ) {
+        my $method = 'service_symlinks_' . $_;
+        my $r = $self->$method or next;
+        push @active_services, $r;
     };
 
     foreach my $prot ( @active_services ) {
@@ -979,17 +713,35 @@ sub service_symlinks {
     return 1;
 }
 
-sub service_symlinks_smtp {
+sub service_symlinks_pop3 {
     my $self = shift;
 
-    return 'smtp' if ! $self->conf->{smtpd_daemon};
+    if (    $self->conf->{pop3_enable}   # legacy
+         || $self->conf->{pop3_daemon} eq 'qpop3d' ) {
+        return 'pop3';
+    };
+    $self->service_symlinks_cleanup( 'pop3' );
+    return;
+};
 
-    if ( $self->conf->{smtpd_daemon} eq 'qmail' ) {
+sub service_symlinks_vpopmaild {
+    my $self = shift;
+    my $enabled = $self->conf->{vpopmail_daemon};
+    return 'vpopmaild' if $enabled;
+    $self->service_symlinks_cleanup( 'vpopmaild' );
+    return;
+};
+
+sub service_symlinks_smtp {
+    my $self = shift;
+    my $daemon = $self->conf->{smtpd_daemon} or return 'smtp';
+
+    if ( $daemon eq 'qmail' ) {
         $self->service_symlinks_cleanup( 'qpsmtpd' );
         return 'smtp';
     };
 
-    if ( $self->conf->{smtpd_daemon} eq 'qpsmtpd' ) {
+    if ( $daemon eq 'qpsmtpd' ) {
         $self->service_symlinks_cleanup( 'smtp' );
         return 'qpsmtpd';
     };
@@ -999,10 +751,9 @@ sub service_symlinks_smtp {
 
 sub service_symlinks_submit {
     my $self = shift;
+    my $daemon = $self->conf->{submit_daemon} or return 'submit';
 
-    return 'submit' if ! $self->conf->{submit_daemon};
-
-    if ( $self->conf->{submit_daemon} eq 'qpsmtpd' ) {
+    if ( $daemon eq 'qpsmtpd' ) {
         $self->service_symlinks_cleanup( 'submit' );
         return 'qpsmtpd';
     };
@@ -1015,13 +766,13 @@ sub service_symlinks_cleanup {
 
     my $dir = $self->service_dir_get( $prot );
 
-    if ( -e $dir ) {
-        $self->audit("deleting $dir because $prot isn't enabled!");
-        unlink($dir);
-    }
-    else {
+    if ( ! -e $dir ) {
         $self->audit("$prot not enabled due to configuration settings.");
-    }
+        return;
+    };
+
+    $self->audit("deleting $dir because $prot isn't enabled!");
+    unlink $dir;
 }
 
 sub service_dir_create {
@@ -1030,7 +781,7 @@ sub service_dir_create {
 
     return $p{test_ok} if defined $p{test_ok};
 
-    my $service = $self->conf->{'qmail_service'} || "/var/service";
+    my $service = $self->conf->{qmail_service} || "/var/service";
 
     if ( ! -d $service ) {
         mkdir( $service, oct('0775') ) or
@@ -1050,7 +801,7 @@ sub service_dir_create {
 sub service_dir_test {
     my $self = shift;
 
-    my $service = $self->conf->{'qmail_service'} || "/var/service";
+    my $service = $self->conf->{qmail_service} || "/var/service";
 
     return $self->error( "service_dir_test: $service is missing!",fatal=>0)
         if !-d $service;
@@ -1067,11 +818,10 @@ sub service_dir_test {
 
 sub sqwebmail_clean_cache {
     my $self = shift;
-
     return 1 if ! $self->conf->{install_sqwebmail};
-
     my $script = "/usr/local/share/sqwebmail/cleancache.pl";
-    return if ! -x $script;
+    return $self->error("unable to locate sqwebmail's cleancache.pl")
+        if ! -x $script;
     system $script;
 };
 
@@ -1079,10 +829,10 @@ sub supervise_dir_get {
     my $self = shift;
     my $prot = shift or croak "missing prot!";
 
-    my $sdir = $self->conf->{'qmail_supervise'};
+    my $sdir = $self->qmail->get_supervise_dir;
     $sdir = "/var/supervise" if ( !-d $sdir && -d '/var/supervise'); # legacy
     $sdir = "/supervise" if ( !-d $sdir && -d '/supervise');
-    $sdir ||= "/var/qmail/supervise";
+    $sdir ||= $self->qmail->get_qmail_dir . '/supervise';
 
     my $dir = "$sdir/$prot";
 
@@ -1096,83 +846,65 @@ sub supervise_dir_get {
 sub supervise_dirs_create {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
-    my %args = $self->get_std_args( %p );
 
-    my $supervise = $self->conf->{'qmail_supervise'} || "/var/qmail/supervise";
+    my $supdir = $self->qmail->get_supervise_dir;
 
     return $p{test_ok} if defined $p{test_ok};
 
-    if ( -d $supervise ) {
-        $self->audit( "supervise_dirs_create: $supervise, ok (exists)", %args );
+    if ( -d $supdir ) {
+        $self->audit( "supervise_dirs_create: $supdir, ok (exists)" );
     }
     else {
-        mkdir( $supervise, oct('0775') ) or die "failed to create $supervise: $!\n";
-        $self->audit( "supervise_dirs_create: $supervise, ok", %args );
+        mkpath( $supdir, oct('0775') ) or $self->error( "failed to create $supdir: $!");
+        $self->audit( "supervise_dirs_create: $supdir, ok" );
     }
 
-    chdir $supervise;
+    foreach my $prot ( $self->get_daemons(1) ) {
 
-    my @sdirs = qw/ smtp send pop3 submit /;
-    push @sdirs, 'vpopmaild' if $self->conf->{vpopmail_daemon};
-    if ( $self->conf->{smtpd_daemon}  && 'qpsmtpd' eq $self->conf->{smtpd_daemon} ) {
-        push @sdirs, 'qmail-deliverable';
-        push @sdirs, 'qpsmtpd';
-    };
-
-    foreach my $prot ( @sdirs ) {
-
-        my $dir = $self->supervise_dir_get( $prot );
-        if ( -d $dir ) {
-            $self->audit( "supervise_dirs_create: $dir, ok (exists)", %args );
+        my $protdir = $self->supervise_dir_get( $prot );
+        if ( -d $protdir ) {
+            $self->audit( "supervise_dirs_create: $protdir, ok (exists)" );
             next;
         }
 
-        mkdir( $dir, oct('0775') ) or die "failed to create $dir: $!\n";
-        $self->audit( "supervise_dirs_create: creating $dir, ok", %args );
+        mkdir( $protdir, oct('0775') ) or die "failed to create $protdir: $!\n";
+        $self->audit( "supervise_dirs_create: creating $protdir, ok" );
 
-        mkdir( "$dir/log", oct('0775') ) or die "failed to create $dir/log: $!\n";
-        $self->audit( "supervise_dirs_create: creating $dir/log, ok", %args );
+        mkdir( "$protdir/log", oct('0775') ) or die "failed to create $protdir/log: $!\n";
+        $self->audit( "supervise_dirs_create: creating $protdir/log, ok" );
 
-        $self->util->syscmd( "chmod +t $dir", verbose=>0 );
+        $self->util->syscmd( "chmod +t $protdir", verbose=>0 );
 
-        symlink( $dir, $prot ) if ! -e $prot;
+        my $svc_dir = $self->service_dir_get($prot);
+        symlink( $protdir, $svc_dir ) if ! -e "$supdir/$prot";
     }
 }
 
 sub supervised_dir_test {
     my $self = shift;
-    my %p = validate( @_, {
-            'prot'    => { type=>SCALAR, },
-            'dir'     => { type=>SCALAR, optional=>1, },
-            $self->get_std_opts,
-        },
-    );
+    my $prot = shift or croak "missing prot";
+    my %p = validate( @_, { $self->get_std_opts } );
 
-    my ($prot, $dir ) = ( $p{'prot'}, $p{'dir'} );
-    my %args = $self->get_std_args( %p );
+    my $dir = $self->supervise_dir_get( $prot ) or return;
 
     return $p{test_ok} if defined $p{test_ok};
 
-    if ( ! $dir ) {
-        $dir = $self->supervise_dir_get( $prot ) or return;
-    }
-
-    return $self->error("directory $dir does not exist", %args )
+    return $self->error("directory $dir does not exist", fatal=>0 )
         unless ( -d $dir || -l $dir );
-    $self->test( "exists, $dir", -d $dir, %args );
+    $self->test( "exists, $dir", -d $dir );
 
     if ( ! -f "$dir/run" ) {
         $self->qmail->install_qmail_control_files;
-        return $self->error("$dir/run does not exist!", %args )
+        return $self->error("$dir/run does not exist!" )
             if ! -f "$dir/run";
     };
-    $self->test( "exists, $dir/run", -f "$dir/run", %args);
+    $self->test( "exists, $dir/run", -f "$dir/run" );
 
-    return $self->error("$dir/run is not executable", %args ) if ! -x "$dir/run";
-    $self->test( "perms,  $dir/run", -x "$dir/run", %args );
+    return $self->error("$dir/run is not executable" ) if ! -x "$dir/run";
+    $self->test( "perms,  $dir/run", -x "$dir/run" );
 
-    return $self->error("$dir/down is present", %args ) if -f "$dir/down";
-    $self->test( "!exist, $dir/down", !-f "$dir/down", %args );
+    return $self->error("$dir/down is present" ) if -f "$dir/down";
+    $self->test( "!exist, $dir/down", !-f "$dir/down" );
 
     my $log_method = $self->conf->{ $prot . '_log_method' }
       || $self->conf->{ $prot . 'd_log_method' }
@@ -1181,89 +913,77 @@ sub supervised_dir_test {
     return 1 if $log_method =~ /(?:syslog|disabled)/i;
 
     # make sure the log directory exists
-    return $self->error( "$dir/log does not exist", %args ) if ! -d "$dir/log";
-    $self->test( "exists, $dir/log", -d "$dir/log", %args );
+    return $self->error( "$dir/log does not exist" ) if ! -d "$dir/log";
+    $self->test( "exists, $dir/log", -d "$dir/log" );
 
     # make sure the supervise/log/run file exists
     if ( ! -f "$dir/log/run" ) {
         $self->qmail->install_qmail_control_log_files;
-        return $self->error( "$dir/log/run does not exist", %args )
+        return $self->error( "$dir/log/run does not exist" )
             if ! -f "$dir/log/run";
     };
-    $self->test( "exists, $dir/log/run", -f "$dir/log/run", %args );
+    $self->test( "exists, $dir/log/run", -f "$dir/log/run" );
 
     # check the log/run file permissions
-    return $self->error( "perms, $dir/log/run", %args) if ! -x "$dir/log/run";
-    $self->test( "perms,  $dir/log/run", -x "$dir/log/run", %args );
+    return $self->error( "perms, $dir/log/run" ) if ! -x "$dir/log/run";
+    $self->test( "perms,  $dir/log/run", -x "$dir/log/run" );
 
     # make sure the supervise/down file does not exist
-    return $self->error( "$dir/log/down exists", %args) if -f "$dir/log/down";
-    $self->test( "!exist, $dir/log/down", "$dir/log/down", %args );
+    return $self->error( "$dir/log/down exists" ) if -f "$dir/log/down";
+    $self->test( "!exist, $dir/log/down", "$dir/log/down" );
     return 1;
 }
 
 sub supervised_do_not_edit_notice {
     my $self = shift;
-    my %p = validate( @_, {
-            vdir  => { type=>SCALAR,  optional=>1, },
-        },
-    );
-
-    my $vdir = $p{'vdir'};
+    my $vdir = shift;
 
     if ($vdir) {
-        $vdir = $self->conf->{'vpopmail_home_dir'} || "/usr/local/vpopmail";
+        $vdir = $self->setup->vpopmail->get_vpop_dir;
     }
 
-    my $qdir   = $self->conf->{'qmail_dir'}      || "/var/qmail";
-    my $prefix = $self->conf->{'toaster_prefix'} || "/usr/local";
-
-    my @lines = "#!/bin/sh
-
-#    NOTICE: This file is generated automatically by toaster-watcher.pl.
-#
-#    Please DO NOT hand edit this file. Instead, edit toaster-watcher.conf
-#      and then run toaster-watcher.pl to make your settings active.
-#      Run: perldoc toaster-watcher.conf  for more detailed info.
-";
+    my $qdir   = $self->qmail->get_qmail_dir;
+    my $prefix = $self->conf->{toaster_prefix} || '/usr/local';
 
     my $path  = "PATH=$qdir/bin";
        $path .= ":$vdir/bin" if $vdir;
        $path .= ":$prefix/bin:/usr/bin:/bin";
 
-    push @lines, $path;
-    push @lines, "export PATH\n";
-    return @lines;
+    return "#!/bin/sh\n
+#    NOTICE: This file is automatically updated by toaster-watcher.pl.\n
+#    Please DO NOT hand edit this file. Instead, edit toaster-watcher.conf
+#      and then run toaster-watcher.pl to make your settings active.
+#      Run: 'perldoc toaster-watcher.conf' for more detailed info.\n
+$path
+export PATH\n
+";
 }
 
 sub supervised_hostname {
     my $self = shift;
-    my %p = validate( @_, { 'prot' => { type=>SCALAR }, },);
-
-    my $prot = $p{'prot'};
+    my $prot = shift or croak "missing prot!";
 
     $prot .= "_hostname";
     $prot = $self->conf->{ $prot . '_hostname' };
 
     if ( ! $prot || $prot eq "system" ) {
         $self->audit( "using system hostname (" . hostname() . ")" );
-        return hostname() . " ";
-    }
-    elsif ( $prot eq "qmail" ) {
+        return hostname() . ' ';
+    };
+    if ( $prot eq "qmail" ) {
         $self->audit( "  using qmail hostname." );
         return '\"$LOCAL" ';
-    }
-    else {
-        $self->audit( "using conf defined hostname ($prot).");
-        return "$prot ";
-    }
+    };
+
+    $self->audit( "using conf defined hostname ($prot).");
+    return "$prot ";
 }
 
 sub supervised_multilog {
     my $self = shift;
-    my %p = validate( @_, { 'prot' => SCALAR, $self->get_std_opts } );
+    my $prot = shift or croak "missing prot!";
+    my %p = validate( @_, { $self->get_std_opts } );
     my %args = $self->get_std_args( %p );
-    my $prot = $p{prot};
 
     my $setuidgid = $self->util->find_bin( 'setuidgid', fatal=>0 );
     my $multilog  = $self->util->find_bin( 'multilog', fatal=>0);
@@ -1295,23 +1015,20 @@ sub supervised_multilog {
 
 sub supervised_log_method {
     my $self = shift;
-    my %p = validate( @_, { prot => SCALAR } );
+    my $prot = shift or croak "missing prot!";
 
-    my $prot = $p{'prot'} . "_hostname";
-
-    if ( $self->conf->{$prot} eq "syslog" ) {
-        $self->audit( "  using syslog logging." );
-        return "\\\n\tsplogger qmail ";
+    if ( 'syslog' eq $self->conf->{$prot . '_hostname'} ) {
+        $self->audit( "  syslog logging." );
+        return "\\\n\tsplogger $prot ";
     };
 
-    $self->audit( "  using multilog logging." );
+    $self->audit( "  multilog logging." );
     return "\\\n\t2>&1 ";
 }
 
 sub supervised_log_rotate {
     my $self  = shift;
-    my %p = validate( @_, { 'prot' => SCALAR } );
-    my $prot = $p{prot};
+    my $prot = shift or croak "missing prot!";
 
     return $self->error( "root privs are needed to rotate logs.",fatal=>0)
         if $UID != 0;
@@ -1340,7 +1057,7 @@ sub supervise_restart {
     my $svc  = $self->util->find_bin( 'svc',  verbose=>0, fatal=>0 );
     my $svok = $self->util->find_bin( 'svok', verbose=>0, fatal=>0 );
 
-    return $self->error( "unable to find svc! Is daemontools installed?")
+    return $self->error( "svc not found, is daemontools installed?")
         if ! -x $svc;
 
     if ( $svok ) {
@@ -1356,9 +1073,7 @@ sub supervise_restart {
 
 sub supervised_tcpserver {
     my $self = shift;
-    my %p = validate( @_, { prot => { type=>SCALAR } } );
-
-    my $prot = $p{'prot'};
+    my $prot = shift or croak "missing prot!";
 
     # get max memory, default 4MB if unset
     my $mem = $self->conf->{ $prot . '_max_memory_per_connection' };
@@ -1373,7 +1088,7 @@ sub supervised_tcpserver {
     $exec .= "-H " if $self->conf->{ $prot . '_lookup_tcpremotehost' } == 0;
     $exec .= "-R " if $self->conf->{ $prot . '_lookup_tcpremoteinfo' } == 0;
     $exec .= "-p " if $self->conf->{ $prot . '_dns_paranoia' } == 1;
-    $exec .= "-v " if (defined $self->conf->{$prot . '_verbose'} && $self->conf->{ $prot . '_verbose' } == 1);
+    $exec .= "-v " if $self->conf->{ $prot . '_verbose' };
 
     my $maxcon = $self->conf->{ $prot . '_max_connections' } || 40;
     my $maxmem = $self->conf->{ $prot . '_max_memory' };
@@ -1497,7 +1212,7 @@ The functions in Mail::Toaster.pm are used by toaster-watcher.pl (which is run e
 
     # clean up messages in Trash folders that exceed X days
     foreach my $maildir ( @all_maildirs ) {
-        $toaster->maildir_clean_trash( path => $maildir );
+        $toaster->maildir_clean_trash( $maildir );
     };
 
 These functions can all be called indivually, see the working
@@ -1586,66 +1301,9 @@ This sub trawls through the mail system pruning all messages that exceed the thr
 Peter Brezny suggests adding another option which is good. Set a window during which the cleaning script can run so that it is not running during the highest load times.
 
 
-=item email_send
-
-
-  ############ email_send ####################
-  # Usage      : $toaster->email_send(type=>"clean" );
-  #            : $toaster->email_send(type=>"spam"  );
-  #            : $toaster->email_send(type=>"attach");
-  #            : $toaster->email_send(type=>"virus" );
-  #            : $toaster->email_send(type=>"clam"  );
-  #
-  # Purpose    : send test emails to test the content scanner
-  # Returns    : 1 on success
-  # Parameters : type (clean, spam, attach, virus, clam)
-  # See Also   : email_send_[clean|spam|...]
-
-
-Email test routines for testing a mail toaster installation.
-
-This sends a test email of a specified type to the postmaster email address configured in toaster-watcher.conf.
-
-
-=item email_send_attach
-
-
-  ######### email_send_attach ###############
-  # Usage      : internal only
-  # Purpose    : send an email with a .com attachment
-  # Parameters : an email address
-  # See Also   : email_send
-
-Sends a sample test email to the provided address with a .com file extension. If attachment scanning is enabled, this should trigger the content scanner (simscan/qmailscanner/etc) to reject the message.
-
-
-=item email_send_clam
-
-Sends a test clam.zip test virus pattern, testing to verify that the AV engine catches it.
-
-
-=item email_send_clean
-
-Sends a test clean email that the email filters should not block.
-
-
-=item email_send_eicar
-
-Sends an email message with the Eicar virus inline. It should trigger the AV engine and block the message.
-
-
-=item email_send_spam
-
-Sends a sample spam message that SpamAssassin should block.
-
-
 =item get_toaster_cgibin
 
 Determine the location of the cgi-bin directory used for email applications.
-
-=item get_toaster_conf
-
-Determine where the *.conf files for mail-toaster are stored.
 
 
 =item get_toaster_logs
@@ -1661,9 +1319,7 @@ Determine the location of the htdocs directory used for email applications.
 =item maildir_clean_spam
 
   ########### maildir_clean_spam #############
-  # Usage      : $toaster->maildir_clean_spam(
-  #                  path => '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster->maildir_clean_spam( '/domains/example.com/user' );
   # Purpose    : Removes spam that exceeds age as defined in t-w.conf.
   # Returns    : 0 - failure, 1 - success
   # Parameters : path - path to a maildir
@@ -1686,9 +1342,7 @@ This sub creates a list of all the domains on a Mail::Toaster, and then creates 
 =item maildir_clean_trash
 
   ############################################
-  # Usage      : $toaster->maildir_clean_trash(
-  #                 path => '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster->maildir_clean_trash( '/domains/example.com/user' );
   # Purpose    : expire old messages in Trash folders
   # Returns    : 0 - failure, 1 - success
   # Results    : a Trash folder with messages older than X days pruned
@@ -1701,9 +1355,7 @@ Comments: Removes messages in .Trash folders that exceed the number of days defi
 =item maildir_clean_sent
 
   ############################################
-  # Usage      : $toaster->maildir_clean_sent(
-  #                 path => '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster->maildir_clean_sent( '/domains/example.com/user' );
   # Purpose    : expire old messages in Sent folders
   # Returns    : 0 - failure, 1 - success
   # Results    : messages over X days in Sent folders are deleted
@@ -1715,9 +1367,7 @@ Comments: Removes messages in .Trash folders that exceed the number of days defi
 
 
   ############ maildir_clean_new #############
-  # Usage      : $toaster->maildir_clean_new(
-  #                 path => '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster->maildir_clean_new( '/domains/example.com/user' );
   # Purpose    : expire unread messages older than X days
   # Returns    : 0 - failure, 1 - success
   # Parameters : path - path to a maildir
@@ -1730,9 +1380,7 @@ Comments: Removes messages in .Trash folders that exceed the number of days defi
 
 
   ############################################
-  # Usage      : $toaster->maildir_clean_ham(
-  #                 path => '/home/domains/example.com/user',
-  #              );
+  # Usage      : $toaster->maildir_clean_ham( '/domains/example.com/user' );
   # Purpose    : prune read email messages
   # Returns    : 0 - failure, 1 - success
   # Results    : an INBOX minus read messages older than X days
@@ -1744,7 +1392,7 @@ Comments: Removes messages in .Trash folders that exceed the number of days defi
 
 Create the supervised services directory (if it doesn't exist).
 
-	$toaster->service_dir_create();
+	$toaster->service_dir_create;
 
 Also sets the permissions to 775.
 
@@ -1844,12 +1492,12 @@ Checks a supervised directory to see if it is set up properly for supervise to s
 Restarts a supervised process.
 
 
-=item check_processes
+=item check_running_processes
 
 Tests to see if all the processes on your Mail::Toaster that should be running in fact are.
 
  usage:
-    $toaster->check_processes();
+    $toaster->check_running_processes;
 
  arguments optional:
     verbose

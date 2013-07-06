@@ -215,9 +215,9 @@ sub get_yesterdays_smtp_log {
 sub verify_settings {
     my $self = shift;
     my %p = validate(@_, { $self->get_std_opts } );
-    return $p{'test_ok'} if defined $p{'test_ok'};
+    return $p{test_ok} if defined $p{test_ok};
 
-    my $logbase  = $self->conf->{'logs_base'} || $self->conf->{'qmail_log_base'} || '/var/log/mail';
+    my $logbase  = $self->get_toaster_logs;
     my $counters = $self->conf->{'logs_counters'} || "counters";
 
     my $user  = $self->conf->{'logs_user'}  || 'qmaill';
@@ -986,9 +986,6 @@ sub roll_pop3_logs {
     my $self  = shift;
     my $verbose = $self->{'verbose'};
 
-    #	my $countfile = "$logbase/$counters/$qpop_log";
-    #	%count        = $self->counter_read( file=>$countfile );
-
     my $logbase = $self->conf->{'logs_base'} || "/var/log/mail";
 
     $self->process_pop3_logs(
@@ -996,15 +993,12 @@ sub roll_pop3_logs {
         files => $self->check_log_files( "$logbase/pop3/current" ),
     );
 
-    #$self->counter_write(log=>$countfile, values=>\%count);
-    $self->compress_yesterdays_logs( file=>"pop3log" );
+    $self->compress_yesterdays_logs( "pop3log" );
 }
 
 sub compress_yesterdays_logs {
-    my $self  = shift;
-
-    my %p = validate( @_, { 'file' => SCALAR } );
-    my $file = $p{'file'};
+    my $self = shift;
+    my $file = shift or croak "missing log file!";
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>1 );
 
@@ -1643,9 +1637,7 @@ $prot is the protocol we're supposed to work on.
 
 =item compress_yesterdays_logs
 
-	$logs->compress_yesterdays_logs(
-	    file  => $file,
-	);
+	$logs->compress_yesterdays_logs( $file );
 
 
 =item count_rbl_line

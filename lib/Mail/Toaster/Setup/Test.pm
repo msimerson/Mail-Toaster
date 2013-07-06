@@ -3,15 +3,9 @@ package Mail::Toaster::Setup::Test;
 use strict;
 use warnings;
 
-#use Carp;
-#use Config;
-#use Cwd;
-#use Data::Dumper;
-#use File::Copy;
-#use File::Path;
+use Carp;
 use English '-no_match_vars';
 use Params::Validate qw( :all );
-#use Sys::Hostname;
 
 use lib 'lib';
 use parent 'Mail::Toaster::Base';
@@ -27,6 +21,198 @@ sub daemontools {
     };
 
     return 1;
+}
+
+sub email_send {
+    my $self = shift;
+    my $email = $self->conf->{toaster_admin_email} || 'root';
+    my $qdir = $self->conf->{qmail_dir} || '/var/qmail';
+    my $ibin = "$qdir/bin/qmail-inject";
+    if ( ! -x $ibin ) {
+        return $self->error("qmail-inject ($ibin) not found!");
+    };
+
+    ## no critic
+    open( my $INJECT, "| $ibin -a -f \"\" $email" ) or do {
+        warn "FATAL: couldn't send using qmail-inject!\n";
+        return;
+    };
+    ## use critic
+
+    foreach ( qw/ clean spam eicar attach clam / ) {
+        my $method = 'email_send_' . $_;
+        $self->$method($INJECT, $email );
+    };
+
+    close $INJECT;
+
+    return 1;
+}
+
+sub email_send_attach {
+    my ( $self, $INJECT, $email ) = @_;
+
+    print "\n\t\tSending .com test attachment - should fail.\n";
+    print $INJECT <<"EOATTACH";
+From: Mail Toaster Testing <$email>
+To: Email Administrator <$email>
+Subject: Email test (blocked attachment message)
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="gKMricLos+KVdGMg"
+Content-Disposition: inline
+
+--gKMricLos+KVdGMg
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+This is an example of an Email message containing a virus. It should
+trigger the virus scanner, and not be delivered.
+
+If you are using qmail-scanner, the server admin should get a notification.
+
+--gKMricLos+KVdGMg
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: attachment; filename="Eicar.com"
+
+00000000000000000000000000000000000000000000000000000000000000000000
+
+--gKMricLos+KVdGMg--
+
+EOATTACH
+
+}
+
+sub email_send_clam {
+    my ( $self, $INJECT, $email ) = @_;
+
+    print "\n\t\tSending ClamAV test virus - should fail.\n";
+    print $INJECT <<EOCLAM;
+From: Mail Toaster testing <$email>
+To: Email Administrator <$email>
+Subject: Email test (virus message)
+
+This is a viral message containing the clam.zip test virus pattern. It should be blocked by any scanning software using ClamAV.
+
+
+--Apple-Mail-7-468588064
+Content-Transfer-Encoding: base64
+Content-Type: application/zip;
+        x-unix-mode=0644;
+        name="clam.zip"
+Content-Disposition: attachment;
+        filename=clam.zip
+
+UEsDBBQAAAAIALwMJjH9PAfvAAEAACACAAAIABUAY2xhbS5leGVVVAkAA1SjO0El6E1BVXgEAOgD
+6APzjQpgYGJgYGBh4Gf4/5+BYQeQrQjEDgxSDAQBIwPD7kIBBwbjAwEB3Z+DgwM2aDoYsKStqfy5
+y5ChgndtwP+0Aj75fYYML5/+38J5VnGLz1nFJB4uRqaCMnEmOT8eFv1bZwRQjTwA5Degid0C8r+g
+icGAt2uQn6uPsZGei48PA4NrRWZJQFF+cmpxMUNosGsQVNzZx9EXKJSYnuqUX+HI8Axqlj0QBLgy
+MPgwMjIkOic6wcx8wNDXyM3IJAkMFAYGNoiYA0iPAChcwDwwGxRwjFA9zAxcEIYCODDBgAlMCkDE
+QDTUXmSvtID8izeQaQOiQWHiGBbLAPUXsl+QwAEAUEsBAhcDFAAAAAgAvAwmMf08B+8AAQAAIAIA
+AAgADQAAAAAAAAAAAKSBAAAAAGNsYW0uZXhlVVQFAANUoztBVXgAAFBLBQYAAAAAAQABAEMAAAA7
+AQAAAAA=
+
+--Apple-Mail-7-468588064
+
+
+EOCLAM
+
+}
+
+sub email_send_clean {
+    my ( $self, $INJECT, $email ) = @_;
+
+    print "\n\t\tsending a clean message - should arrive unaltered\n";
+    print $INJECT <<EOCLEAN;
+From: Mail Toaster testing <$email>
+To: Email Administrator <$email>
+Subject: Email test (clean message)
+
+This is a clean test message. It should arrive unaltered and should also pass any virus or spam checks.
+
+EOCLEAN
+
+}
+
+sub email_send_eicar {
+    my ( $self, $INJECT, $email ) = @_;
+
+    # http://eicar.org/anti_virus_test_file.htm
+    # X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+
+    print "\n\t\tSending the EICAR test virus - should fail.\n";
+    print $INJECT <<EOVIRUS;
+From: Mail Toaster testing <$email'>
+To: Email Administrator <$email>
+Subject: Email test (eicar virus test message)
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="gKMricLos+KVdGMg"
+Content-Disposition: inline
+
+--gKMricLos+KVdGMg
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+This is an example email containing a virus. It should trigger any good virus
+scanner.
+
+If it is caught by AV software, it will not be delivered to its intended
+recipient (the email admin). The Qmail-Scanner administrator should receive
+an Email alerting him/her to the presence of the test virus. All other
+software should block the message.
+
+--gKMricLos+KVdGMg
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: attachment; filename="sneaky.txt"
+
+X5O!P%\@AP[4\\PZX54(P^)7CC)7}\$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!\$H+H*
+
+--gKMricLos+KVdGMg--
+
+EOVIRUS
+      ;
+
+}
+
+sub email_send_spam {
+    my ( $self, $INJECT, $email ) = @_;
+
+    print "\n\t\tSending a sample spam message - should fail\n";
+
+    print $INJECT 'Return-Path: sb55sb55@yahoo.com
+Delivery-Date: Mon, 19 Feb 2001 13:57:29 +0000
+Return-Path: <sb55sb55@yahoo.com>
+Delivered-To: jm@netnoteinc.com
+Received: from webnote.net (mail.webnote.net [193.120.211.219])
+   by mail.netnoteinc.com (Postfix) with ESMTP id 09C18114095
+   for <jm7@netnoteinc.com>; Mon, 19 Feb 2001 13:57:29 +0000 (GMT)
+Received: from netsvr.Internet (USR-157-050.dr.cgocable.ca [24.226.157.50] (may be forged))
+   by webnote.net (8.9.3/8.9.3) with ESMTP id IAA29903
+   for <jm7@netnoteinc.com>; Sun, 18 Feb 2001 08:28:16 GMT
+From: sb55sb55@yahoo.com
+Received: from R00UqS18S (max1-45.losangeles.corecomm.net [216.214.106.173]) by netsvr.Internet with SMTP (Microsoft Exchange Internet Mail Service Version 5.5.2653.13)
+   id 1429NTL5; Sun, 18 Feb 2001 03:26:12 -0500
+DATE: 18 Feb 01 12:29:13 AM
+Message-ID: <9PS291LhupY>
+Subject: anti-spam test: checking SpamAssassin [if present] (There yours for FREE!)
+To: undisclosed-recipients:;
+
+Congratulations! You have been selected to receive 2 FREE 2 Day VIP Passes to Universal Studios!
+
+Click here http://209.61.190.180
+
+As an added bonus you will also be registered to receive vacations discounted 25%-75%!
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+This mailing is done by an independent marketing co.
+We apologize if this message has reached you in error.
+Save the Planet, Save the Trees! Advertise via E mail.
+No wasted paper! Delete with one simple keystroke!
+Less refuse in our Dumps! This is the new way of the new millennium
+To be removed please reply back with the word "remove" in the subject line.
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+';
 }
 
 sub imap_auth {
@@ -304,14 +490,14 @@ sub run_all {
     $self->setup->vpopmail->test;
     sleep 1;
 
-    $self->toaster->check_processes;
+    $self->toaster->check_running_processes;
     sleep 1;
     $self->test_network;
     sleep 1;
     $self->crons;
     sleep 1;
 
-    $self->qmail->check_rcpthosts();
+    $self->qmail->check_rcpthosts;
     sleep 1;
 
     if ( ! $self->util->yes_or_no( "skip the mail scanner tests?", timeout  => 10 ) ) {
@@ -702,3 +888,58 @@ sub ucspi {
 1;
 __END__;
 
+
+
+=item email_send
+
+
+  ############ email_send ####################
+  # Usage      : $toaster->email_send("clean" );
+  #            : $toaster->email_send("spam"  );
+  #            : $toaster->email_send("attach");
+  #            : $toaster->email_send("virus" );
+  #            : $toaster->email_send("clam"  );
+  #
+  # Purpose    : send test emails to test the content scanner
+  # Returns    : 1 on success
+  # Parameters : type (clean, spam, attach, virus, clam)
+  # See Also   : email_send_[clean|spam|...]
+
+
+Email test routines for testing a mail toaster installation.
+
+This sends a test email of a specified type to the postmaster email address configured in toaster-watcher.conf.
+
+
+=item email_send_attach
+
+
+  ######### email_send_attach ###############
+  # Usage      : internal only
+  # Purpose    : send an email with a .com attachment
+  # Parameters : an email address
+  # See Also   : email_send
+
+Sends a sample test email to the provided address with a .com file extension. If attachment scanning is enabled, this should trigger the content scanner (simscan/qmailscanner/etc) to reject the message.
+
+
+=item email_send_clam
+
+Sends a test clam.zip test virus pattern, testing to verify that the AV engine catches it.
+
+
+=item email_send_clean
+
+Sends a test clean email that the email filters should not block.
+
+
+=item email_send_eicar
+
+Sends an email message with the Eicar virus inline. It should trigger the AV engine and block the message.
+
+
+=item email_send_spam
+
+Sends a sample spam message that SpamAssassin should block.
+
+=cut

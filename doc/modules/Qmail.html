@@ -236,10 +236,10 @@
     0 - failure
     1 - success</pre>
 </dd>
-<dt><strong><a name="check_control" class="item">check_control</a></strong></dt>
+<dt><strong><a name="check_service_dir" class="item">check_service_dir</a></strong></dt>
 
 <dd>
-<p>Verify the existence of the qmail control directory (typically /var/qmail/control).</p>
+<p>Verify the existence of the qmail service directory (typically /service/[smtp|send|pop3]).</p>
 <pre>
  arguments required:
     dir - the directory whose existence we test for</pre>
@@ -326,13 +326,12 @@
 <dd>
 <p>Fetch a list of domains from the qmaildir/users/assign file.</p>
 <pre>
-  $qmail-&gt;get_domains_from_assign( assign=&gt;$assign, verbose=&gt;$verbose );</pre>
+  $qmail-&gt;get_domains_from_assign;</pre>
 <pre>
  arguments required:
     none</pre>
 <pre>
  arguments optional:
-    assign - the path to the assign file (default: /var/qmail/users/assign)
     match - field to match (dom, uid, dir)
     value - the pattern to  match</pre>
 <pre>
@@ -379,7 +378,7 @@
 <dd>
 <p>When qmail is first installed, it needs some supervised run files to run under tcpserver and daemontools. This sub generates the qmail/supervise/*/run files based on your settings. Perpetual updates are performed by toaster-watcher.pl.</p>
 <pre>
-  $qmail-&gt;install_qmail_control_files();</pre>
+  $qmail-&gt;install_qmail_control_files;</pre>
 <pre>
  arguments optional:</pre>
 <pre>
