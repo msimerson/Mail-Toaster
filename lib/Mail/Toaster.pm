@@ -3,7 +3,7 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.41';
+our $VERSION = '5.42';
 
 use Carp;
 use Cwd;
@@ -23,19 +23,18 @@ use vars qw/ $INJECT /;
 
 sub test {
     my $self = shift;
-    my $mess = shift or return;
+    my $mess = shift or croak "test with no args?!";
     my $result = shift;
 
     my %p = validate(@_, { $self->get_std_opts } );
-    my $quiet = $p{quiet};
-    return if ( defined $p{test_ok} && ! $p{verbose} );
-    return if ( $quiet && ! $p{verbose} );
+    return if defined $p{test_ok} && ! $p{verbose};
+    return if ! $p{verbose};
 
-    print $mess if ! $quiet;
-    defined $result or do { print "\n" if ! $quiet; return; };
-    for ( my $i = length($mess); $i <=  65; $i++ ) { print '.' if ! $quiet; };
-    return if $quiet;
-    print $result ? 'ok' : 'FAILED', "\n";
+    print $mess;
+    defined $result or do { print "\n"; return; };
+    for ( my $i = length($mess); $i <=  65; $i++ ) { print '.' };
+    print $result ? 'ok' : 'FAILED'; 
+    print "\n";
 };
 
 sub build_vpopmaild_run {

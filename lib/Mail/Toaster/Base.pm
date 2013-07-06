@@ -15,7 +15,6 @@ our %std_opts = (
         test_ok => { type => BOOLEAN, optional => 1 },
         verbose => { type => BOOLEAN, optional => 1, default => $verbose },
         fatal   => { type => BOOLEAN, optional => 1, default => 1 },
-        quiet   => { type => BOOLEAN, optional => 1, default => 0 },
     );
 
 sub new {
@@ -123,7 +122,10 @@ sub audit {
 
 sub dump_audit {
     my $self = shift;
-    my %p = validate( @_, { %std_opts } );
+    my %p = validate( @_, { 
+            quiet   => { type => BOOLEAN, optional => 1, default => 0 },
+            %std_opts } 
+        );
 
     if ( 0 == scalar @audit ) {
         print "dump_audit: no audit messages\n" if $p{verbose};
@@ -211,7 +213,7 @@ sub get_std_args {
     my $self = shift;
     my %p = @_;
     my %args;
-    foreach ( qw/ verbose fatal test_ok quiet / ) {
+    foreach ( qw/ verbose fatal test_ok / ) {
         if ( defined $p{$_} ) {
             $args{$_} = $p{$_};
             next;

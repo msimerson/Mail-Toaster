@@ -27,9 +27,7 @@ if ( ! $toaster->util->check_pidfile( $pidfile, fatal=>0, verbose=>$verbose ) ) 
 };
 
 # suppress test output when not running in verbose mode
-my $quiet = 1; $quiet-- if $verbose;
-
-my %args = ( fatal=>0, verbose => $verbose, quiet => $quiet );
+my %args = ( fatal=>0, verbose => $verbose );
 
 print "$0 v$Mail::Toaster::VERSION\n" if $verbose;
 
