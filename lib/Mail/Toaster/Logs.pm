@@ -2,7 +2,7 @@ package Mail::Toaster::Logs;
 use strict;
 use warnings;
 
-our $VERSION = 5.41;
+our $VERSION = 5.42;
 
 # the output of warnings and diagnostics should not be enabled in production.
 # the SNMP daemon depends on the output of maillogs, so we need to return
@@ -25,9 +25,9 @@ sub report_yesterdays_activity {
 
     my %p = validate(@_, { $self->get_std_opts } );
 
-    return $p{'test_ok'} if defined $p{'test_ok'};
+    return $p{test_ok} if defined $p{test_ok};
 
-    my $email   = $self->conf->{'toaster_admin_email'} || "postmaster";
+    my $email   = $self->conf->{toaster_admin_email} || "postmaster";
     my $qma_dir = $self->find_qmailanalog() or return;
 
 #    if ( ! -s $self->get_yesterdays_smtp_log() ) {
@@ -54,9 +54,9 @@ sub report_yesterdays_activity {
     );
 
     foreach ( keys %cmds ) {
-        my $cmd = "$cat $send_log | $qma_dir/matchup 5>/dev/null | " . $cmds{$_}->{'cmd'};
+        my $cmd = "$cat $send_log | $qma_dir/matchup 5>/dev/null | " . $cmds{$_}->{cmd};
         $self->audit( "calculating $_ stats with: $cmd");
-        $cmds{$_}{'out'} = `$cmd`;
+        $cmds{$_}{out} = `$cmd`;
     };
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>0);
@@ -74,15 +74,15 @@ Subject: Daily Mail Toaster Report for $date
  ====================================================================
                OVERALL MESSAGE DELIVERY STATISTICS                 
  ____________________________________________________________________
-\n$cmds{'overall'}{out}\n\n
+\n$cmds{overall}{out}\n\n
  ====================================================================
                         MESSAGE FAILURE REPORT                       
  ____________________________________________________________________
-$cmds{'failure'}{out}\n\n
+$cmds{failure}{out}\n\n
  ====================================================================
                       MESSAGE DEFERRAL REPORT                       
  ____________________________________________________________________
-$cmds{'deferral'}{out}
+$cmds{deferral}{out}
 EO_EMAIL
 
     close $EMAIL;
@@ -93,7 +93,7 @@ EO_EMAIL
 sub find_qmailanalog {
     my $self  = shift;
 
-    my $qmailanalog_dir = $self->conf->{'qmailanalog_bin'} || "/var/qmail/qmailanalog/bin";
+    my $qmailanalog_dir = $self->conf->{qmailanalog_bin} || "/var/qmail/qmailanalog/bin";
 
     # the port location changed, if toaster.conf hasn't been updated, this
     # will catch it.
@@ -135,13 +135,13 @@ EO_NO_MATCHUP
 sub get_yesterdays_send_log {
     my $self  = shift;
 
-    if ( $self->conf->{'send_log_method'} && $self->conf->{'send_log_method'} eq "syslog" ) {
+    if ( $self->conf->{send_log_method} && $self->conf->{send_log_method} eq "syslog" ) {
         return $self->get_yesterdays_send_log_syslog();
     };
 
     # some form of multilog logging
-    my $logbase = $self->conf->{'logs_base'}
-                || $self->conf->{'qmail_log_base'}
+    my $logbase = $self->conf->{logs_base}
+                || $self->conf->{qmail_log_base}
                 || "/var/log/mail";
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>0);
@@ -188,8 +188,8 @@ sub get_yesterdays_send_log_syslog {
 sub get_yesterdays_smtp_log {
     my $self  = shift;
 
-    my $logbase = $self->conf->{'logs_base'}   # some form of multilog logging
-        || $self->conf->{'qmail_log_base'}
+    my $logbase = $self->conf->{logs_base}   # some form of multilog logging
+        || $self->conf->{qmail_log_base}
         || "/var/log/mail";
 
     # set up our date variables for today
@@ -218,10 +218,10 @@ sub verify_settings {
     return $p{test_ok} if defined $p{test_ok};
 
     my $logbase  = $self->toaster->get_toaster_logs;
-    my $counters = $self->conf->{'logs_counters'} || "counters";
+    my $counters = $self->conf->{logs_counters} || "counters";
 
-    my $user  = $self->conf->{'logs_user'}  || 'qmaill';
-    my $group = $self->conf->{'logs_group'} || 'qnofiles';
+    my $user  = $self->conf->{logs_user}  || 'qmaill';
+    my $group = $self->conf->{logs_group} || 'qnofiles';
 
     if ( !-e $logbase ) {
         mkpath( $logbase, 0, oct('0755') )
@@ -258,7 +258,7 @@ sub parse_cmdline_flags {
         $self->get_std_opts,
     } );
 
-    my $prot  = $p{'prot'} or pod2usage;
+    my $prot  = $p{prot} or pod2usage;
 
     my @prots = qw/ smtp send imap pop3 rbl yesterday qmailscanner
                     spamassassin webmail test /;
@@ -293,11 +293,11 @@ sub what_am_i {
 
 sub rbl_count {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my $countfile = $self->set_countfile(prot=>"rbl");
     $spam_ref     = $self->counter_read( file=>$countfile );
-    my $logbase   = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $logbase   = $self->conf->{logs_base} || "/var/log/mail";
 
     $self->process_rbl_logs(
         files => $self->check_log_files( "$logbase/smtp/current" ),
@@ -317,7 +317,7 @@ sub rbl_count {
 
 sub smtp_auth_count {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my $countfile = $self->set_countfile(prot=>"smtp");
     my $count_ref = $self->counter_read( file=>$countfile );
@@ -341,12 +341,12 @@ sub smtp_auth_count {
             next unless ( $log_line =~ /vchkpw-(smtp|submission)/ );
 
             $lines++;
-            $new_entries{'connect'}++;
-            $new_entries{'success'}++ if ( $log_line =~ /success/i );
+            $new_entries{connect}++;
+            $new_entries{success}++ if ( $log_line =~ /success/i );
         }
     }
 
-    if ( $new_entries{'success'} ) {
+    if ( $new_entries{success} ) {
 
         # because rrdtool expects ever increasing counters (ie, not starting new
         # each day), we keep track of when the counts suddenly reset (ie, after a
@@ -355,46 +355,46 @@ sub smtp_auth_count {
         # count, add the difference, which is how many authentications
         # happened since we last checked.
 
-        if ( $new_entries{'success'} >= $count_ref->{'success_last'} ) {
-            $count_ref->{'success'} +=
-            ( $new_entries{'success'} - $count_ref->{'success_last'} );
+        if ( $new_entries{success} >= $count_ref->{success_last} ) {
+            $count_ref->{success} +=
+            ( $new_entries{success} - $count_ref->{success_last} );
         }
         else { 
             # If the counters are lower, then the logs were just rolled and we 
             # need only to add them to the new count. 
-            $count_ref->{'success'} += $new_entries{'success'};
+            $count_ref->{success} += $new_entries{success};
         };
 
-        $count_ref->{'success_last'} = $new_entries{'success'};
+        $count_ref->{success_last} = $new_entries{success};
     }
 
-    if ( $new_entries{'connect'} ) {
-        if ( $new_entries{'connect'} >= $count_ref->{'connect_last'} ) {
-            $count_ref->{'connect'} += 
-                ( $new_entries{'connect'} - $count_ref->{'connect_last'} );
+    if ( $new_entries{connect} ) {
+        if ( $new_entries{connect} >= $count_ref->{connect_last} ) {
+            $count_ref->{connect} += 
+                ( $new_entries{connect} - $count_ref->{connect_last} );
         }
         else { 
-            $count_ref->{'connect'} += $new_entries{'connect'} 
+            $count_ref->{connect} += $new_entries{connect} 
         };
 
-        $count_ref->{'connect_last'} = $new_entries{'connect'};
+        $count_ref->{connect_last} = $new_entries{connect};
     };
 
     foreach ( qw/ connect success / ) {
         $count_ref->{$_} = 0 if ! defined $count_ref->{$_};
     };
 
-    print "smtp_auth_connect:$count_ref->{'connect'}:"
-         ."smtp_auth_success:$count_ref->{'success'}\n";
+    print "smtp_auth_connect:$count_ref->{connect}:"
+         ."smtp_auth_success:$count_ref->{success}\n";
 
     return $self->counter_write( log=>$countfile, values=>$count_ref, fatal=>0, verbose=>$verbose );
 }
 
 sub send_count {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
-    my $logbase   = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $logbase   = $self->conf->{logs_base} || "/var/log/mail";
     my $countfile = $self->set_countfile(prot=>"send");
        $count_ref = $self->counter_read( file=>$countfile );
 
@@ -405,9 +405,9 @@ sub send_count {
         files => $self->check_log_files( "$logbase/send/current" ),
     );
 
-    if ( $count_ref->{'status_remotep'} && $count_ref->{'status'} ) {
-        $count_ref->{'concurrencyremote'} =
-          ( $count_ref->{'status_remotep'} / $count_ref->{'status'} ) * 100;
+    if ( $count_ref->{status_remotep} && $count_ref->{status} ) {
+        $count_ref->{concurrencyremote} =
+          ( $count_ref->{status_remotep} / $count_ref->{status} ) * 100;
     }
 
     print "      Counts\n\n" if $verbose;
@@ -424,7 +424,7 @@ sub send_count {
 
 sub imap_count {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my ( $imap_success, $imap_connect, $imap_ssl_success, $imap_ssl_connect );
 
@@ -469,69 +469,69 @@ sub imap_count {
     }
 
     unless ( $lines ) {
-        $count_ref->{'imap_success'} ||= 0;   # hush those "uninitialized value" errors
-        $count_ref->{'imap_ssl_success'} ||= 0;
+        $count_ref->{imap_success} ||= 0;   # hush those "uninitialized value" errors
+        $count_ref->{imap_ssl_success} ||= 0;
 
-        print "imap_success:$count_ref->{'imap_success'}"
-            . ":imap_ssl_success:$count_ref->{'imap_ssl_success'}\n";
+        print "imap_success:$count_ref->{imap_success}"
+            . ":imap_ssl_success:$count_ref->{imap_ssl_success}\n";
         carp "imap_count: no log entries to process. I'm done!" if $verbose;
         return 1;
     };
 
     if ( $imap_success ) {
-        if ( $imap_success >= $count_ref->{'imap_success_last'} ) {
-            $count_ref->{'imap_success'} 
-                += ( $imap_success - $count_ref->{'imap_success_last'} );
+        if ( $imap_success >= $count_ref->{imap_success_last} ) {
+            $count_ref->{imap_success} 
+                += ( $imap_success - $count_ref->{imap_success_last} );
         }
         else { 
-            $count_ref->{'imap_success'} += $imap_success;
+            $count_ref->{imap_success} += $imap_success;
         }
 
-        $count_ref->{'imap_success_last'}     = $imap_success;
+        $count_ref->{imap_success_last}     = $imap_success;
     };
 
     if ( $imap_ssl_success ) {
-        if ( $imap_ssl_success >= $count_ref->{'imap_ssl_success_last'} ) {
-            $count_ref->{'imap_ssl_success'} += 
-            ( $imap_ssl_success - $count_ref->{'imap_ssl_success_last'} );
+        if ( $imap_ssl_success >= $count_ref->{imap_ssl_success_last} ) {
+            $count_ref->{imap_ssl_success} += 
+            ( $imap_ssl_success - $count_ref->{imap_ssl_success_last} );
         }
         else {
-            $count_ref->{'imap_ssl_success'} += $imap_ssl_success;
+            $count_ref->{imap_ssl_success} += $imap_ssl_success;
         }
 
-        $count_ref->{'imap_ssl_success_last'} = $imap_ssl_success;
+        $count_ref->{imap_ssl_success_last} = $imap_ssl_success;
     };
 
 #    Courier no longer logs this information
-#    if ( $imap_connect >= $count_ref->{'imap_connect_last'} ) {
-#        $count_ref->{'imap_connect'} += 
-#          ( $imap_connect - $count_ref->{'imap_connect_last'} );
+#    if ( $imap_connect >= $count_ref->{imap_connect_last} ) {
+#        $count_ref->{imap_connect} += 
+#          ( $imap_connect - $count_ref->{imap_connect_last} );
 #    }
-#    else { $count_ref->{'imap_connect'} += $imap_connect }
+#    else { $count_ref->{imap_connect} += $imap_connect }
 #
-#    if ( $imap_ssl_connect >= $count_ref->{'imap_ssl_connect_last'} ) {
-#        $count_ref->{'imap_ssl_connect'} += 
-#          ( $imap_ssl_connect - $count_ref->{'imap_ssl_connect_last'} );
+#    if ( $imap_ssl_connect >= $count_ref->{imap_ssl_connect_last} ) {
+#        $count_ref->{imap_ssl_connect} += 
+#          ( $imap_ssl_connect - $count_ref->{imap_ssl_connect_last} );
 #    }
 #    else {
-#        $count_ref->{'imap_ssl_connect'} += $imap_ssl_connect;
+#        $count_ref->{imap_ssl_connect} += $imap_ssl_connect;
 #    }
 #
-#    $count_ref->{'imap_connect_last'}     = $imap_connect;
-#    $count_ref->{'imap_ssl_connect_last'} = $imap_ssl_connect;
+#    $count_ref->{imap_connect_last}     = $imap_connect;
+#    $count_ref->{imap_ssl_connect_last} = $imap_ssl_connect;
 #
-#    print "connect_imap:$count_ref->{'imap_connect'}:connect_imap_ssl" 
-#        . ":$count_ref->{'imap_ssl_connect'}:"
+#    print "connect_imap:$count_ref->{imap_connect}:connect_imap_ssl" 
+#        . ":$count_ref->{imap_ssl_connect}:"
 
-    print "imap_success:$count_ref->{'imap_success'}"
-        . ":imap_ssl_success:$count_ref->{'imap_ssl_success'}\n";
+    print "imap_success:$count_ref->{imap_success}"
+        . ":imap_ssl_success:$count_ref->{imap_ssl_success}\n";
 
     return $self->counter_write( log=>$countfile, values=>$count_ref, fatal=>0 );
 }
 
 sub pop3_count {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     # read our counters from disk
     my $countfile = $self->set_countfile(prot=>"pop3");
@@ -585,25 +585,25 @@ sub pop3_count {
             $lines++;
 
             if ( $line =~ /vchkpw-pop3:/ ) {    # qmail-pop3d
-                $new_entries{'connect'}++;
-                $new_entries{'success'}++ if ( $line =~ /success/ );
+                $new_entries{connect}++;
+                $new_entries{success}++ if ( $line =~ /success/ );
             }
             elsif ( $line =~ /pop3d: / ) {      # courier pop3d
-                $new_entries{'connect'}++ if ( $line =~ /Connection/ );
-                $new_entries{'success'}++ if ( $line =~ /LOGIN/ );
+                $new_entries{connect}++ if ( $line =~ /Connection/ );
+                $new_entries{success}++ if ( $line =~ /LOGIN/ );
             }
             elsif ( $line =~ /pop3d-ssl: / ) {    # courier pop3d-ssl
                 if ( $line =~ /LOGIN/ ) {
-                    $new_entries{'ssl_success'}++;
+                    $new_entries{ssl_success}++;
                     next LINE;
                 };
-                $new_entries{'ssl_connect'}++ if ( $line =~ /Connection/ );
+                $new_entries{ssl_connect}++ if ( $line =~ /Connection/ );
             }
             elsif ( $line =~ /pop3-login: / ) {    # dovecot pop3
                 if ( $line =~ /secured/ ) {
-                    $new_entries{'ssl_success'}++;
+                    $new_entries{ssl_success}++;
                 } else {
-                    $new_entries{'success'}++;
+                    $new_entries{success}++;
                 }
             }
         }
@@ -616,50 +616,50 @@ sub pop3_count {
         return 1;
     };
 
-    if ( $new_entries{'success'} ) {
-        if ( $new_entries{'success'} >= $count_ref->{'pop3_success_last'} ) {
-            $count_ref->{'pop3_success'} += 
-                ( $new_entries{'success'} - $count_ref->{'pop3_success_last'} );
+    if ( $new_entries{success} ) {
+        if ( $new_entries{success} >= $count_ref->{pop3_success_last} ) {
+            $count_ref->{pop3_success} += 
+                ( $new_entries{success} - $count_ref->{pop3_success_last} );
         }
         else { 
-            $count_ref->{'pop3_success'} += $new_entries{'success'};
+            $count_ref->{pop3_success} += $new_entries{success};
         }
 
-        $count_ref->{'pop3_success_last'} = $new_entries{'success'};
+        $count_ref->{pop3_success_last} = $new_entries{success};
     };
 
-    if ( $new_entries{'connect'} ) {
-        if ( $new_entries{'connect'} >= $count_ref->{'pop3_connect_last'} ) {
-            $count_ref->{'pop3_connect'} += 
-            ( $new_entries{'connect'} - $count_ref->{'pop3_connect_last'} );
+    if ( $new_entries{connect} ) {
+        if ( $new_entries{connect} >= $count_ref->{pop3_connect_last} ) {
+            $count_ref->{pop3_connect} += 
+            ( $new_entries{connect} - $count_ref->{pop3_connect_last} );
         }
-        else { $count_ref->{'pop3_connect'} += $new_entries{'connect'} }
+        else { $count_ref->{pop3_connect} += $new_entries{connect} }
 
-        $count_ref->{'pop3_connect_last'}     = $new_entries{'connect'};
+        $count_ref->{pop3_connect_last}     = $new_entries{connect};
     };
 
-    if ( $new_entries{'ssl_success'} ) {
-        if ( $new_entries{'ssl_success'} >= $count_ref->{'pop3_ssl_success_last'} ) {
-            $count_ref->{'pop3_ssl_success'} += 
-            ( $new_entries{'ssl_success'} - $count_ref->{'pop3_ssl_success_last'} );
+    if ( $new_entries{ssl_success} ) {
+        if ( $new_entries{ssl_success} >= $count_ref->{pop3_ssl_success_last} ) {
+            $count_ref->{pop3_ssl_success} += 
+            ( $new_entries{ssl_success} - $count_ref->{pop3_ssl_success_last} );
         }
         else {
-            $count_ref->{'pop3_ssl_success'} += $new_entries{'ssl_success'};
+            $count_ref->{pop3_ssl_success} += $new_entries{ssl_success};
         }
 
-        $count_ref->{'pop3_ssl_success_last'} = $new_entries{'ssl_success'};
+        $count_ref->{pop3_ssl_success_last} = $new_entries{ssl_success};
     };
 
-    if ( $new_entries{'ssl_connect'} ) {
-        if ( $new_entries{'ssl_connect'} >= $count_ref->{'pop3_ssl_connect_last'} ) {
-            $count_ref->{'pop3_ssl_connect'} 
-                += ( $new_entries{'ssl_connect'} - $count_ref->{'pop3_ssl_connect_last'} );
+    if ( $new_entries{ssl_connect} ) {
+        if ( $new_entries{ssl_connect} >= $count_ref->{pop3_ssl_connect_last} ) {
+            $count_ref->{pop3_ssl_connect} 
+                += ( $new_entries{ssl_connect} - $count_ref->{pop3_ssl_connect_last} );
         }
         else {
-            $count_ref->{'pop3_ssl_connect'} += $new_entries{'ssl_connect'};
+            $count_ref->{pop3_ssl_connect} += $new_entries{ssl_connect};
         }
 
-        $count_ref->{'pop3_ssl_connect_last'} = $new_entries{'ssl_connect'};
+        $count_ref->{pop3_ssl_connect_last} = $new_entries{ssl_connect};
     };
 
     pop3_report();
@@ -669,21 +669,21 @@ sub pop3_count {
 
 sub pop3_report {
 
-    $count_ref->{'pop3_connect'}     || 0;
-    $count_ref->{'pop3_ssl_connect'} || 0;
-    $count_ref->{'pop3_success'}     || 0;
-    $count_ref->{'pop3_ssl_success'} || 0;
+    $count_ref->{pop3_connect}     || 0;
+    $count_ref->{pop3_ssl_connect} || 0;
+    $count_ref->{pop3_success}     || 0;
+    $count_ref->{pop3_ssl_success} || 0;
 
-    print "pop3_connect:"     . $count_ref->{'pop3_connect'}
-       . ":pop3_ssl_connect:" . $count_ref->{'pop3_ssl_connect'}
-       . ":pop3_success:"     . $count_ref->{'pop3_success'}
-       . ":pop3_ssl_success:" . $count_ref->{'pop3_ssl_success'}
+    print "pop3_connect:"     . $count_ref->{pop3_connect}
+       . ":pop3_ssl_connect:" . $count_ref->{pop3_ssl_connect}
+       . ":pop3_success:"     . $count_ref->{pop3_success}
+       . ":pop3_ssl_success:" . $count_ref->{pop3_ssl_success}
        . "\n";
 };
 
 sub webmail_count {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my $countfile = $self->set_countfile(prot=>"web");
        $count_ref = $self->counter_read( file=>$countfile );
@@ -708,56 +708,56 @@ sub webmail_count {
             next if $line =~ /pop3/;     # another 1/3 to 1/2
 
             if ( $line =~ /Successful webmail login/ ) { # squirrelmail w/plugin
-                $temp{'success'}++;
-                $temp{'connect'}++;
+                $temp{success}++;
+                $temp{connect}++;
             }
             elsif ( $line =~ /sqwebmaild/ ) {            # sqwebmail
-                $temp{'connect'}++;
-                $temp{'success'}++ if ( $line !~ /FAILED/ );
+                $temp{connect}++;
+                $temp{success}++ if ( $line !~ /FAILED/ );
             }
             elsif ( $line =~ /imapd: LOGIN/ && $line =~ /127\.0\.0\./ )
             {    # IMAP connections on loopback interface are webmail
-                $temp{'success'}++;
+                $temp{success}++;
             }
         }
         close $LOGF;
     }
 
-    if ( !$temp{'connect'} ) {
+    if ( !$temp{connect} ) {
         carp "webmail_count: No webmail logins! I'm all done." if $verbose;
         return 1;
     };
 
-    if ( $temp{'success'} ) {
-        if ( $temp{'success'} >= $count_ref->{'success_last'} ) {
-            $count_ref->{'success'} =
-            $count_ref->{'success'} + ( $temp{'success'} - $count_ref->{'success_last'} );
+    if ( $temp{success} ) {
+        if ( $temp{success} >= $count_ref->{success_last} ) {
+            $count_ref->{success} =
+            $count_ref->{success} + ( $temp{success} - $count_ref->{success_last} );
         }
-        else { $count_ref->{'success'} = $count_ref->{'success'} + $temp{'success'} }
+        else { $count_ref->{success} = $count_ref->{success} + $temp{success} }
 
-        $count_ref->{'success_last'} = $temp{'success'};
+        $count_ref->{success_last} = $temp{success};
     };
 
-    if ( $temp{'connect'} ) {
-        if ( $temp{'connect'} >= $count_ref->{'connect_last'} ) {
-            $count_ref->{'connect'} =
-            $count_ref->{'connect'} + ( $temp{'connect'} - $count_ref->{'connect_last'} );
+    if ( $temp{connect} ) {
+        if ( $temp{connect} >= $count_ref->{connect_last} ) {
+            $count_ref->{connect} =
+            $count_ref->{connect} + ( $temp{connect} - $count_ref->{connect_last} );
         }
-        else { $count_ref->{'connect'} = $count_ref->{'connect'} + $temp{'connect'} }
+        else { $count_ref->{connect} = $count_ref->{connect} + $temp{connect} }
 
-        $count_ref->{'connect_last'} = $temp{'connect'};
+        $count_ref->{connect_last} = $temp{connect};
     };
 
-    if ( ! $count_ref->{'connect'} ) {
-        $count_ref->{'connect'} = 0;
+    if ( ! $count_ref->{connect} ) {
+        $count_ref->{connect} = 0;
     };
 
-    if ( ! $count_ref->{'success'} ) {
-        $count_ref->{'success'} = 0;
+    if ( ! $count_ref->{success} ) {
+        $count_ref->{success} = 0;
     };
 
-    print "webmail_connect:$count_ref->{'connect'}"
-        . ":webmail_success:$count_ref->{'success'}"
+    print "webmail_connect:$count_ref->{connect}"
+        . ":webmail_success:$count_ref->{success}"
         . "\n";
 
     return $self->counter_write( 
@@ -769,7 +769,7 @@ sub webmail_count {
 
 sub spama_count {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my $countfile = $self->set_countfile(prot=>"spam");
        $count_ref = $self->counter_read( file=>$countfile );
@@ -820,68 +820,68 @@ sub spama_count {
         close $LOGF;
     }
 
-    unless ( $temp{'spamd_lines'} ) {
+    unless ( $temp{spamd_lines} ) {
         carp "spamassassin_count: no log file entries for spamd!" if $verbose;
         return 1;
     };
 
-    my $ham_count  = $temp{'ham'} || 0;
-    my $spam_count = $temp{'spam'} || 0;
+    my $ham_count  = $temp{ham} || 0;
+    my $spam_count = $temp{spam} || 0;
 
     if ( $ham_count ) {
-        if ( $ham_count >= $count_ref->{'sa_ham_last'} ) {
-            $count_ref->{'sa_ham'} =
-            $count_ref->{'sa_ham'} + ( $ham_count - $count_ref->{'sa_ham_last'} );
+        if ( $ham_count >= $count_ref->{sa_ham_last} ) {
+            $count_ref->{sa_ham} =
+            $count_ref->{sa_ham} + ( $ham_count - $count_ref->{sa_ham_last} );
         }
         else {
-            $count_ref->{'sa_ham'} = $count_ref->{'sa_ham'} + $ham_count;
+            $count_ref->{sa_ham} = $count_ref->{sa_ham} + $ham_count;
         }
     };
 
     if ( $spam_count ) {
-        if ( $spam_count >= $count_ref->{'sa_spam_last'} ) {
-            $count_ref->{'sa_spam'} =
-            $count_ref->{'sa_spam'} + ( $spam_count - $count_ref->{'sa_spam_last'} );
+        if ( $spam_count >= $count_ref->{sa_spam_last} ) {
+            $count_ref->{sa_spam} =
+            $count_ref->{sa_spam} + ( $spam_count - $count_ref->{sa_spam_last} );
         }
         else {
-            $count_ref->{'sa_spam'} = $count_ref->{'sa_spam'} + $spam_count;
+            $count_ref->{sa_spam} = $count_ref->{sa_spam} + $spam_count;
         }
     };
 
     require POSIX;    # needed for floor()
-    $count_ref->{'avg_spam_score'} = (defined $temp{'spam_scores'} && $spam_count ) 
-        ? POSIX::floor( $temp{'spam_scores'} / $spam_count * 100 ) : 0;
+    $count_ref->{avg_spam_score} = (defined $temp{spam_scores} && $spam_count ) 
+        ? POSIX::floor( $temp{spam_scores} / $spam_count * 100 ) : 0;
 
-    $count_ref->{'avg_ham_score'}  = (defined $temp{'ham_scores'} && $ham_count ) 
-        ? POSIX::floor( $temp{'ham_scores'} / $ham_count * 100 )   : 0;
+    $count_ref->{avg_ham_score}  = (defined $temp{ham_scores} && $ham_count ) 
+        ? POSIX::floor( $temp{ham_scores} / $ham_count * 100 )   : 0;
 
-    $count_ref->{'threshhold'}     = ( $temp{'threshhold'} && ($ham_count || $spam_count) )
-        ? POSIX::floor( $temp{'threshhold'} / ( $ham_count + $spam_count ) * 100 ) : 0;
+    $count_ref->{threshhold}     = ( $temp{threshhold} && ($ham_count || $spam_count) )
+        ? POSIX::floor( $temp{threshhold} / ( $ham_count + $spam_count ) * 100 ) : 0;
 
-    $count_ref->{'sa_ham_last'}     = $ham_count;
-    $count_ref->{'sa_spam_last'}    = $spam_count;
+    $count_ref->{sa_ham_last}     = $ham_count;
+    $count_ref->{sa_spam_last}    = $spam_count;
 
-    $count_ref->{'sa_ham_seconds'}  = (defined $temp{'ham_seconds'} && $ham_count )
-        ? POSIX::floor( $temp{'ham_seconds'} / $ham_count * 100 ) : 0;
+    $count_ref->{sa_ham_seconds}  = (defined $temp{ham_seconds} && $ham_count )
+        ? POSIX::floor( $temp{ham_seconds} / $ham_count * 100 ) : 0;
 
-    $count_ref->{'sa_spam_seconds'} = (defined $temp{spam_seconds} && $spam_count)
+    $count_ref->{sa_spam_seconds} = (defined $temp{spam_seconds} && $spam_count)
         ? POSIX::floor( $temp{spam_seconds} / $spam_count * 100 ) : 0;
 
-    $count_ref->{'sa_ham_bytes'}  = (defined $temp{'ham_bytes'} && $ham_count )
-        ? POSIX::floor( $temp{'ham_bytes'} / $ham_count * 100 ) : 0;
+    $count_ref->{sa_ham_bytes}  = (defined $temp{ham_bytes} && $ham_count )
+        ? POSIX::floor( $temp{ham_bytes} / $ham_count * 100 ) : 0;
 
-    $count_ref->{'sa_spam_bytes'} = (defined $temp{'spam_bytes'} && $spam_count )
-        ? POSIX::floor( $temp{'spam_bytes'} / $spam_count * 100 ) : 0;
+    $count_ref->{sa_spam_bytes} = (defined $temp{spam_bytes} && $spam_count )
+        ? POSIX::floor( $temp{spam_bytes} / $spam_count * 100 ) : 0;
 
-    print "sa_spam:$count_ref->{'sa_spam'}"
-        . ":sa_ham:$count_ref->{'sa_ham'}"
-        . ":spam_score:$count_ref->{'avg_spam_score'}"
-        . ":ham_score:$count_ref->{'avg_ham_score'}"
-        . ":threshhold:$count_ref->{'threshhold'}"
-        . ":ham_seconds:$count_ref->{'sa_ham_seconds'}"
-        . ":spam_seconds:$count_ref->{'sa_spam_seconds'}"
-        . ":ham_bytes:$count_ref->{'sa_ham_bytes'}"
-        . ":spam_bytes:$count_ref->{'sa_spam_bytes'}"
+    print "sa_spam:$count_ref->{sa_spam}"
+        . ":sa_ham:$count_ref->{sa_ham}"
+        . ":spam_score:$count_ref->{avg_spam_score}"
+        . ":ham_score:$count_ref->{avg_ham_score}"
+        . ":threshhold:$count_ref->{threshhold}"
+        . ":ham_seconds:$count_ref->{sa_ham_seconds}"
+        . ":spam_seconds:$count_ref->{sa_spam_seconds}"
+        . ":ham_bytes:$count_ref->{sa_ham_bytes}"
+        . ":spam_bytes:$count_ref->{sa_spam_bytes}"
         . "\n";
 
     return $self->counter_write( log=>$countfile, values=>$count_ref, fatal=>0 );
@@ -889,7 +889,7 @@ sub spama_count {
 
 sub qms_count {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my ( $qs_clean, $qs_virus, $qs_all );
 
@@ -917,23 +917,23 @@ sub qms_count {
     };
 
     if ( $qs_clean ) {
-        if ( $qs_clean >= $count_ref->{'qs_clean_last'} ) {
-            $count_ref->{'qs_clean'} =
-                $count_ref->{'qs_clean'} + ( $qs_clean - $count_ref->{'qs_clean_last'} );
+        if ( $qs_clean >= $count_ref->{qs_clean_last} ) {
+            $count_ref->{qs_clean} =
+                $count_ref->{qs_clean} + ( $qs_clean - $count_ref->{qs_clean_last} );
         }
-        else { $count_ref->{'qs_clean'} = $count_ref->{'qs_clean'} + $qs_clean }
+        else { $count_ref->{qs_clean} = $count_ref->{qs_clean} + $qs_clean }
 
-        $count_ref->{'qs_clean_last'} = $qs_clean;
+        $count_ref->{qs_clean_last} = $qs_clean;
     };
 
     if ( $qs_virus ) {
-        if ( $qs_virus >= $count_ref->{'qs_virus_last'} ) {
-            $count_ref->{'qs_virus'} =
-                $count_ref->{'qs_virus'} + ( $qs_virus - $count_ref->{'qs_virus_last'} );
+        if ( $qs_virus >= $count_ref->{qs_virus_last} ) {
+            $count_ref->{qs_virus} =
+                $count_ref->{qs_virus} + ( $qs_virus - $count_ref->{qs_virus_last} );
         }
-        else { $count_ref->{'qs_virus'} = $count_ref->{'qs_virus'} + $qs_virus }
+        else { $count_ref->{qs_virus} = $count_ref->{qs_virus} + $qs_virus }
 
-        $count_ref->{'qs_virus_last'} = $qs_virus;
+        $count_ref->{qs_virus_last} = $qs_virus;
     };
 
     print "qs_clean:$qs_clean:qs_virii:$qs_virus\n";
@@ -947,9 +947,9 @@ sub qms_count {
 
 sub roll_send_logs {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
-    my $logbase  = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $logbase  = $self->conf->{logs_base} || "/var/log/mail";
     print "roll_send_logs: logging base is $logbase.\n" if $verbose;
 
     my $countfile = $self->set_countfile(prot=>"send");
@@ -966,7 +966,7 @@ sub roll_send_logs {
 sub roll_rbl_logs {
     my $self  = shift;
 
-    my $logbase = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
     my $countfile = $self->set_countfile(prot=>'rbl');
 
     if ( -r $countfile ) {
@@ -984,9 +984,9 @@ sub roll_rbl_logs {
 
 sub roll_pop3_logs {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
-    my $logbase = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
 
     $self->process_pop3_logs(
         roll  => 1,
@@ -1002,7 +1002,7 @@ sub compress_yesterdays_logs {
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>1 );
 
-    my $logbase = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
     $file    = "$logbase/$yy/$mm/$dd/$file";
 
     return $self->audit( "  $file is already compressed") if -e "$file.gz";
@@ -1020,16 +1020,16 @@ sub compress_yesterdays_logs {
 
 sub purge_last_months_logs {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
-    if ( ! $self->conf->{'logs_archive_purge'} ) {
+    if ( ! $self->conf->{logs_archive_purge} ) {
         $self->audit( "logs_archive_purge is disabled in toaster.conf, skipping.\n");
         return 1;
     };
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>31 ) or return;
 
-    my $logbase = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
 
     unless ( $logbase && -d $logbase ) {
         carp "purge_last_months_logs: no log directory $logbase. I'm done!";
@@ -1072,7 +1072,7 @@ sub check_log_files_2 {
 
 sub process_pop3_logs {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my %p = validate(@_, {
             'roll'  => { type=>BOOLEAN, optional=>1, default=>0 },
@@ -1080,12 +1080,12 @@ sub process_pop3_logs {
          }
     );
 
-    my $files_ref = $p{'files'};
+    my $files_ref = $p{files};
 
     my $skip_archive = 0;
        $skip_archive++ if !$files_ref || !$files_ref->[0]; # no log file(s)!
 
-    if ( $p{'roll'} ) {
+    if ( $p{roll} ) {
 
         my $PIPE_TO_CRONOLOG;
         if ( ! $skip_archive ) {
@@ -1094,7 +1094,7 @@ sub process_pop3_logs {
         };
 
         while (<STDIN>) {
-            print                   $_ if $self->conf->{'logs_taifiles'};
+            print                   $_ if $self->conf->{logs_taifiles};
             print $PIPE_TO_CRONOLOG $_ if ! $skip_archive;
         }
         close $PIPE_TO_CRONOLOG if ! $skip_archive;
@@ -1125,7 +1125,7 @@ sub process_pop3_logs {
 
 sub process_rbl_logs {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my %p = validate( @_, {
             'roll'    => { type=>BOOLEAN, optional=>1, default=>0 },
@@ -1133,12 +1133,12 @@ sub process_rbl_logs {
         },
     );
 
-    my $files_ref = $p{'files'};
+    my $files_ref = $p{files};
 
     my $skip_archive = 0;
        $skip_archive++ if ! $files_ref || !$files_ref->[0];  # no log file(s)!
 
-    if ( $p{'roll'} ) {
+    if ( $p{roll} ) {
         my $PIPE_TO_CRONOLOG;
         if ( ! $skip_archive ) {
             $PIPE_TO_CRONOLOG = $self->get_cronolog_handle(file=>'smtplog')
@@ -1147,7 +1147,7 @@ sub process_rbl_logs {
 
         while (<STDIN>) {
             $self->count_rbl_line ( $_ );
-            print                   $_ if $self->conf->{'logs_taifiles'};
+            print                   $_ if $self->conf->{logs_taifiles};
             print $PIPE_TO_CRONOLOG $_ if ! $skip_archive;
         }
         close $PIPE_TO_CRONOLOG if ! $skip_archive;
@@ -1181,57 +1181,57 @@ sub count_rbl_line {
 
     if ( $line =~ /rblsmtpd/ ) {
         # match the most common entries earliest
-          if  ( $line =~ /spamhaus/     ) { $spam_ref->{'spamhaus'}++ }
-        elsif ( $line =~ /spamcop/      ) { $spam_ref->{'spamcop'}++  }
-        elsif ( $line =~ /dsbl\.org/    ) { $spam_ref->{'dsbl'}++     }
-        elsif ( $line =~ /services/     ) { $spam_ref->{'services'}++ }
-        elsif ( $line =~ /rfc-ignorant/ ) { $spam_ref->{'ignorant'}++ }
-        elsif ( $line =~ /sorbs/        ) { $spam_ref->{'sorbs'}++    }
-        elsif ( $line =~ /njabl/        ) { $spam_ref->{'njabl'}++    }
-        elsif ( $line =~ /ORDB/         ) { $spam_ref->{'ordb'}++     }
-        elsif ( $line =~ /mail-abuse/   ) { $spam_ref->{'maps'}++     }
-        elsif ( $line =~ /monkeys/      ) { $spam_ref->{'monkeys'}++  }
-        elsif ( $line =~ /visi/         ) { $spam_ref->{'visi'}++     }
+          if  ( $line =~ /spamhaus/     ) { $spam_ref->{spamhaus}++ }
+        elsif ( $line =~ /spamcop/      ) { $spam_ref->{spamcop}++  }
+        elsif ( $line =~ /dsbl\.org/    ) { $spam_ref->{dsbl}++     }
+        elsif ( $line =~ /services/     ) { $spam_ref->{services}++ }
+        elsif ( $line =~ /rfc-ignorant/ ) { $spam_ref->{ignorant}++ }
+        elsif ( $line =~ /sorbs/        ) { $spam_ref->{sorbs}++    }
+        elsif ( $line =~ /njabl/        ) { $spam_ref->{njabl}++    }
+        elsif ( $line =~ /ORDB/         ) { $spam_ref->{ordb}++     }
+        elsif ( $line =~ /mail-abuse/   ) { $spam_ref->{maps}++     }
+        elsif ( $line =~ /monkeys/      ) { $spam_ref->{monkeys}++  }
+        elsif ( $line =~ /visi/         ) { $spam_ref->{visi}++     }
         else {
             #print $line;
-            $spam_ref->{'other'}++;
+            $spam_ref->{other}++;
         }
     }
     elsif ( $line =~ /CHKUSER/ ) {
-           if ( $line =~ /CHKUSER acce/ ) { $spam_ref->{'ham'}++     }
-        elsif ( $line =~ /CHKUSER reje/ ) { $spam_ref->{'chkuser'}++ }
+           if ( $line =~ /CHKUSER acce/ ) { $spam_ref->{ham}++     }
+        elsif ( $line =~ /CHKUSER reje/ ) { $spam_ref->{chkuser}++ }
         else {
             #print $line;
-            $spam_ref->{'other'}++;
+            $spam_ref->{other}++;
         }
     }
     elsif ( $line =~ /simscan/i ) {
-           if ( $line =~ /clean/i    ) { $spam_ref->{'ham'}++          }
-        elsif ( $line =~ /virus:/i   ) { $spam_ref->{'virus'}++        }
-        elsif ( $line =~ /spam rej/i ) { $spam_ref->{'spamassassin'}++ }
+           if ( $line =~ /clean/i    ) { $spam_ref->{ham}++          }
+        elsif ( $line =~ /virus:/i   ) { $spam_ref->{virus}++        }
+        elsif ( $line =~ /spam rej/i ) { $spam_ref->{spamassassin}++ }
         else {
             #print $line;
-            $spam_ref->{'other'}++;
+            $spam_ref->{other}++;
         };
     }
     else {
-           if ( $line =~ /badhelo:/     ) { $spam_ref->{'badhelo'}++     }
-        elsif ( $line =~ /badmailfrom:/ ) { $spam_ref->{'badmailfrom'}++ }
-        elsif ( $line =~ /badmailto:/   ) { $spam_ref->{'badmailto'}++   }
-        elsif ( $line =~ /Reverse/      ) { $spam_ref->{'dns'}++         }
+           if ( $line =~ /badhelo:/     ) { $spam_ref->{badhelo}++     }
+        elsif ( $line =~ /badmailfrom:/ ) { $spam_ref->{badmailfrom}++ }
+        elsif ( $line =~ /badmailto:/   ) { $spam_ref->{badmailto}++   }
+        elsif ( $line =~ /Reverse/      ) { $spam_ref->{dns}++         }
         else {
             #print $line;
-            $spam_ref->{'other'}++;
+            $spam_ref->{other}++;
         };
     }
 
-    $spam_ref->{'count'}++;
+    $spam_ref->{count}++;
     return 1;
 }
 
 sub process_send_logs {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my %p = validate( @_, {
             'roll'    => { type=>SCALAR,  optional=>1, default=>0 },
@@ -1239,12 +1239,12 @@ sub process_send_logs {
         },
     );
 
-    my $files_ref = $p{'files'};
+    my $files_ref = $p{files};
 
     my $skip_archive = 0;
        $skip_archive++ if ! $files_ref || !$files_ref->[0]; # no log files
 
-    if ( $p{'roll'} ) {
+    if ( $p{roll} ) {
 
         print "process_send_logs: log rolling is enabled.\n" if $verbose;
 
@@ -1256,7 +1256,7 @@ sub process_send_logs {
 
         while (<STDIN>) {
             $self->count_send_line( $_ );
-            print                   $_ if $self->conf->{'logs_taifiles'};
+            print                   $_ if $self->conf->{logs_taifiles};
             print $PIPE_TO_CRONOLOG $_ if ! $skip_archive;
         }
         close $PIPE_TO_CRONOLOG if ! $skip_archive;
@@ -1289,7 +1289,7 @@ sub process_send_logs {
 sub count_send_line {
     my $self = shift;
     my $line = shift or do {
-        $count_ref->{'message_other'}++;
+        $count_ref->{message_other}++;
         return;
     };
 
@@ -1310,14 +1310,14 @@ sub count_send_line {
     my ( $tai_date, $activity ) = $line =~ /\A@([a-z0-9]*)\s(.*)\z/xms;
 
     unless ($activity) {
-        $count_ref->{'message_other'}++;
+        $count_ref->{message_other}++;
         return;
     };
 
     if    ( $activity =~ /^new msg/ ) {
         # new msg 71512
         # the complete line match: /^new msg ([0-9]*)/
-        $count_ref->{'message_new'}++;
+        $count_ref->{message_new}++;
     }
     elsif ( $activity =~ /^info msg / ) {
         # info msg 71766: bytes 28420 from <elfer@club-internet.fr> qp 5419 uid 89
@@ -1326,8 +1326,8 @@ sub count_send_line {
 
         $activity =~ /^info msg ([0-9]*): bytes ([0-9]*) from/;
 
-        $count_ref->{'message_bytes'} += $2;
-        $count_ref->{'message_info'}++;
+        $count_ref->{message_bytes} += $2;
+        $count_ref->{message_info}++;
     }
     elsif ( $activity =~ /^starting delivery/ ) {
 
@@ -1338,29 +1338,29 @@ sub count_send_line {
 
         $activity =~ /^starting delivery ([0-9]*): msg ([0-9]*) to ([a-z]*) /;
 
-           if ( $3 eq "remote" ) { $count_ref->{'start_delivery_remote'}++ }
-        elsif ( $3 eq "local"  ) { $count_ref->{'start_delivery_local'}++  }
+           if ( $3 eq "remote" ) { $count_ref->{start_delivery_remote}++ }
+        elsif ( $3 eq "local"  ) { $count_ref->{start_delivery_local}++  }
         else { print "count_send_line: unknown delivery line format\n"; };
 
-        $count_ref->{'start_delivery'}++;
+        $count_ref->{start_delivery}++;
     }
     elsif ( $activity =~ /^status: local/ ) {
         # status: local 0/10 remote 3/100
         $activity =~ /^status: local ([0-9]*)\/([0-9]*) remote ([0-9]*)\/([0-9]*)/;
 
-        $count_ref->{'status_localp'}  += ( $1 / $2 );
-        $count_ref->{'status_remotep'} += ( $3 / $4 );
+        $count_ref->{status_localp}  += ( $1 / $2 );
+        $count_ref->{status_remotep} += ( $3 / $4 );
 
-        $count_ref->{'status'}++;
+        $count_ref->{status}++;
     }
     elsif ( $activity =~ /^end msg/ ) {
         # end msg 71766
         # /^end msg ([0-9]*)$/
 
         # this line is useless, why was it here?
-        #$count_ref->{'local'}++ if ( $3 && $3 eq "local" );
+        #$count_ref->{local}++ if ( $3 && $3 eq "local" );
 
-        $count_ref->{'message_end'}++;
+        $count_ref->{message_end}++;
     }
     elsif ( $activity =~ /^delivery/ ) {
         # delivery 136986: success: 67.109.54.82_accepted_message./Remote_host_said:
@@ -1368,20 +1368,20 @@ sub count_send_line {
 
         $activity =~ /^delivery ([0-9]*): ([a-z]*): /;
 
-           if ( $2 eq "success"  ) { $count_ref->{'delivery_success'}++  }
-        elsif ( $2 eq "deferral" ) { $count_ref->{'delivery_deferral'}++ }
-        elsif ( $2 eq "failure"  ) { $count_ref->{'delivery_failure'}++  }
+           if ( $2 eq "success"  ) { $count_ref->{delivery_success}++  }
+        elsif ( $2 eq "deferral" ) { $count_ref->{delivery_deferral}++ }
+        elsif ( $2 eq "failure"  ) { $count_ref->{delivery_failure}++  }
         else { print "unknown " . $activity . "\n"; };
 
-        $count_ref->{'delivery'}++;
+        $count_ref->{delivery}++;
     }
     elsif ( $activity =~ /^bounce/ ) {
         # /^bounce msg ([0-9]*) [a-z]* ([0-9]*)/
-        $count_ref->{'message_bounce'}++;
+        $count_ref->{message_bounce}++;
     }
     else {
         #warn "other: $activity";
-        $count_ref->{'other'}++;
+        $count_ref->{other}++;
     }
 
     return 1;
@@ -1392,7 +1392,7 @@ sub counter_create {
     my $self = shift;
     my $file = shift;
 
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
     carp "\nWARN: the file $file is missing! I will try to create it." if $verbose;
 
     if ( ! $self->util->is_writable( $file,verbose=>0,fatal=>0) ) {
@@ -1403,8 +1403,8 @@ sub counter_create {
 
     $self->counter_write( log => $file, values => { created => time(), },);
 
-    my $user = $self->{'conf'}{'logs_user'} || "qmaill";
-    my $group = $self->{'conf'}{'logs_group'} || "qnofiles";
+    my $user = $self->{conf}{logs_user} || "qmaill";
+    my $group = $self->{conf}{logs_group} || "qnofiles";
 
     $self->util->chown( $file, uid=>$user, gid=>$group, verbose=>0);
 
@@ -1417,8 +1417,8 @@ sub counter_read {
     my %p = validate(@_, { 'file' => SCALAR, $self->get_std_opts } );
     my %args = $self->get_std_args( %p );
 
-    my $file  = $p{'file'} or croak "you must pass a filename!\n";
-    my $verbose = $p{'verbose'};
+    my $file  = $p{file} or croak "you must pass a filename!\n";
+    my $verbose = $p{verbose};
 
     if ( ! -e $file ) {
         $self->counter_create( $file ) or return;
@@ -1446,7 +1446,7 @@ sub counter_write {
     );
     my %args = $self->get_std_args( %p );
 
-    my ( $logfile, $values_ref ) = ( $p{'log'}, $p{'values'} );
+    my ( $logfile, $values_ref ) = ( $p{log}, $p{values} );
 
     if ( -d $logfile ) {
         print "FAILURE: counter_write $logfile is a directory!\n";
@@ -1481,16 +1481,16 @@ sub counter_write {
 
 sub get_cronolog_handle {
     my $self  = shift;
-    my $verbose = $self->{'verbose'};
+    my $verbose = $self->{verbose};
 
     my %p = validate(@_, { 'file' => SCALAR } );
 
-    my $file = $p{'file'};
+    my $file = $p{file};
 
-    my $logbase = $self->conf->{'logs_base'} || "/var/log/mail";
+    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
 
     # archives disabled in toaster.conf
-    if ( ! $self->conf->{'logs_archive'} ) {
+    if ( ! $self->conf->{logs_archive} ) {
         warn "get_cronolog_handle: archives disabled, skipping cronolog handle.\n" if $verbose;
         return;
     };
@@ -1509,7 +1509,7 @@ sub get_cronolog_handle {
 
     my $tai64nlocal;
 
-    if ( $self->conf->{'logs_archive_untai'} ) {
+    if ( $self->conf->{logs_archive_untai} ) {
         my $taibin = $self->util->find_bin( "tai64nlocal",verbose=>0, fatal=>0 );
 
         if ( ! $taibin ) {
@@ -1568,10 +1568,10 @@ sub set_countfile {
     my $self = shift;
 
     my %p = validate(@_, { prot=>SCALAR } );
-    my $prot = $p{'prot'};
+    my $prot = $p{prot};
 
-    my $logbase  = $self->conf->{'logs_base'} || "/var/log/mail";
-    my $counters = $self->conf->{'logs_counters'} || "counters";
+    my $logbase  = $self->conf->{logs_base} || "/var/log/mail";
+    my $counters = $self->conf->{logs_counters} || "counters";
     my $prot_file = $self->conf->{'logs_'.$prot.'_count'} || "$prot.txt";
 
 # $self->audit( "countfile: $logbase/$counters/$prot_file");
