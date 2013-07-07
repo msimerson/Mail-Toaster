@@ -110,6 +110,7 @@ sub apply_tweaks {
             }
         };
         $self->error( "attempt to replace\n$search\n\twith\n$replace\n\tfailed",
+            frames => 1,
             fatal => 0) if ( ! $found && ! $e->{nowarn} );
         $total_found += $found;
     };

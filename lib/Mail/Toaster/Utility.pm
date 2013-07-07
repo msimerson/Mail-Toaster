@@ -1757,16 +1757,15 @@ sub is_writable {
 
 sub logfile_append {
     my $self = shift;
-    my %p = validate(
-        @_,
-        {   'file'  => { type => SCALAR,   optional => 0, },
-            'lines' => { type => ARRAYREF, optional => 0, },
+    my $file = shift or croak "missing filename!";
+    my %p = validate( @_,
+        {   'lines' => { type => ARRAYREF, optional => 0, },
             'prog'  => { type => BOOLEAN,  optional => 1, default => 0, },
             $self->get_std_opts,
         },
     );
 
-    my ( $file, $lines ) = ( $p{file}, $p{lines} );
+    my $lines = $p{lines};
     my %args = $self->get_std_args( %p );
 
     my ( $dd, $mm, $yy, $lm, $hh, $mn, $ss ) = $self->get_the_date( %args );
@@ -2858,11 +2857,11 @@ tests to determine if the running process is attached to a terminal.
 
 =item logfile_append
 
-   $util->logfile_append( file=>$file, lines=>\@lines )
+   $util->logfile_append( $file, lines=>\@lines )
 
 Pass a filename and an array ref and it will append a timestamp and the array contents to the file. Here's a working example:
 
-   $util->logfile_append( file=>$file, prog=>"proggy", lines=>["Starting up", "Shutting down"] )
+   $util->logfile_append( $file, prog=>"proggy", lines=>["Starting up", "Shutting down"] )
 
 That will append a line like this to the log file:
 

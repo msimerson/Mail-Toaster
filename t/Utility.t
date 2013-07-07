@@ -488,8 +488,7 @@ ok( !$util->is_process_running("nonexistent"), "is_process_running, nonexistent"
 
 $mod = "Date::Format";
 if ( eval "require $mod" ) {
-    ok( $util->logfile_append(
-            file  => $rwtest,
+    ok( $util->logfile_append( $rwtest,
             prog  => $0,
             lines => ['running tests'],
         ),
@@ -498,8 +497,7 @@ if ( eval "require $mod" ) {
 
     #print `/bin/cat $rwtest` . "\n";
 
-    ok( $util->logfile_append(
-            file  => $rwtest,
+    ok( $util->logfile_append( $rwtest,
             prog  => $0,
             lines => [ 'test1', 'test2' ],
         ),
@@ -508,8 +506,7 @@ if ( eval "require $mod" ) {
 
     #print `/bin/cat $rwtest` . "\n";
 
-    ok( $util->logfile_append(
-            file  => $rwtest,
+    ok( $util->logfile_append( $rwtest,
             prog  => $0,
             lines => [ 'test1', 'test2' ],
         ),

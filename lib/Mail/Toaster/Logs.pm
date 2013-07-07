@@ -137,9 +137,7 @@ sub get_yesterdays_send_log {
     };
 
     # some form of multilog logging
-    my $logbase = $self->conf->{logs_base}
-                || $self->conf->{qmail_log_base}
-                || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>0);
 
@@ -185,9 +183,7 @@ sub get_yesterdays_send_log_syslog {
 sub get_yesterdays_smtp_log {
     my $self  = shift;
 
-    my $logbase = $self->conf->{logs_base}   # some form of multilog logging
-        || $self->conf->{qmail_log_base}
-        || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
 
     # set up our date variables for today
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>0);
@@ -293,7 +289,7 @@ sub rbl_count {
 
     my $countfile = $self->set_countfile(prot=>"rbl");
     $spam_ref     = $self->counter_read( file=>$countfile );
-    my $logbase   = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
 
     $self->process_rbl_logs(
         files => $self->check_log_files( "$logbase/smtp/current" ),
@@ -390,7 +386,7 @@ sub send_count {
     my $self  = shift;
     my $verbose = $self->{verbose};
 
-    my $logbase   = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
     my $countfile = $self->set_countfile(prot=>"send");
        $count_ref = $self->counter_read( file=>$countfile );
 
@@ -924,7 +920,7 @@ sub roll_send_logs {
     my $self  = shift;
     my $verbose = $self->{verbose};
 
-    my $logbase  = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
     print "roll_send_logs: logging base is $logbase.\n" if $verbose;
 
     my $countfile = $self->set_countfile(prot=>"send");
@@ -941,7 +937,7 @@ sub roll_send_logs {
 sub roll_rbl_logs {
     my $self  = shift;
 
-    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
     my $countfile = $self->set_countfile(prot=>'rbl');
 
     if ( -r $countfile ) {
@@ -960,8 +956,7 @@ sub roll_rbl_logs {
 sub roll_pop3_logs {
     my $self  = shift;
     my $verbose = $self->{verbose};
-
-    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
 
     $self->process_pop3_logs(
         roll  => 1,
@@ -977,7 +972,7 @@ sub compress_yesterdays_logs {
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>1 );
 
-    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
     $file    = "$logbase/$yy/$mm/$dd/$file";
 
     return $self->audit( "  $file is already compressed") if -e "$file.gz";
@@ -1004,7 +999,7 @@ sub purge_last_months_logs {
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>31 ) or return;
 
-    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
 
     unless ( $logbase && -d $logbase ) {
         carp "purge_last_months_logs: no log directory $logbase. I'm done!";
@@ -1462,7 +1457,7 @@ sub get_cronolog_handle {
     my $file = shift or croak "missing file!";
     my $verbose = $self->{verbose};
 
-    my $logbase = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
 
     # archives disabled in toaster.conf
     if ( ! $self->conf->{logs_archive} ) {
@@ -1545,7 +1540,7 @@ sub set_countfile {
     my %p = validate(@_, { prot=>SCALAR } );
     my $prot = $p{prot};
 
-    my $logbase  = $self->conf->{logs_base} || "/var/log/mail";
+    my $logbase = $self->toaster->get_log_dir;
     my $counters = $self->conf->{logs_counters} || "counters";
     my $prot_file = $self->conf->{'logs_'.$prot.'_count'} || "$prot.txt";
 

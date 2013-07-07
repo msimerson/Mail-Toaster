@@ -235,13 +235,7 @@ sub log {
     };
     return if ( -e $logfile && ! -w $logfile );
 
-    $self->util->logfile_append(
-        file  => $logfile,
-        lines => [$mess],
-        fatal => 0,
-    );
+    $self->util->logfile_append( $logfile, lines => [$mess], fatal => 0 );
 };
 
-
 1;
-
