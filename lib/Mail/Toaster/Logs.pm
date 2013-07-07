@@ -22,20 +22,19 @@ use parent 'Mail::Toaster::Base';
 
 sub report_yesterdays_activity {
     my $self  = shift;
-
     my %p = validate(@_, { $self->get_std_opts } );
 
     return $p{test_ok} if defined $p{test_ok};
 
     my $email   = $self->conf->{toaster_admin_email} || "postmaster";
-    my $qma_dir = $self->find_qmailanalog() or return;
+    my $qma_dir = $self->find_qmailanalog or return;
 
-#    if ( ! -s $self->get_yesterdays_smtp_log() ) {
+#    if ( ! -s $self->get_yesterdays_smtp_log ) {
 #        carp "no smtp log file for yesterday found!\n";
 #        return;
 #    };
 
-    my $send_log = $self->get_yesterdays_send_log();
+    my $send_log = $self->get_yesterdays_send_log;
     if ( ! -s $send_log ) {
         carp "no send log file for yesterday found!\n";
         return;
@@ -54,7 +53,7 @@ sub report_yesterdays_activity {
     );
 
     foreach ( keys %cmds ) {
-        my $cmd = "$cat $send_log | $qma_dir/matchup 5>/dev/null | " . $cmds{$_}->{cmd};
+        my $cmd = "$cat $send_log | $qma_dir/matchup 5>/dev/null | " . $cmds{$_}{cmd};
         $self->audit( "calculating $_ stats with: $cmd");
         $cmds{$_}{out} = `$cmd`;
     };
@@ -63,9 +62,7 @@ sub report_yesterdays_activity {
     my $date = "$yy.$mm.$dd";
     $self->audit( "date: $yy.$mm.$dd" );
 
-    ## no critic
-    open my $EMAIL, "| /var/qmail/bin/qmail-inject";
-    ## use critic
+    open my $EMAIL, "| /var/qmail/bin/qmail-inject"; ## no critic (Open)
     print $EMAIL <<"EO_EMAIL";
 To: $email
 From: postmaster
@@ -87,7 +84,7 @@ EO_EMAIL
 
     close $EMAIL;
 
-    return 0; # return 0 on success, because periodic expects that
+    return 0; # because periodic expects 0 for non-error exit code
 }
 
 sub find_qmailanalog {
@@ -136,7 +133,7 @@ sub get_yesterdays_send_log {
     my $self  = shift;
 
     if ( $self->conf->{send_log_method} && $self->conf->{send_log_method} eq "syslog" ) {
-        return $self->get_yesterdays_send_log_syslog();
+        return $self->get_yesterdays_send_log_syslog;
     };
 
     # some form of multilog logging
@@ -146,13 +143,13 @@ sub get_yesterdays_send_log {
 
     my ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>0);
 
-    # where todays logs are being archived
+    # where todays logs are archived
     my $today = "$logbase/$yy/$mm/$dd/sendlog";
     $self->audit( "updating todays symlink for sendlogs to $today");
     unlink "$logbase/sendlog" if -l "$logbase/sendlog";
     symlink( $today, "$logbase/sendlog" );
 
-    # where yesterdays logs are being archived
+    # where yesterdays logs are archived
     ( $dd, $mm, $yy ) = $self->util->get_the_date(bump=>1);
     my $yester = "$logbase/$yy/$mm/$dd/sendlog.gz";
     $self->audit( "updating yesterdays symlink for sendlogs to $yester" );
@@ -270,21 +267,20 @@ sub parse_cmdline_flags {
 
     $self->audit( "parse_cmdline_flags: prot is $prot" );
 
-    return $self->smtp_auth_count() if $prot eq "smtp";
-    return $self->rbl_count  ()     if $prot eq "rbl";
-    return $self->send_count ()     if $prot eq "send";
-    return $self->pop3_count ()     if $prot eq "pop3";
-    return $self->imap_count ()     if $prot eq "imap";
-    return $self->spama_count()     if $prot eq "spamassassin";
-    return $self->qms_count()       if $prot eq "qmailscanner";
-    return $self->webmail_count()   if $prot eq "webmail";
-    return $self->report_yesterdays_activity() if $prot eq "yesterday";
-    pod2usage();
+    return $self->smtp_auth_count if $prot eq "smtp";
+    return $self->rbl_count       if $prot eq "rbl";
+    return $self->send_count      if $prot eq "send";
+    return $self->pop3_count      if $prot eq "pop3";
+    return $self->imap_count      if $prot eq "imap";
+    return $self->spama_count     if $prot eq "spamassassin";
+    return $self->qms_count       if $prot eq "qmailscanner";
+    return $self->webmail_count   if $prot eq "webmail";
+    return $self->report_yesterdays_activity if $prot eq "yesterday";
+    pod2usage;
 }
 
 sub what_am_i {
     my $self  = shift;
-
     $self->audit( "what_am_i: $0");
     $0 =~ /([a-zA-Z0-9\.]*)$/;
     $self->audit( "  returning $1" );
@@ -324,7 +320,7 @@ sub smtp_auth_count {
 
     print "      SMTP Counts\n\n" if $verbose;
 
-    my $logfiles = $self->check_log_files( $self->syslog_locate() );
+    my $logfiles = $self->check_log_files( $self->syslog_locate );
     if ( $logfiles->[0] eq "" ) {
         carp "\nsmtp_auth_count: Ack, no logfiles! You may want to see why?";
         return 1;
@@ -431,7 +427,7 @@ sub imap_count {
     my $countfile = $self->set_countfile(prot=>"imap");
        $count_ref = $self->counter_read( file=>$countfile );
 
-    my $logfiles  = $self->check_log_files( $self->syslog_locate() );
+    my $logfiles  = $self->check_log_files( $self->syslog_locate );
     if ( @$logfiles[0] eq "" ) {
         carp "\n   imap_count ERROR: no logfiles!";
         return;
@@ -502,29 +498,8 @@ sub imap_count {
         $count_ref->{imap_ssl_success_last} = $imap_ssl_success;
     };
 
-#    Courier no longer logs this information
-#    if ( $imap_connect >= $count_ref->{imap_connect_last} ) {
-#        $count_ref->{imap_connect} += 
-#          ( $imap_connect - $count_ref->{imap_connect_last} );
-#    }
-#    else { $count_ref->{imap_connect} += $imap_connect }
-#
-#    if ( $imap_ssl_connect >= $count_ref->{imap_ssl_connect_last} ) {
-#        $count_ref->{imap_ssl_connect} += 
-#          ( $imap_ssl_connect - $count_ref->{imap_ssl_connect_last} );
-#    }
-#    else {
-#        $count_ref->{imap_ssl_connect} += $imap_ssl_connect;
-#    }
-#
-#    $count_ref->{imap_connect_last}     = $imap_connect;
-#    $count_ref->{imap_ssl_connect_last} = $imap_ssl_connect;
-#
-#    print "connect_imap:$count_ref->{imap_connect}:connect_imap_ssl" 
-#        . ":$count_ref->{imap_ssl_connect}:"
-
-    print "imap_success:$count_ref->{imap_success}"
-        . ":imap_ssl_success:$count_ref->{imap_ssl_success}\n";
+    print "imap_success:".$count_ref->{imap_success}
+        . ":imap_ssl_success:".$count_ref->{imap_ssl_success}."\n";
 
     return $self->counter_write( log=>$countfile, values=>$count_ref, fatal=>0 );
 }
@@ -541,7 +516,7 @@ sub pop3_count {
 
     # get the location of log files to process
     print "finding the log files to process.\n" if $verbose;
-    my $logfiles  = $self->check_log_files( $self->syslog_locate() );
+    my $logfiles  = $self->check_log_files( $self->syslog_locate );
     if ( $logfiles->[0] eq "" ) {
         carp "    pop3_count: ERROR: no logfiles to process!";
         return;
@@ -688,7 +663,7 @@ sub webmail_count {
     my $countfile = $self->set_countfile(prot=>"web");
        $count_ref = $self->counter_read( file=>$countfile );
 
-    my $logfiles  = $self->check_log_files( $self->syslog_locate() );
+    my $logfiles  = $self->check_log_files( $self->syslog_locate );
     if ( @$logfiles[0] eq "" ) {
         carp "\n    ERROR: no logfiles!";
         return 0;
@@ -774,7 +749,7 @@ sub spama_count {
     my $countfile = $self->set_countfile(prot=>"spam");
        $count_ref = $self->counter_read( file=>$countfile );
 
-    my $logfiles  = $self->check_log_files( $self->syslog_locate() );
+    my $logfiles  = $self->check_log_files( $self->syslog_locate );
     if ( @$logfiles[0] eq "" ) {
         carp "\n   spamassassin_count ERROR: no logfiles!";
         return;
@@ -848,7 +823,7 @@ sub spama_count {
         }
     };
 
-    require POSIX;    # needed for floor()
+    require POSIX;    # needed for floor
     $count_ref->{avg_spam_score} = (defined $temp{spam_scores} && $spam_count ) 
         ? POSIX::floor( $temp{spam_scores} / $spam_count * 100 ) : 0;
 
@@ -896,7 +871,7 @@ sub qms_count {
     my $countfile = $self->set_countfile(prot=>"virus");
     my $count_ref = $self->counter_read( file=>$countfile );
 
-    my $logfiles  = $self->check_log_files( $self->syslog_locate() );
+    my $logfiles  = $self->check_log_files( $self->syslog_locate );
     if ( ! defined @$logfiles[0] || @$logfiles[0] eq "" ) {
         carp "    qms_count: ERROR: no logfiles!";
         return 1;
@@ -1089,7 +1064,7 @@ sub process_pop3_logs {
 
         my $PIPE_TO_CRONOLOG;
         if ( ! $skip_archive ) {
-            $PIPE_TO_CRONOLOG = $self->get_cronolog_handle(file=>"pop3log")
+            $PIPE_TO_CRONOLOG = $self->get_cronolog_handle("pop3log")
                 or $skip_archive++;
         };
 
@@ -1141,7 +1116,7 @@ sub process_rbl_logs {
     if ( $p{roll} ) {
         my $PIPE_TO_CRONOLOG;
         if ( ! $skip_archive ) {
-            $PIPE_TO_CRONOLOG = $self->get_cronolog_handle(file=>'smtplog')
+            $PIPE_TO_CRONOLOG = $self->get_cronolog_handle('smtplog')
                 or $skip_archive++;
         };
 
@@ -1250,7 +1225,7 @@ sub process_send_logs {
 
         my $PIPE_TO_CRONOLOG;
         if ( ! $skip_archive ) {
-            $PIPE_TO_CRONOLOG = $self->get_cronolog_handle(file=>"sendlog")
+            $PIPE_TO_CRONOLOG = $self->get_cronolog_handle("sendlog")
                 or $skip_archive++;
         };
 
@@ -1401,7 +1376,7 @@ sub counter_create {
         return;
     };
 
-    $self->counter_write( log => $file, values => { created => time(), },);
+    $self->counter_write( log => $file, values => { created => time, },);
 
     my $user = $self->{conf}{logs_user} || "qmaill";
     my $group = $self->{conf}{logs_group} || "qnofiles";
@@ -1484,11 +1459,8 @@ sub counter_write {
 
 sub get_cronolog_handle {
     my $self  = shift;
+    my $file = shift or croak "missing file!";
     my $verbose = $self->{verbose};
-
-    my %p = validate(@_, { 'file' => SCALAR } );
-
-    my $file = $p{file};
 
     my $logbase = $self->conf->{logs_base} || "/var/log/mail";
 
@@ -1584,7 +1556,7 @@ sub set_countfile {
 
 1;
 __END__
-
+sub {}
 
 =head1 NAME
 
@@ -1614,7 +1586,7 @@ email a report of yesterdays email traffic.
 
 Does some checks to make sure things are set up correctly.
 
-    $logs->verify_settings();
+    $logs->verify_settings;
 
 tests:
 
@@ -1684,14 +1656,14 @@ $file is the file to read from. The sub returns a hashref full of key value pair
 
 =item imap_count
 
-	$logs->imap_count();
+	$logs->imap_count;
 
 Count the number of connections and successful authentications via IMAP and IMAP-SSL.
 
 
 =item pop3_count
 
-	$logs->pop3_count();
+	$logs->pop3_count;
 
 Count the number of connections and successful authentications via POP3 and POP3-SSL.
 
@@ -1714,7 +1686,7 @@ Count the number of connections and successful authentications via POP3 and POP3
 
 =item qms_count
 
-	$logs->qms_count();
+	$logs->qms_count;
 
 Count statistics logged by qmail scanner.
 
@@ -1736,41 +1708,41 @@ Count the number of connections we've blocked (via rblsmtpd) for each RBL that w
 
 =item roll_rbl_logs
 
-	$logs->roll_rbl_logs();
+	$logs->roll_rbl_logs;
 
 Roll the qmail-smtpd logs (without 2>&1 output generated by rblsmtpd).
 
 =item RollPOP3Logs
 
-	$logs->RollPOP3Logs();
+	$logs->RollPOP3Logs;
 
 These logs will only exist if tcpserver verbose is enabled. Rolling them is not likely to be necessary but the code is here should it ever prove necessary.
 
 
 =item roll_send_logs
 
-	$logs->roll_send_logs();
+	$logs->roll_send_logs;
 
 Roll the qmail-send multilog logs. Update the maillogs counter.
 
 
 =item send_count
 
-	$logs->send_count();
+	$logs->send_count;
 
 Count the number of messages we deliver, and a whole mess of stats from qmail-send.
 
 
 =item smtp_auth_count
 
-	$logs->smtp_auth_count();
+	$logs->smtp_auth_count;
 
 Count the number of times users authenticate via SMTP-AUTH to our qmail-smtpd daemon.
 
 
 =item spama_count
 
-	$logs->spama_count();
+	$logs->spama_count;
 
 Count statistics logged by SpamAssassin.
 
@@ -1785,16 +1757,9 @@ Determine where syslog.mail is logged to. Right now we just test based on the OS
 
 =item webmail_count
 
-	$logs->webmail_count();
+	$logs->webmail_count;
 
 Count the number of webmail authentications.
-
-
-=item what_am_i
-
-	$logs->what_am_i()
-
-Determine what the filename of this program is. This is used in maillogs, as maillogs gets renamed in order to function as a log post-processor for multilog.
 
 =back
 
