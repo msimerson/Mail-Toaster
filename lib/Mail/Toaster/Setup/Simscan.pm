@@ -28,7 +28,7 @@ sub install {
     };
 
     if ( $OSNAME eq 'freebsd' ) {
-        my $r = $self->install_freebsd_port();
+        my $r = $self->install_freebsd_port;
         return $r if $ver eq 'port';
     };
 
@@ -81,7 +81,7 @@ sub install {
         patch_url      => $self->conf->{'toaster_dl_site'}.$self->conf->{'toaster_dl_url'}.'/patches',
     );
 
-    $self->config();
+    $self->config;
 }
 
 sub simscan_clamav {
@@ -208,7 +208,7 @@ OPTIONS_FILE_SET+=USER
 ",
     );
 
-    return $self->config();
+    return $self->config;
 };
 
 sub simscan_regex {
@@ -241,7 +241,7 @@ sub simscan_ripmime {
     unless ( -x $bin ) {
         croak "couldn't find $bin, install ripmime!\n";
     }
-    $self->setup->ripmime() or return '';
+    $self->setup->ripmime or return '';
     return "--enable-ripmime=$bin ";
 };
 
@@ -268,16 +268,16 @@ sub test {
     my $self  = shift;
     my %p = validate( @_, { $self->get_std_opts },);
 
-    my $qdir = $self->conf->{'qmail_dir'};
+    my $qdir = $self->conf->{qmail_dir};
 
-    if ( ! $self->conf->{'install_simscan'} ) {
+    if ( ! $self->conf->{install_simscan} ) {
         print "simscan installation disabled, skipping test!\n";
         return;
     }
 
     print "testing simscan...";
     my $scan = "$qdir/bin/simscan";
-    unless ( -x $scan ) {
+    if ( ! -x $scan ) {
         print "FAILURE: Simscan could not be found at $scan!\n";
         return;
     }

@@ -426,7 +426,7 @@ sub test {
     print "do vpopmail directories exist...\n";
     my $vpdir = $self->conf->{'vpopmail_home_dir'};
     foreach ( "", "bin", "domains", "etc/", "include", "lib" ) {
-        $self->toaster->test("  $vpdir/$_", -d "$vpdir/$_" );
+        $self->setup->test->pretty("  $vpdir/$_", -d "$vpdir/$_" );
     }
 
     print "checking vpopmail binaries...\n";
@@ -442,17 +442,17 @@ sub test {
         vsetuserquota   vuserinfo   /
       )
     {
-        $self->toaster->test("  $_", -x "$vpdir/bin/$_" );
+        $self->setup->test->pretty("  $_", -x "$vpdir/bin/$_" );
     }
 
     print "do vpopmail libs exist...\n";
     foreach ("$vpdir/lib/libvpopmail.a") {
-        $self->toaster->test("  $_", -e $_ );
+        $self->setup->test->pretty("  $_", -e $_ );
     }
 
     print "do vpopmail includes exist...\n";
     foreach (qw/ config.h vauth.h vlimits.h vpopmail.h vpopmail_config.h /) {
-        $self->toaster->test("  include/$_", -e "$vpdir/include/$_" );
+        $self->setup->test->pretty("  include/$_", -e "$vpdir/include/$_" );
     }
 
     print "checking vpopmail etc files...\n";
@@ -460,7 +460,7 @@ sub test {
     push @vpetc, 'vpopmail.mysql' if $self->conf->{'vpopmail_mysql'};
 
     foreach ( @vpetc ) {
-        $self->toaster->test("  $_", (-e "$vpdir/etc/$_" && -s "$vpdir/etc/$_" ));
+        $self->setup->test->pretty("  $_", (-e "$vpdir/etc/$_" && -s "$vpdir/etc/$_" ));
     }
 }
 

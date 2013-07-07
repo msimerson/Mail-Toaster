@@ -27,6 +27,7 @@ sub test {
     my %p = validate(@_, { $self->get_std_opts } );
     return $p{test_ok} if defined $p{test_ok};
 
+    return if ! $self->verbose;
     print $mess;
     defined $result or do { print "\n"; return; };
     for ( my $i = length($mess); $i <=  65; $i++ ) { print '.' };
@@ -34,32 +35,10 @@ sub test {
     print "\n";
 };
 
-sub build_vpopmaild_run {
-    my $self = shift;
-
-    if ( ! $self->conf->{vpopmail_daemon} ) {
-        $self->audit( "skipping vpopmaild/run" );
-        return;
-    };
-
-    $self->audit( "generating vpopmaild/run..." );
-
-    my @lines = $self->toaster->supervised_do_not_edit_notice;
-
-    push @lines, q{#!/bin/sh
-exec 1>/dev/null 2>&1
-exec env - PATH="/usr/bin:/bin:/usr/local/bin:/opt/local/bin" \
-     tcpserver -vHRD 127.0.0.1 89 /usr/local/vpopmail/bin/vpopmaild
-};
-
-    my $file = "/tmp/toaster-watcher-vpopmaild-runfile";
-    $self->util->file_write( $file, lines => \@lines, fatal => 0) or return;
-    $self->qmail->install_supervise_run( tmpfile => $file, prot => 'vpopmaild' ) or return;
-    return 1;
-};
-
 sub check {
     my $self = shift;
+    my %p = validate(@_, { $self->get_std_opts } );
+    my %args = $self->get_std_args( %p );
 
     $self->check_permissions_twc;   # toaster-watcher.conf
     $self->check_permissions_tc;    # toaster.conf
@@ -70,8 +49,8 @@ sub check {
     # check that we can't SMTP AUTH with random user names and passwords
 
     # make sure the supervised processes are configured correctly.
-    foreach my $svc ( $self->get_daemons ) {
-        $self->supervised_dir_test( $svc );
+    foreach my $prot ( $self->get_daemons(1) ) {
+        $self->supervised_dir_test( $prot, %args );
     };
 
     $self->check_cron_dccd;
@@ -211,7 +190,7 @@ sub learn_mailboxes {
 }
 
 sub learn_mailbox {
-    my ($self, $email, $d, $find, $age) = $_;
+    my ($self, $email, $d, $find, $age) = @_;
 
     my %counter = ( spam => 0, ham => 0 );
     my %messages = ( ham => [], spam => [] );
@@ -447,13 +426,15 @@ sub get_daemons {
     return qw/ smtp send pop3 submit qmail-deliverable qpsmtpd vpopmaild / if ! $active;
 
     my @list = qw/ send pop3 /;
+    push @list, 'vpopmaild' if $self->conf->{vpopmail_daemon};
+
     if ( $self->conf->{smtpd_daemon} && 'qpsmtpd' eq $self->conf->{smtpd_daemon} ) {
-        push @list, 'vpopmaild' if $self->conf->{vpopmail_daemon};
         push @list, 'qmail-deliverable', 'qpsmtpd';
     }
     else {
         push @list, 'smtp';
     };
+
     if ( ! $self->conf->{submit_daemon} || 'qmail' eq $self->conf->{submit_daemon} ) {
         push @list, 'submit';
     };
@@ -684,8 +665,8 @@ sub service_symlinks {
 
     my @active_services = 'send';
 
-    foreach ( qw/ smtp submit pop3 vpopmaild / ) {
-        my $method = 'service_symlinks_' . $_;
+    foreach my $prot ( qw/ smtp submit pop3 vpopmaild qmail_deliverabled / ) {
+        my $method = 'service_symlinks_' . $prot;
         my $r = $self->$method or next;
         push @active_services, $r;
     };
@@ -696,7 +677,7 @@ sub service_symlinks {
         my $supdir = $self->supervise_dir_get( $prot );
 
         if ( ! -d $supdir ) {
-            $self->audit( "skipping symlink to $svcdir because target $supdir doesn't exist.");
+            $self->audit( "skip symlink $svcdir, target $supdir doesn't exist.");
             next;
         };
 
@@ -706,7 +687,8 @@ sub service_symlinks {
         }
 
         print "service_symlinks: creating symlink from $supdir to $svcdir\n";
-        symlink( $supdir, $svcdir ) or die "couldn't symlink $supdir: $!";
+        symlink( $supdir, $svcdir )
+            or $self->error("couldn't symlink $supdir: $!");
     }
 
     return 1;
@@ -728,6 +710,13 @@ sub service_symlinks_vpopmaild {
     my $enabled = $self->conf->{vpopmail_daemon};
     return 'vpopmaild' if $enabled;
     $self->service_symlinks_cleanup( 'vpopmaild' );
+    return;
+};
+
+sub service_symlinks_qmail_deliverabled {
+    my $self = shift;
+#return 'qmail-deliverabled' if $enabled;
+#$self->service_symlinks_cleanup( 'qmail-deliverabled' );
     return;
 };
 
@@ -845,6 +834,7 @@ sub supervise_dir_get {
 sub supervise_dirs_create {
     my $self = shift;
     my %p = validate( @_, { $self->get_std_opts } );
+    my %args = $self->get_std_args( %p );
 
     my $supdir = $self->qmail->get_supervise_dir;
 
@@ -854,11 +844,12 @@ sub supervise_dirs_create {
         $self->audit( "supervise_dirs_create: $supdir, ok (exists)" );
     }
     else {
-        mkpath( $supdir, oct('0775') ) or $self->error( "failed to create $supdir: $!");
+        mkpath( $supdir, oct('0775') )
+            or $self->error( "failed to create $supdir: $!", %args);
         $self->audit( "supervise_dirs_create: $supdir, ok" );
     }
 
-    foreach my $prot ( $self->get_daemons(1) ) {
+    foreach my $prot ( $self->get_daemons ) {
 
         my $protdir = $self->supervise_dir_get( $prot );
         if ( -d $protdir ) {
@@ -866,43 +857,48 @@ sub supervise_dirs_create {
             next;
         }
 
-        mkdir( $protdir, oct('0775') ) or die "failed to create $protdir: $!\n";
+        mkdir( $protdir, oct('0775') )
+            or $self->error( "failed to create $protdir: $!", %args );
         $self->audit( "supervise_dirs_create: creating $protdir, ok" );
 
-        mkdir( "$protdir/log", oct('0775') ) or die "failed to create $protdir/log: $!\n";
+        mkdir( "$protdir/log", oct('0775') )
+            or $self->error( "failed to create $protdir/log: $!", %args);
         $self->audit( "supervise_dirs_create: creating $protdir/log, ok" );
 
         $self->util->syscmd( "chmod +t $protdir", verbose=>0 );
+    }
 
+    foreach my $prot ( $self->get_daemons(1) ) {
+        my $protdir = $self->supervise_dir_get( $prot );
         my $svc_dir = $self->service_dir_get($prot);
         symlink( $protdir, $svc_dir ) if ! -e "$supdir/$prot";
-    }
+    };
 }
 
 sub supervised_dir_test {
     my $self = shift;
     my $prot = shift or croak "missing prot";
     my %p = validate( @_, { $self->get_std_opts } );
+    my %args = $self->get_std_args( %p );
 
     my $dir = $self->supervise_dir_get( $prot ) or return;
 
     return $p{test_ok} if defined $p{test_ok};
 
-    return $self->error("directory $dir does not exist", fatal=>0 )
+    return $self->error("directory $dir does not exist", %args )
         unless ( -d $dir || -l $dir );
     $self->test( "exists, $dir", -d $dir );
 
     if ( ! -f "$dir/run" ) {
         $self->qmail->install_qmail_control_files;
-        return $self->error("$dir/run does not exist!" )
-            if ! -f "$dir/run";
+        return $self->error("$dir/run does not exist!", %args ) if ! -f "$dir/run";
     };
     $self->test( "exists, $dir/run", -f "$dir/run" );
 
-    return $self->error("$dir/run is not executable" ) if ! -x "$dir/run";
+    return $self->error("$dir/run is not executable", %args ) if ! -x "$dir/run";
     $self->test( "perms,  $dir/run", -x "$dir/run" );
 
-    return $self->error("$dir/down is present" ) if -f "$dir/down";
+    return $self->error("$dir/down is present", %args ) if -f "$dir/down";
     $self->test( "!exist, $dir/down", !-f "$dir/down" );
 
     my $log_method = $self->conf->{ $prot . '_log_method' }
@@ -912,23 +908,23 @@ sub supervised_dir_test {
     return 1 if $log_method =~ /(?:syslog|disabled)/i;
 
     # make sure the log directory exists
-    return $self->error( "$dir/log does not exist" ) if ! -d "$dir/log";
+    return $self->error( "$dir/log does not exist", %args ) if ! -d "$dir/log";
     $self->test( "exists, $dir/log", -d "$dir/log" );
 
     # make sure the supervise/log/run file exists
     if ( ! -f "$dir/log/run" ) {
         $self->qmail->install_qmail_control_log_files;
-        return $self->error( "$dir/log/run does not exist" )
+        return $self->error( "$dir/log/run does not exist", %args )
             if ! -f "$dir/log/run";
     };
     $self->test( "exists, $dir/log/run", -f "$dir/log/run" );
 
     # check the log/run file permissions
-    return $self->error( "perms, $dir/log/run" ) if ! -x "$dir/log/run";
+    return $self->error( "perms, $dir/log/run", %args ) if ! -x "$dir/log/run";
     $self->test( "perms,  $dir/log/run", -x "$dir/log/run" );
 
     # make sure the supervise/down file does not exist
-    return $self->error( "$dir/log/down exists" ) if -f "$dir/log/down";
+    return $self->error( "$dir/log/down exists", %args ) if -f "$dir/log/down";
     $self->test( "!exist, $dir/log/down", "$dir/log/down" );
     return 1;
 }

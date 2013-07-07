@@ -1424,7 +1424,10 @@ sub counter_read {
         $self->counter_create( $file ) or return;
     }
 
-    my %hash;
+    my %hash = (
+            connect_last => 0,
+            success_last => 0
+            );
 
     foreach ( $self->util->file_read( $file, verbose=>$verbose ) ) {
         my ($description, $count) = split( /:/, $_ );

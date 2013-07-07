@@ -17,12 +17,14 @@ $|++;
 getopts('dv');
 $opt_v = $opt_v ? 1 : 0;
 
-my $toaster = Mail::Toaster->new( verbose => $opt_v );
+my $toaster = Mail::Toaster->new;
 my $verbose = $toaster->conf->{'toaster_verbose'} || $opt_v || 0;
+$toaster->verbose($verbose);
 
 my $pidfile = "/var/run/toaster-watcher.pid";
-if ( ! $toaster->util->check_pidfile( $pidfile, fatal=>0, verbose=>$verbose ) ) {
-    $toaster->error( "another toaster-watcher is running,  I refuse to!",fatal=>0,verbose=>$verbose);
+if ( ! $toaster->util->check_pidfile( $pidfile, fatal=>0 ) ) {
+    $toaster->error( "another toaster-watcher is running,  I refuse to!",fatal=>0);
+    $toaster->dump_errors;
     exit 500;
 };
 
@@ -33,13 +35,13 @@ print "$0 v$Mail::Toaster::VERSION\n" if $verbose;
 
 $toaster->log( "Starting up" );
 $toaster->qmail->config( %args );
+$toaster->supervise_dirs_create( %args );
 
-foreach my $prot ( qw/  send pop3 smtp submit / ) {
+foreach my $prot ( $toaster->get_daemons(1) ) {
     $toaster->log( "Building $prot/run" );
     my $method = 'build_' . $prot . '_run';
     $toaster->qmail->$method( %args );
 };
-$toaster->build_vpopmaild_run;
 
 #$toaster->setup->startup_script();
 $toaster->check( %args );

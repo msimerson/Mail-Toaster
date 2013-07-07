@@ -17,7 +17,7 @@ sub daemontools {
     my @bins = qw/ multilog softlimit setuidgid supervise svok svscan tai64nlocal /;
     foreach my $test ( @bins ) {
         my $bin = $self->util->find_bin( $test, fatal => 0, verbose=>0);
-        $self->toaster->test("  $test", -x $bin );
+        $self->pretty("  $test", -x $bin );
     };
 
     return 1;
@@ -32,19 +32,13 @@ sub email_send {
         return $self->error("qmail-inject ($ibin) not found!");
     };
 
-    ## no critic
-    open( my $INJECT, "| $ibin -a -f \"\" $email" ) or do {
-        warn "FATAL: couldn't send using qmail-inject!\n";
-        return;
-    };
-    ## use critic
-
     foreach ( qw/ clean spam eicar attach clam / ) {
+        open(my $INJECT, "| $ibin -a -f \"\" $email" ) or
+            return $self->error( "couldn't send using qmail-inject!");
         my $method = 'email_send_' . $_;
-        $self->$method($INJECT, $email );
+        $self->$method( $INJECT, $email );
+        close $INJECT;
     };
-
-    close $INJECT;
 
     return 1;
 }
@@ -221,15 +215,15 @@ sub imap_auth {
 
     return $p{test_ok} if defined $p{test_ok}; # for testing only
 
-    $self->imap_auth_nossl();
-    $self->imap_auth_ssl();
+    $self->imap_auth_nossl;
+    $self->imap_auth_ssl;
 };
 
 sub imap_auth_nossl {
     my $self = shift;
 
     my $r = $self->util->install_module("Mail::IMAPClient", verbose => 0);
-    $self->toaster->test("checking Mail::IMAPClient", $r );
+    $self->pretty("checking Mail::IMAPClient", $r );
     if ( ! $r ) {
         print "skipping imap test authentications\n";
         return;
@@ -248,12 +242,12 @@ sub imap_auth_nossl {
         Server   => 'localhost',
     );
     if ( !defined $imap ) {
-        $self->toaster->test( "imap connection", $imap );
+        $self->pretty( "imap connection", $imap );
         return;
     };
 
-    $self->toaster->test( "authenticate IMAP user with plain passwords",
-        $imap->IsAuthenticated() );
+    $self->pretty( "authenticate IMAP user with plain passwords",
+        $imap->IsAuthenticated );
 
     my @features = $imap->capability
         or warn "Couldn't determine capability: $@\n";
@@ -267,11 +261,11 @@ sub imap_auth_nossl {
         Pass   => 'hi_there_log_watcher'
     )
     or do {
-        $self->toaster->test( "imap connection that should fail", 0);
+        $self->pretty( "imap connection that should fail", 0);
         return 1;
     };
-    $self->toaster->test( "  imap connection", $imap->IsConnected() );
-    $self->toaster->test( "  test auth that should fail", !$imap->IsAuthenticated() );
+    $self->pretty( "  imap connection", $imap->IsConnected );
+    $self->pretty( "  test auth that should fail", !$imap->IsAuthenticated );
     $imap->logout;
     return;
 };
@@ -283,7 +277,7 @@ sub imap_auth_ssl {
     my $pass = $self->conf->{'toaster_test_email_pass'} || 'cHanGeMe';
 
     my $r = $self->util->install_module( "IO::Socket::SSL", verbose => 0,);
-    $self->toaster->test( "checking IO::Socket::SSL ", $r);
+    $self->pretty( "checking IO::Socket::SSL ", $r);
     if ( ! $r ) {
         print "skipping IMAP SSL tests due to missing SSL support\n";
         return;
@@ -296,30 +290,30 @@ sub imap_auth_ssl {
         Proto    => 'tcp',
         SSL_verify_mode => 'SSL_VERIFY_NONE',
     );
-    $self->toaster->test( "  imap SSL connection", $socket);
+    $self->pretty( "  imap SSL connection", $socket);
     return if ! $socket;
 
-    print "  connected with " . $socket->get_cipher() . "\n";
+    print "  connected with " . $socket->get_cipher . "\n";
     print $socket ". login $user $pass\n";
     ($r) = $socket->peek =~ /OK/i;
-    $self->toaster->test( "  auth IMAP SSL with plain password", $r ? 0 : 1);
+    $self->pretty( "  auth IMAP SSL with plain password", $r ? 0 : 1);
     print $socket ". logout\n";
     close $socket;
 
 #  no idea why this doesn't work, so I just forge an authentication by printing directly to the socket
 #   my $imapssl = Mail::IMAPClient->new( Socket=>$socket, User=>$user, Password=>$pass) or warn "new IMAP failed: ($@)\n";
-#   $imapssl->IsAuthenticated() ? print "ok\n" : print "FAILED.\n";
+#   $imapssl->IsAuthenticated ? print "ok\n" : print "FAILED.\n";
 
 # doesn't work yet because courier doesn't support CRAM-MD5 via the vchkpw auth module
 #   print "authenticating IMAP user with CRAM-MD5...";
 #   $imap->connect;
-#   $imap->authenticate();
-#   $imap->IsAuthenticated() ? print "ok\n" : print "FAILED.\n";
+#   $imap->authenticate;
+#   $imap->IsAuthenticated ? print "ok\n" : print "FAILED.\n";
 #
 #   print "logging out...";
 #   $imap->logout;
-#   $imap->IsAuthenticated() ? print "FAILED.\n" : print "ok.\n";
-#   $imap->IsConnected() ? print "connection open.\n" : print "connection closed.\n";
+#   $imap->IsAuthenticated ? print "FAILED.\n" : print "ok.\n";
+#   $imap->IsConnected ? print "connection open.\n" : print "connection closed.\n";
 
 }
 
@@ -330,7 +324,7 @@ sub pop3_auth {
     $OUTPUT_AUTOFLUSH = 1;
 
     my $r = $self->util->install_module( "Mail::POP3Client", verbose => 0,);
-    $self->toaster->test("checking Mail::POP3Client", $r );
+    $self->pretty("checking Mail::POP3Client", $r );
     eval "use Mail::POP3Client";
     if ( $EVAL_ERROR ) {
         print "unable to load Mail::POP3Client, skipping POP3 tests\n";
@@ -384,10 +378,10 @@ sub pop3_auth_prot {
 
     $pop->User($user);
     $pop->Pass($pass);
-    $pop->Connect() >= 0 || warn $pop->Message();
-    $self->toaster->test( "  $name authentication", ($pop->State eq 'TRANSACTION'));
+    $pop->Connect >= 0 || warn $pop->Message;
+    $self->pretty( "  $name authentication", ($pop->State eq 'TRANSACTION'));
 
-#   if ( my @features = $pop->Capa() ) {
+#   if ( my @features = $pop->Capa ) {
 #       print "  POP3 server supports: " . join( ",", @features ) . "\n";
 #   }
     $pop->Close;
@@ -401,7 +395,7 @@ sub smtp_auth {
     foreach ( @modules ) {
         eval "use $_";
         die $@ if $@;
-        $self->toaster->test( "loading $_", 'ok' );
+        $self->pretty( "loading $_", 'ok' );
     };
 
     Net::SSLeay::load_error_strings();
@@ -412,11 +406,11 @@ sub smtp_auth {
        $host = 'localhost' if ( $host =~ /system|qmail|all/i );
 
     my $smtp = Net::SMTP_auth->new($host);
-    $self->toaster->test( "connect to smtp port on $host", $smtp );
+    $self->pretty( "connect to smtp port on $host", $smtp );
     return 0 if ! defined $smtp;
 
-    my @auths = $smtp->auth_types();
-    $self->toaster->test( "  get list of SMTP AUTH methods", scalar @auths);
+    my @auths = $smtp->auth_types;
+    $self->pretty( "  get list of SMTP AUTH methods", scalar @auths);
     $smtp->quit;
 
     $self->smtp_auth_pass($host, \@auths);
@@ -436,19 +430,19 @@ sub smtp_auth_pass {
 
         my $smtp = Net::SMTP_auth->new($host);
         my $r = $smtp->auth( $_, $user, $pass );
-        $self->toaster->test( "  authentication with $_", $r );
+        $self->pretty( "  authentication with $_", $r );
         next if ! $r;
 
         $smtp->mail( $self->conf->{'toaster_admin_email'} );
         $smtp->to('postmaster');
-        $smtp->data();
+        $smtp->data;
         $smtp->datasend("To: postmaster\n");
         $smtp->datasend("\n");
         $smtp->datasend("A simple test message\n");
-        $smtp->dataend();
+        $smtp->dataend;
 
         $smtp->quit;
-        $self->toaster->test("  sending after auth $_", 1 );
+        $self->pretty("  sending after auth $_", 1 );
     }
 }
 
@@ -463,7 +457,7 @@ sub smtp_auth_fail {
     foreach (@$auths) {
         my $smtp = Net::SMTP_auth->new($host);
         my $r = $smtp->auth( $_, $user, $pass );
-        $self->toaster->test( "  failed authentication with $_", ! $r );
+        $self->pretty( "  failed authentication with $_", ! $r );
         $smtp->quit;
     }
 }
@@ -508,7 +502,7 @@ sub run_all {
     sleep 1;
 
     if ( ! $self->util->yes_or_no( "skip the authentication tests?", timeout  => 10) ) {
-        $self->auth();
+        $self->auth;
     };
 
     # there's plenty more room here for more tests.
@@ -591,9 +585,24 @@ sub crons {
     print "checking cron processes\n";
 
     foreach (@crons) {
-        $self->toaster->test("  $_", system( $_ ) ? 0 : 1 );
+        $self->pretty("  $_", system( $_ ) ? 0 : 1 );
     }
 }
+
+sub pretty {
+    my $self = shift;
+    my $mess = shift or croak "test with no args?!";
+    my $result = shift;
+
+    my %p = validate(@_, { $self->get_std_opts } );
+    return $p{test_ok} if defined $p{test_ok};
+
+    print $mess;
+    defined $result or do { print "\n"; return; };
+    for ( my $i = length($mess); $i <=  65; $i++ ) { print '.' };
+    print $result ? 'ok' : 'FAILED';
+    print "\n";
+};
 
 sub test_dns {
 
@@ -740,7 +749,7 @@ sub test_logging {
     print "do the logging directories exist?\n";
     my $q_log = $self->conf->{'qmail_log_base'};
     foreach ( '', "pop3", "send", "smtp", "submit" ) {
-        $self->toaster->test("  $q_log/$_", -d "$q_log/$_" );
+        $self->pretty("  $q_log/$_", -d "$q_log/$_" );
     }
 
     print "checking log files?\n";
@@ -750,7 +759,7 @@ sub test_logging {
     push @active_log_files, "pop3/current" if $self->conf->{'pop3_daemon'} eq 'qpop3d';
 
     foreach ( @active_log_files ) {
-        $self->toaster->test("  $_", -f "$q_log/$_" );
+        $self->pretty("  $_", -f "$q_log/$_" );
     }
 }
 
@@ -771,7 +780,7 @@ sub test_network {
     print "checking for listening tcp ports\n";
     my @listeners = `$netstat | grep -i listen`;
     foreach (qw( smtp http pop3 imap https submission pop3s imaps )) {
-        $self->toaster->test("  $_", scalar grep {/$_/} @listeners );
+        $self->pretty("  $_", scalar grep {/$_/} @listeners );
     }
 
     print "checking for udp listeners\n";
@@ -779,7 +788,7 @@ sub test_network {
     push @udps, "snmp" if $self->conf->{install_snmp};
 
     foreach ( @udps ) {
-        $self->toaster->test("  $_", `$netstat | grep $_` );
+        $self->pretty("  $_", `$netstat | grep $_` );
     }
 }
 
@@ -789,17 +798,17 @@ sub test_qmail {
 
     my $qdir = $self->conf->{'qmail_dir'};
     print "does qmail's home directory exist?\n";
-    $self->toaster->test("  $qdir", -d $qdir );
+    $self->pretty("  $qdir", -d $qdir );
 
     print "checking qmail directory contents\n";
     my @tests = qw(alias boot control man users bin doc queue);
     push @tests, "configure" if ( $OSNAME eq "freebsd" );    # added by the port
     foreach (@tests) {
-        $self->toaster->test("  $qdir/$_", -d "$qdir/$_" );
+        $self->pretty("  $qdir/$_", -d "$qdir/$_" );
     }
 
     print "is the qmail rc file executable?\n";
-    $self->toaster->test(  "  $qdir/rc", -x "$qdir/rc" );
+    $self->pretty(  "  $qdir/rc", -x "$qdir/rc" );
 
     print "do the qmail users exist?\n";
     foreach (
@@ -812,20 +821,20 @@ sub test_qmail {
         $self->conf->{'qmail_log_user'}    || 'qmaill',
       )
     {
-        $self->toaster->test("  $_", $self->setup->user_exists($_) );
+        $self->pretty("  $_", $self->setup->user_exists($_) );
     }
 
     print "do the qmail groups exist?\n";
     foreach ( $self->conf->{'qmail_group'}     || 'qmail',
               $self->conf->{'qmail_log_group'} || 'qnofiles',
         ) {
-        $self->toaster->test("  $_", scalar getgrnam($_) );
+        $self->pretty("  $_", scalar getgrnam($_) );
     }
 
     print "do the qmail alias files have contents?\n";
     my $q_alias = "$qdir/alias/.qmail";
     foreach ( qw/ postmaster root mailer-daemon / ) {
-        $self->toaster->test( "  $q_alias-$_", -s "$q_alias-$_" );
+        $self->pretty( "  $q_alias-$_", -s "$q_alias-$_" );
     }
 }
 
@@ -834,11 +843,11 @@ sub supervised_procs {
 
     print "do supervise directories exist?\n";
     my $q_sup = $self->conf->{'qmail_supervise'} || "/var/qmail/supervise";
-    $self->toaster->test("  $q_sup", -d $q_sup);
+    $self->pretty("  $q_sup", -d $q_sup);
 
     # check supervised directories
     foreach ( qw/ smtp send pop3 submit / ) {
-        $self->toaster->test( "  $q_sup/$_",
+        $self->pretty( "  $q_sup/$_",
             $self->toaster->supervised_dir_test( $_, verbose=>1 ) );
     }
 
@@ -857,13 +866,13 @@ sub supervised_procs {
         if $self->conf->{'submit_enable'};
 
     foreach ( $q_ser, @active_service_dirs ) {
-        $self->toaster->test( "  $_", -d $_ );
+        $self->pretty( "  $_", -d $_ );
     }
 
     print "are the supervised services running?\n";
     my $svok = $self->util->find_bin( 'svok', fatal => 0 );
     foreach ( @active_service_dirs ) {
-        $self->toaster->test( "  $_", system("$svok $_") ? 0 : 1 );
+        $self->pretty( "  $_", system("$svok $_") ? 0 : 1 );
     }
 };
 
@@ -872,12 +881,12 @@ sub ucspi {
 
     print "checking ucspi-tcp binaries...\n";
     foreach (qw( tcprules tcpserver rblsmtpd tcpclient recordio )) {
-        $self->toaster->test("  $_", $self->util->find_bin( $_, fatal => 0, verbose=>0 ) );
+        $self->pretty("  $_", $self->util->find_bin( $_, fatal => 0, verbose=>0 ) );
     }
 
     if ( $self->conf->{install_mysql} && $self->conf->{'vpopmail_mysql'} ) {
         my $tcpserver = $self->util->find_bin( "tcpserver", fatal => 0, verbose=>0 );
-        $self->toaster->test( "  tcpserver mysql support",
+        $self->pretty( "  tcpserver mysql support",
             scalar `strings $tcpserver | grep sql`
         );
     }

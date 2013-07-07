@@ -181,17 +181,27 @@ exec $softlimit -m \$MAXRAM $qmdd -f 2>&1
 
 sub build_vpopmaild_run {
     my $self = shift;
+
+    if ( ! $self->conf->{vpopmail_daemon} ) {
+        $self->audit( "skipping vpopmaild/run" );
+        return;
+    };
+
+    $self->audit( "generating vpopmaild/run..." );
+
     my $tcpserver = $self->util->find_bin('tcpserver');
     my $vpopdir = $self->setup->vpopmail->get_vpop_dir;
 
-    my @lines = "#!/bin/sh
-exec 2>&1
+    my @lines = $self->toaster->supervised_do_not_edit_notice;
+    push @lines, "#!/bin/sh
+#exec 2>&1
+exec 1>/dev/null 2>&1
 exec $tcpserver -vHRD 127.0.0.1 89 $vpopdir/bin/vpopmaild
 ";
 
     my $file = '/tmp/toaster-watcher-vpopmaild-runfile';
-    $self->util->file_write( $file, lines => \@lines ) or return;
-    $self->install_supervise_run( tmpfile => $file, prot => 'vpopmaild' ) or return;
+    $self->util->file_write( $file, lines => \@lines, fatal => 0) or return;
+    $self->qmail->install_supervise_run( tmpfile => $file, prot => 'vpopmaild' ) or return;
     return 1;
 };
 
@@ -297,9 +307,9 @@ sub config {
     chmod oct('0640'), "$control/sql";
     chmod oct('0644'), "$control/concurrencyremote";
 
-    $self->config_freebsd() if $OSNAME eq 'freebsd';
+    $self->config_freebsd if $OSNAME eq 'freebsd';
 
-    # install the qmail control script (qmail cdb, qmail restart, etc)
+    # qmail control script (qmail cdb, qmail restart, etc)
     $self->control_create( %args );
 
     # create all the service and supervised dirs
@@ -1018,7 +1028,7 @@ sub install_qmail_control_files {
 
     return $p{'test_ok'} if defined $p{'test_ok'};
 
-    foreach my $prot ( qw/ pop3 send smtp submit / ) {
+    foreach my $prot ( $self->toaster->get_daemons(1) ) {
         my $supdir = $self->toaster->supervise_dir_get( $prot);
         my $run_f = "$supdir/run";
 
@@ -1032,6 +1042,8 @@ sub install_qmail_control_files {
         elsif ( $prot eq "pop3"   ) { $self->build_pop3_run   }
         elsif ( $prot eq "submit" ) { $self->build_submit_run }
         elsif ( $prot eq "qmail-deliverable" ) { $self->build_qmd_run }
+        elsif ( $prot eq "vpopmaild" ) { $self->build_vpopmaild_run }
+        else  { $self->error("I need help making run for $prot!"); };
     }
 }
 
@@ -1090,20 +1102,20 @@ sub install_supervise_run {
     );
     my %args = $self->toaster->get_std_args( %p );
 
-    my ( $tmpfile, $destination, $prot )
-        = ( $p{'tmpfile'}, $p{'destination'}, $p{'prot'} );
+    return $p{test_ok} if defined $p{test_ok};
 
-    return $p{'test_ok'} if defined $p{'test_ok'};
+    my ( $tmpfile, $destination, $prot )
+        = ( $p{tmpfile}, $p{destination}, $p{prot} );
 
     if ( !$destination ) {
-        return $self->error( "you didn't set destination or prot!" ) if !$prot;
+        return $self->error( "you didn't set destination or prot!", %args ) if !$prot;
 
         my $dir = $self->toaster->supervise_dir_get( $prot )
-            or return $self->error( "no sup dir for $prot found" );
+            or return $self->error( "no sup dir for $prot found", %args );
         $destination = "$dir/run";
     }
 
-    return $self->error( "the new file ($tmpfile) is missing!",fatal=>0)
+    return $self->error( "the new file ($tmpfile) is missing!",%args)
         if !-e $tmpfile;
 
     my $s = -e $destination ? 'updating' : 'installing';
@@ -1112,10 +1124,9 @@ sub install_supervise_run {
     return $self->util->install_if_changed(
         existing => $destination,  newfile  => $tmpfile,
         mode     => '0755',        clean    => 1,
-        notify   => $self->conf->{'supervise_rebuild_notice'} || 1,
-        email    => $self->conf->{'toaster_admin_email'} || 'postmaster',
-        verbose    => $self->{verbose},
-        fatal    => 0,
+        notify   => $self->conf->{supervise_rebuild_notice} || 1,
+        email    => $self->conf->{toaster_admin_email} || 'postmaster',
+        %args,
     );
 }
 
