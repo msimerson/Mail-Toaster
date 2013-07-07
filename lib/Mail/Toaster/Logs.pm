@@ -210,7 +210,7 @@ sub verify_settings {
     my %p = validate(@_, { $self->get_std_opts } );
     return $p{test_ok} if defined $p{test_ok};
 
-    my $logbase  = $self->toaster->get_toaster_logs;
+    my $logbase  = $self->toaster->get_log_dir;
     my $counters = $self->conf->{logs_counters} || "counters";
 
     my $user  = $self->conf->{logs_user}  || 'qmaill';
