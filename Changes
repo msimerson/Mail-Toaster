@@ -1,4 +1,12 @@
 Mail Toaster Changes
+  5.42 - Jul 07, 2013
+        replace bunches of /var/log/mail with get_log_dir
+        consolidate tcp.smtp functions to setup->tcp_smtp
+        lazy load some modules, so 'make test' runs w/o dependencies
+        added supervise/run file creation for qmail-deliverabled and vpopmaild
+        moved email_send* tests from Toaster to Setup/Tests.pm
+        replaced hard coded vpopmail dir with $vpopmail->get_vpop_dir
+        replaced many hard coded '/var/qmail' paths with $qmail->get_qmail_dir
         install tcp.smtp during tests, if missing
         conf: removed vpopmail_enable_netblocks option (barely used, if at all)
         abstracted some code into new control_sql method
@@ -676,6 +684,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 44:
+    Around line 53:
         Non-ASCII character seen before =encoding in '•'. Assuming UTF-8
 

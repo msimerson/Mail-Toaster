@@ -20,6 +20,7 @@
 	<li><a href="#mail_toaster_changes">Mail Toaster Changes</a></li>
 	<ul>
 
+		<li><a href="#5_42___jul_07__2013">5.42 - Jul 07, 2013</a></li>
 		<li><a href="#5_41___jul_04__2013">5.41 - Jul 04, 2013</a></li>
 		<li><a href="#5_40___apr_26__2013">5.40 - Apr 26, 2013</a></li>
 		<li><a href="#5_38___apr_23__2013">5.38 - Apr 23, 2013</a></li>
@@ -64,7 +65,17 @@
 <p>
 </p>
 <h1><a name="mail_toaster_changes">Mail Toaster Changes</a></h1>
+<p>
+</p>
+<h2><a name="5_42___jul_07__2013">5.42 - Jul 07, 2013</a></h2>
 <pre>
+    replace bunches of /var/log/mail with get_log_dir
+    consolidate tcp.smtp functions to setup-&gt;tcp_smtp
+    lazy load some modules, so 'make test' runs w/o dependencies
+    added supervise/run file creation for qmail-deliverabled and vpopmaild
+    moved email_send* tests from Toaster to Setup/Tests.pm
+    replaced hard coded vpopmail dir with $vpopmail-&gt;get_vpop_dir
+    replaced many hard coded '/var/qmail' paths with $qmail-&gt;get_qmail_dir
     install tcp.smtp during tests, if missing
     conf: removed vpopmail_enable_netblocks option (barely used, if at all)
     abstracted some code into new control_sql method

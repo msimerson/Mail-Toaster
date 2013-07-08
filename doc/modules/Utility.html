@@ -532,10 +532,10 @@
 
 <dd>
 <pre>
-   $util-&gt;logfile_append( file=&gt;$file, lines=&gt;\@lines )</pre>
+   $util-&gt;logfile_append( $file, lines=&gt;\@lines )</pre>
 <p>Pass a filename and an array ref and it will append a timestamp and the array contents to the file. Here's a working example:</p>
 <pre>
-   $util-&gt;logfile_append( file=&gt;$file, prog=&gt;&quot;proggy&quot;, lines=&gt;[&quot;Starting up&quot;, &quot;Shutting down&quot;] )</pre>
+   $util-&gt;logfile_append( $file, prog=&gt;&quot;proggy&quot;, lines=&gt;[&quot;Starting up&quot;, &quot;Shutting down&quot;] )</pre>
 <p>That will append a line like this to the log file:</p>
 <pre>
    2004-11-12 23:20:06 proggy Starting up

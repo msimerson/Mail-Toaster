@@ -1,6 +1,10 @@
 
 =head1 Mail Toaster Changes
 
+=head2 5.42 - Jul 07, 2013
+
+    replace bunches of /var/log/mail with get_log_dir
+    consolidate tcp.smtp functions to setup->tcp_smtp
     lazy load some modules, so 'make test' runs w/o dependencies
     added supervise/run file creation for qmail-deliverabled and vpopmaild
     moved email_send* tests from Toaster to Setup/Tests.pm
