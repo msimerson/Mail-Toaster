@@ -751,11 +751,11 @@ sub get_list_of_rbls {
 
         # test for custom sort key
         if ( $self->conf->{$key} > 1 ) {
-            $self->audit( "  sorted value $self->conf->{$key}" );
+            $self->audit( "  sorted value ".$self->conf->{$key} );
             @sorted[ $self->conf->{$key} - 2 ] = $1;
         }
         else {
-            $self->audit( "  unsorted, $self->conf->{$key}" );
+            $self->audit( "  unsorted, ".$self->conf->{$key} );
             push @unsorted, $1;
         }
     }
