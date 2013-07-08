@@ -204,6 +204,7 @@ sub learn_mailbox {
     my %counter = ( spam => 0, ham => 0 );
     my %messages = ( ham => [], spam => [] );
 
+    my $dspam = $self->util->find_bin('dspamc', fatal=>0);
     foreach my $dir ( $self->get_maildir_folders( $d, $find ) ) {
         my $type = 'ham';
         $type = 'spam' if $dir =~ /(?:spam|junk)/i;
@@ -214,7 +215,7 @@ sub learn_mailbox {
             next if $counter{$type} >  5000 && $counter{$type} % 25 != 0;
             next if $counter{$type} >  2500 && $counter{$type} % 10 != 0;
 
-            $self->train_dspam( $type, $message, $email );
+            $self->train_dspam( $dspam, $type, $message, $email );
             push @{$messages{$type}}, $message; # for SA training
         };
     };
@@ -239,14 +240,13 @@ sub train_spamassassin {
 };
 
 sub train_dspam {
-    my ($self, $type, $file, $email) = @_;
+    my ($self, $dspam, $type, $file, $email) = @_;
     if ( ! $self->conf->{install_dspam} ) {
         return $self->audit( "skip dspam training, install_dspam unset");
     };
     if ( ! -f $file ) {   # file moved (due to MUA action)
         return $self->audit( "skipping dspam train of $file, it moved");
     };
-    my $dspam = $self->util->find_bin('dspamc');
     if ( ! -x $dspam ) {
         return $self->audit("skipping, $dspam not executable");
     };
