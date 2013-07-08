@@ -343,11 +343,11 @@ sub maildir_clean {
 
     my $find = $self->util->find_bin( 'find', verbose=>0 );
     if ( $dir =~ /(?:cur|new)$/ ) {
-        $self->util->syscmd( "$find $dir -type f -mtime +$days -delete" );
+        $self->util->syscmd( "$find '$dir' -type f -mtime +$days -delete" );
     }
     else {
-        $self->util->syscmd( "$find $dir/cur -type f -mtime +$days -delete" );
-        $self->util->syscmd( "$find $dir/new -type f -mtime +$days -delete" );
+        $self->util->syscmd( "$find '$dir/cur' -type f -mtime +$days -delete" );
+        $self->util->syscmd( "$find '$dir/new' -type f -mtime +$days -delete" );
     };
     return 1;
 };
@@ -482,7 +482,7 @@ sub get_maildir_folders {
     my ( $self, $d, $find ) = @_;
 
     $find ||= $self->util->find_bin( 'find', verbose=>0 );
-    my $find_dirs = "$find $d -type d -name cur";
+    my $find_dirs = "$find '$d' -type d -name cur";
 
     my @dirs;
     foreach my $maildir ( `$find_dirs` ) {
