@@ -163,7 +163,7 @@ sub build_submit_run {
     return 1;
 }
 
-sub build_qmd_run {
+sub build_qmail_deliverable_run {
     my $self = shift;
     my $softlimit = $self->util->find_bin('softlimit');
     my $qmdd = $self->util->find_bin('qmail-deliverabled');
@@ -202,6 +202,13 @@ exec $tcpserver -vHRD 127.0.0.1 89 $vpopdir/bin/vpopmaild
     my $file = '/tmp/toaster-watcher-vpopmaild-runfile';
     $self->util->file_write( $file, lines => \@lines, fatal => 0) or return;
     $self->qmail->install_supervise_run( tmpfile => $file, prot => 'vpopmaild' ) or return;
+    return 1;
+};
+
+sub build_qpsmtpd_run {
+    my $self = shift;
+# unless/until there's not settings in toaster-watcher.conf, we'll assume the
+# run file included with qpsmtpd is used
     return 1;
 };
 
@@ -1041,8 +1048,9 @@ sub install_qmail_control_files {
         elsif ( $prot eq "send"   ) { $self->build_send_run   }
         elsif ( $prot eq "pop3"   ) { $self->build_pop3_run   }
         elsif ( $prot eq "submit" ) { $self->build_submit_run }
-        elsif ( $prot eq "qmail-deliverable" ) { $self->build_qmd_run }
+        elsif ( $prot eq "qmail-deliverable" ) { $self->build_qmail_deliverable_run }
         elsif ( $prot eq "vpopmaild" ) { $self->build_vpopmaild_run }
+        elsif ( $prot eq "qpsmtpd" ) { $self->build_qpsmtpd_run }
         else  { $self->error("I need help making run for $prot!"); };
     }
 }

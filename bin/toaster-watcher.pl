@@ -39,6 +39,7 @@ $toaster->supervise_dirs_create( %args );
 
 foreach my $prot ( $toaster->get_daemons(1) ) {
     $toaster->log( "Building $prot/run" );
+    $prot =~ s/\-/_/g;
     my $method = 'build_' . $prot . '_run';
     $toaster->qmail->$method( %args );
 };
