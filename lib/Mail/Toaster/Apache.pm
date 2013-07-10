@@ -636,6 +636,9 @@ sub conf_get_dir {
     if ( ! -x $apachectl ) {
         $apachectl = $self->util->find_bin( "apachectl" );
     }
+    if ( ! -x $apachectl ) {
+        $apachectl = $self->util->find_bin( "httpdctl" );
+    }
 
     # the -V flag to apachectl returns this string:
     #  -D SERVER_CONFIG_FILE="etc/apache22/httpd.conf"
@@ -730,7 +733,8 @@ sub install_ssl_certs {
     my $prefix = $self->conf->{'toaster_prefix'}    || "/usr/local";
     my $etcdir = $self->conf->{'system_config_dir'} || "/usr/local/etc";
 
-    my $apacheconf = $self->conf_get_dir;
+    my $apacheconf = $self->conf_get_dir or
+        return $self->error( "unable to determine apache config dir",fatal=>0 );
     my ($apacheetc) = $self->util->path_parse($apacheconf);
 
     $self->audit( "   detected apache config dir $apacheetc.");

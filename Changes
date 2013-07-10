@@ -1,4 +1,7 @@
 Mail Toaster Changes
+  5.43 - Jul NN, 2013
+        minor improvements to test suite
+
   5.42 - Jul 07, 2013
         replace bunches of /var/log/mail with get_log_dir
         consolidate tcp.smtp functions to setup->tcp_smtp
@@ -684,6 +687,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 53:
+    Around line 57:
         Non-ASCII character seen before =encoding in '•'. Assuming UTF-8
 

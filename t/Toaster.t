@@ -4,33 +4,37 @@ use warnings;
 
 use Cwd;
 use English qw( -no_match_vars );
-use Test::More 'no_plan';
+use Test::More;
+
+if ( $OSNAME =~ /cygwin|win32|windows/i ) {
+    plan skip_all => "no windows support";
+};
 
 use lib 'lib';
+use_ok('Mail::Toaster');
 
-BEGIN {
-    use_ok('Mail::Toaster');
-}
-require_ok('Mail::Toaster');
-
-my $toaster = Mail::Toaster->new(verbose=>0);
-ok( defined $toaster, 'get Mail::Toaster object' );
-ok( $toaster->isa('Mail::Toaster'), 'check object class' );
-my $conf = $toaster->conf();
+my $toaster = Mail::Toaster->new;
+isa_ok( $toaster, 'Mail::Toaster', 'object class' );
+my $conf = $toaster->conf;
 ok( ref $conf, 'conf');
 
 # audit
-$toaster->dump_audit( quiet => 1);
-$toaster->audit("line one");
+ok( $toaster->dump_audit( quiet => 1), "dump_audit");
+ok( $toaster->audit("line one"), "audit");
 #$toaster->dump_audit();
-$toaster->audit("line two");
-$toaster->audit("line three");
-$toaster->dump_audit( quiet=>1);
+ok( $toaster->audit("line two"), "audit 2");
+ok( $toaster->audit("line three"), "audit 3");
+ok( $toaster->dump_audit( quiet=>1), "dump_audit");
+
+if ( $UID != 0 ) {
+# many of the following tests can't 'test' anything useful without root perms
+# (can't read queue, maildirs, etc.)
+    done_testing();
+    exit;
+}
 
 # check
-ok( $toaster->check( verbose => 0, test_ok=> 1 ), 'check' );
-
-if ( $UID == 0 ) {
+    ok( $toaster->check( verbose => 0, test_ok=> 1 ), 'check' );
 
 # learn_mailboxes
     if ( -d $conf->{'qmail_log_base'} ) {
@@ -53,7 +57,6 @@ if ( $UID == 0 ) {
             test_ok => 0, 
         ), 'learn_mailboxes -' );
     }
-}
 
 # maildir_clean_spam
 ok( !$toaster->maildir_clean_spam( path => '/home/domains/fake.com/user' ),
@@ -162,3 +165,6 @@ foreach ( qw/ smtpd pop3 submit / ) {
 
 # supervised_tcpserver
     # this test would fail unless on a built toaster.
+
+done_testing();
+exit;

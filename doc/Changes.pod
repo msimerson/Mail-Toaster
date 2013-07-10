@@ -1,6 +1,10 @@
 
 =head1 Mail Toaster Changes
 
+=head2 5.43 - Jul NN, 2013
+
+    minor improvements to test suite
+
 =head2 5.42 - Jul 07, 2013
 
     replace bunches of /var/log/mail with get_log_dir

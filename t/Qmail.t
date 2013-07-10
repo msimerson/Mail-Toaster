@@ -6,8 +6,7 @@ use English qw( -no_match_vars );
 use Test::More;
 
 use lib 'lib';
-
-require_ok( 'Mail::Toaster::Qmail' );
+use_ok( 'Mail::Toaster::Qmail' );
 
 my $qmail = Mail::Toaster::Qmail->new;
 isa_ok( $qmail, 'Mail::Toaster::Qmail', 'object class' );
@@ -26,15 +25,12 @@ my $control_dir = $qmail->get_control_dir;
 
 # test_each_rbl
     $r = $qmail->test_each_rbl( rbls=>$r, verbose=>0, fatal=>0 );
-    if ( $r ) {
+    if ( $r && @$r ) {
         ok( @$r[0], 'test_each_rbl');
     }
     else {
-        warn "test_each_rbl failed\n";
-        $qmail->dump_audit();
-        $qmail->dump_errors();
+        $qmail->error( "test_each_rbl failed, probably DNS failure.",fatal=>0);
     };
-
 
 # get_list_of_rbls
     $qmail->conf( {'rbl_bl.spamcop.net'=> 1} );
@@ -92,7 +88,7 @@ $qmail->dump_audit( quiet => 1 );
 # _set_checkpasswd_bin
 	# this test will only succeed on a fully installed toaster
     ok( $qmail->_set_checkpasswd_bin( prot=>"pop3" ), '_set_checkpasswd_bin' )
-        if -d $conf->{'vpopmail_home_dir'};
+        if -d $conf->{vpopmail_home_dir};
 
 
 # supervised_hostname_qmail
@@ -103,7 +99,7 @@ $qmail->dump_audit( quiet => 1 );
 
 
 # build_pop3_run
-	if ( -d $conf->{'qmail_supervise'} && -d $conf->{'vpopmail_home_dir'} ) {
+	if ( -d $conf->{qmail_supervise} && -d $conf->{vpopmail_home_dir} ) {
 
 		# only run these tests if vpopmail is installed
 		ok( $qmail->build_pop3_run(), 'build_pop3_run');

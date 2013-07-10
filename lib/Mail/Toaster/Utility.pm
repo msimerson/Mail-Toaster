@@ -1844,9 +1844,9 @@ sub mkdir_system {
 }
 
 sub path_parse {
-
+    my $self = shift;
+    my $dir = shift or die "missing dir!";
     # code left here for reference, use File::Basename instead
-    my ( $self, $dir ) = @_;
 
     # if it ends with a /, chop if off
     if ( $dir =~ q{/$} ) { chop $dir }
