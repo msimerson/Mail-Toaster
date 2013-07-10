@@ -35,4 +35,8 @@ requires:
   URI: 0
   perl: 5.008001
   version: 0
-version: 5.37
+resources:
+  bugtracker: https://github.com/msimerson/Mail-Toaster/issues
+  homepage: http://www.tnpi.net/wiki/Mail_Toaster
+  repository: git@github.com:msimerson/Mail-Toaster.git
+version: 5.42
