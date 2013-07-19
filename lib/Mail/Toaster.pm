@@ -661,7 +661,7 @@ sub service_symlinks_pop3 {
     my $self = shift;
 
     if (    $self->conf->{pop3_enable}   # legacy
-         || $self->conf->{pop3_daemon} eq 'qpop3d' ) {
+         && $self->conf->{pop3_daemon} eq 'qpop3d' ) {
         return 'pop3';
     };
     $self->service_symlinks_cleanup( 'pop3' );
