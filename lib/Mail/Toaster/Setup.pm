@@ -641,9 +641,15 @@ sub courier_startup_freebsd {
     if ( $self->conf->{pop3_daemon} eq "courier" ) {
         $self->freebsd->conf_check(
             check => "courier_imap_pop3d_enable",
-            line  => "courier_imap_pop3d_enable=\"$start\"",
+            line  => "courier_imap_pop3d_enable=\"YES\"",
         );
     }
+    else {
+        $self->freebsd->conf_check(
+            check => "courier_imap_pop3d_enable",
+            line  => "courier_imap_pop3d_enable=\"NO\"",
+        );
+    };
 };
 
 sub cronolog {
