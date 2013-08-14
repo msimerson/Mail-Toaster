@@ -3730,10 +3730,10 @@ WITH_RELAY_COUNTRY=true",
         verbose => 0,
     );
 
-    # the old port didn't install the spamd.sh file
-    # new versions install sa-spamd.sh and require the rc.conf flag
+    # the very old port didn't install a spamd.sh file
+    # new versions install sa-spamd and require the rc.conf flag
     my $start = -f "/usr/local/etc/rc.d/spamd.sh" ? "/usr/local/etc/rc.d/spamd.sh"
-                : -f "/usr/local/etc/rc.d/spamd"    ? "/usr/local/etc/rc.d/spamd"
+                : -f "/usr/local/etc/rc.d/spamd"  ? "/usr/local/etc/rc.d/spamd"
                 : "/usr/local/etc/rc.d/sa-spamd";   # current location, 9/23/06
 
     my $flags = $self->conf->{install_spamassassin_flags};
