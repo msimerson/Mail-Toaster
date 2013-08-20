@@ -1058,7 +1058,7 @@ sub supervised_tcpserver {
         }
     }
     $exec .= "-c$maxcon " if $maxcon != 40;
-    $exec .= "-t$self->conf->{$prot.'_dns_lookup_timeout'} "
+    $exec .= '-t' . $self->conf->{$prot.'_dns_lookup_timeout'} . ' '
       if $self->conf->{ $prot . '_dns_lookup_timeout' } != 26;
 
     $exec .= $self->supervised_tcpserver_cdb( $prot );
