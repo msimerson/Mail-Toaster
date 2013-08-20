@@ -2089,6 +2089,7 @@ sub lighttpd {
 sub lighttpd_freebsd {
     my $self = shift;
 
+# installing manually overrides the dialogs
     $self->freebsd->install_port( 'm4',
         options => "# this file installed by mail-toaster
 # Options for m4-1.4.16_1,1
@@ -2840,8 +2841,13 @@ daily_status_mail_rejects_logs=3                        # How many logs to check
 sub php {
     my $self = shift;
 
+    if ( ! $self->conf->{install_squirrelmail} && ! $self->conf->{install_roundcube} ) {
+        $self->audit("skipping PHP install");
+        return;
+    };
+
     if ( $OSNAME eq 'freebsd' ) {
-        return $self->php_freebsd();
+        return $self->php_freebsd;
     };
 
     my $php = $self->util->find_bin('php',fatal=>0);
