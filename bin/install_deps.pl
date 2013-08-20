@@ -118,11 +118,12 @@ sub get_perl_modules_from_ini {
             next;
         };
         next if ! $in;
-        print "line: $line\n";
+#       print "line: $line\n";
+        next if ';' eq substr($line,0,1); # comment
         last if '[' eq substr($line,0,1);  # [...] starts a new section
         my ($mod,$ver) = split /\s*=\s*/, $line;
         $mod =~ s/\s*//g;   # remove whitespace
-        next if ! $mod;
+        next if ! $mod || ! defined $ver;
         push @modules, name_overrides($mod);
         print "module: $mod\n";
     }
@@ -397,3 +398,6 @@ sub name_overrides {
     return $match if $match;
     return { module=>$mod, info => { } };
 };
+
+# PODNAME: install_deps.pl
+# ABSTRACT: install dependencies with package manager or CPAN
