@@ -118,7 +118,7 @@ WriteMakefile(
         resources => {
             bugtracker => 'https://github.com/msimerson/Mail-Toaster/issues',
             homepage   => 'http://www.tnpi.net/wiki/Mail_Toaster',
-            repository => 'git@github.com:msimerson/Mail-Toaster.git',
+            repository => 'git://github.com/msimerson/Mail-Toaster.git',
         },
     },
     'MIN_PERL_VERSION' => 5.008001,
