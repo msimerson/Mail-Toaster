@@ -113,8 +113,10 @@ README
 sysadmin.conf-dist
 t/00.load.t
 t/01-syntax.t
+t/05-Toaster.t
+t/06.Toaster.Base.t
+t/15.Setup.t
 t/Apache.t
-t/Base.t
 t/Darwin.t
 t/DNS.t
 t/Ezmlm.t
@@ -124,10 +126,8 @@ t/maillogs.t
 t/Mysql.t
 t/Qmail.t
 t/qqtool.t
-t/Setup.t
 t/Setup.Test.t
 t/toaster-watcher.t
-t/Toaster.t
 t/toaster_setup.t
 t/Utility.t
 toaster-watcher.conf-dist
