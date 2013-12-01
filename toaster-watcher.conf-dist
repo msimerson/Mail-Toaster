@@ -485,6 +485,7 @@ simscan_block_types                = exe,com,vbs,lnk,scr,wsh,hta,pif
 simscan_received                   = 0       # add the Received: by simscan header
 simscan_custom_smtp_reject         = 1       # does qmail have the custom smtp reject patch?
 simscan_regex_scanner              = 0       #
+simscan_debug                      = 0
 
 
 #######################################
