@@ -3,7 +3,7 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.42';
+our $VERSION = '5.43';
 
 use Carp;
 use Cwd;
@@ -387,17 +387,21 @@ sub get_daemons {
 
     my @list = qw/ send pop3 /;
     push @list, 'vpopmaild' if $self->conf->{vpopmail_daemon};
+    push @list, 'qmail-deliverable' if $self->conf->{install_qmail_deliverable};
 
-    if ( $self->conf->{smtpd_daemon} && 'qpsmtpd' eq $self->conf->{smtpd_daemon} ) {
-        push @list, 'qmail-deliverable', 'qpsmtpd';
+    my $smtpd = $self->conf->{smtpd_daemon};
+    if ( $smtpd && 'qpsmtpd' eq $smtpd ) {
+        push @list, 'qpsmtpd';
     }
     else {
         push @list, 'smtp';
     };
 
-    if ( ! $self->conf->{submit_daemon} || 'qmail' eq $self->conf->{submit_daemon} ) {
-        push @list, 'submit';
-    };
+    if ( $self->conf->{submit_enable} ) {
+        if ( ! $self->conf->{submit_daemon} || 'qmail' eq $self->conf->{submit_daemon} ) {
+            push @list, 'submit';
+        };
+    }
 
     return @list;
 };
