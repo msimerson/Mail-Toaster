@@ -155,6 +155,7 @@ install_razor                      = port    # 0, port, ver
 install_bogofilter                 = 0
 install_dcc                        = 0
 install_ripmime                    = port    # 0, port, ver
+install_qmail_deliverable          = 1
 
 filtering_method                   = tcpserver  # smtp | tcpserver  # see docs for details
 filtering_spamassassin_method      = site       # site | user | domain
@@ -485,6 +486,7 @@ simscan_block_types                = exe,com,vbs,lnk,scr,wsh,hta,pif
 simscan_received                   = 0       # add the Received: by simscan header
 simscan_custom_smtp_reject         = 1       # does qmail have the custom smtp reject patch?
 simscan_regex_scanner              = 0       #
+simscan_debug                      = 0
 
 
 #######################################

@@ -87,6 +87,7 @@ sub build_smtp_run {
 
     my @smtp_run_cmd = $self->toaster->supervised_do_not_edit_notice(1);
     push @smtp_run_cmd, $self->smtp_set_qmailqueue();
+    push @smtp_run_cmd, $self->smtp_get_simenv();
 
     $self->get_control_dir or return; # verify control directory exists
     $self->get_supervise_dir or return;
@@ -1868,6 +1869,18 @@ sub send_stop {
     return 1;
 }
 
+sub smtp_get_simenv {
+    my $self = shift;
+
+    if ( $self->conf->{'simscan_debug'} ) {
+        $self->audit( "setting SIMSCAN_DEBUG");
+        return "SIMSCAN_DEBUG=1
+export SIMSCAN_DEBUG\n\n";
+    };
+
+    return '';
+};
+
 sub smtp_auth_enable {
     my $self = shift;
 
@@ -1898,7 +1911,7 @@ sub smtp_set_qmailqueue {
 
     if ( $self->conf->{'filtering_method'} ne "smtp" ) {
         $self->audit( "filtering_method != smtp, not setting QMAILQUEUE.");
-        return "";
+        return '';
     }
 
     # typically this will be simscan, qmail-scanner, or qmail-queue
@@ -1923,7 +1936,7 @@ You will continue to get this notice every 5 minutes until you fix this.\n";
 
     $self->audit( "  using $queue for QMAILQUEUE");
 
-    return "QMAILQUEUE=\"$queue\"\nexport QMAILQUEUE\n";
+    return "QMAILQUEUE=\"$queue\"\nexport QMAILQUEUE\n\n";
 }
 
 sub smtp_set_rbls {

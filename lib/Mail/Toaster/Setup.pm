@@ -862,6 +862,7 @@ sub dependencies {
     $self->util->install_module( "Date::Format", port => "p5-TimeDate");
     $self->util->install_module( "Date::Parse" );
     $self->util->install_module( "Mail::Send",  port => "p5-Mail-Tools");
+    $self->util->install_module( "Qmail::Deliverable") if $self->conf->{install_qmail_deliverable};
 
     if ( ! -x "$qmaildir/bin/qmail-queue" ) {
         $self->conf->{qmail_chk_usr_patch} = 0;
