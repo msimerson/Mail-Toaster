@@ -1,24 +1,5 @@
 #!/usr/bin/perl
-
-# v1.7 - 2013-04-20  - Matt
-#      - get list of modules from Makefile.PL or dist.ini
-#      - abstracted yum and apt into subs
-#
-# v1.6 - 2013-04-01  - Matt
-#      - improved error reporting for FreeBSD port installs
-#
-# v1.5 - 2013-03-27  - Matt
-#      - added option to specify port category
-#
-# v1.4 - 2012-10-23  - Matt
-#      - improved yum & apt-get module installer
-#
-# v1.3 - 2012-10-23  - Matt
-#      - added apt-get support
-#      - added app install support
-#
-# circa 2008, by Matt Simerson & Phil Nadeau
-#      - based on installer in Mail::Toaster dating back to the 20th century
+# VERSION 1.10
 
 use strict;
 use warnings;
@@ -27,38 +8,32 @@ use CPAN;
 use English qw( -no_match_vars );
 
 my $apps = [
-#   { app => 'expat'         , info => { port => 'expat2',         dport=>'expat2' } },
-#   { app => 'gettext'       , info => { port => 'gettext',        dport=>'gettext'} },
-#   { app => 'gmake'         , info => { port => 'gmake',          dport=>'gmake'  } },
 #   { app => 'mysql-server-5', info => { port => 'mysql50-server', dport=>'mysql5',  yum =>'mysql-server'} },
 #   { app => 'apache22'      , info => { port => 'apache22',       dport=>'',     yum => 'httpd' } },
-#   { app => 'mod_perl2'     , info => { port => 'mod_perl2',      dport=>'',     yum => 'mod_perl' } },
-#   { app => 'rsync'         , info => { }, },
 ];
 
-$EUID == 0 or die "You will have better luck if you run me as root.\n";
+$EUID == 0 or die "You will have better luck if you run me as root.\n"; ## no critic (Carp)
 
 my @failed;
 foreach ( @$apps ) {
-    my $name = $_->{app} or die 'missing app name';
+    my $name = $_->{app} or die 'missing app name'; ## no critic (Carp)
     install_app( $name, $_->{info} );
 };
 
 foreach ( get_perl_modules() ) {
 #print Dumper($_);
-    my $module = $_->{module} or die 'missing module name';
+    my $module = $_->{module} or die 'missing module name'; ## no critic (Carp)
+    next if $module eq 'perl';
     my $info   = $_->{info};
     my $version = $info->{version} || '';
     print "checking for $module $version\n";
 
-## no critic
-    eval "use $module $version";
+    eval "use $module $version"; ## no critic (Eval)
     next if ! $EVAL_ERROR;
     next if $info->{ships_with} && $info->{ships_with} eq 'perl';
 
     install_module( $module, $info, $version );
-    eval "use $module $version";
-## use critic
+    eval "use $module $version"; ## no critic (Eval)
     if ($EVAL_ERROR) {
         push @failed, $module;
     }
@@ -79,16 +54,16 @@ sub get_perl_modules {
     if ( -f 'Makefile.PL' ) {
         return get_perl_modules_from_Makefile_PL();
     };
-    die "unable to find module list. Run this script in the dist dir\n";
+    die "unable to find module list. Run this script in the dist dir\n"; ## no critic (Carp)
 };
 
 sub get_perl_modules_from_Makefile_PL {
-    my $fh = new IO::File 'Makefile.PL', 'r'
-        or die "unable to read Makefile.PL\n";
+    my $fh = IO::File->new( 'Makefile.PL', 'r' )
+        or die "unable to read Makefile.PL\n"; ## no critic (Carp)
 
     my $in = 0;
     my @modules;
-    foreach my $line ( <$fh> ) {
+    while ( my $line = <$fh> ) {
         if ( $line =~ /PREREQ_PM/ ) {
             $in++;
             next;
@@ -97,7 +72,7 @@ sub get_perl_modules_from_Makefile_PL {
         last if $line =~ /}/;
         next if $line !~ /=/;  # no = char means not a module
         my ($mod,$ver) = split /\s*=\s*/, $line;
-        $mod =~ s/[\s'"\#]*//g;   # remove whitespace and quotes
+        $mod =~ s/[\s'"\#]*//xg; # strip whitespace & quotes ## no critic (Regex)
         next if ! $mod;
         push @modules, name_overrides($mod);
 #print "module: .$mod.\n";
@@ -107,12 +82,12 @@ sub get_perl_modules_from_Makefile_PL {
 };
 
 sub get_perl_modules_from_ini {
-    my $fh = new IO::File 'dist.ini', 'r'
-        or die "unable to read dist.ini\n";
+    my $fh = IO::File->new( 'dist.ini', 'r' )
+        or die "unable to read dist.ini\n"; ## no critic (Carp)
 
     my $in = 0;
     my @modules;
-    foreach my $line ( <$fh> ) {
+    while ( my $line = <$fh> ) {
         if ( '[Prereqs]' eq substr($line,0,9) ) {
             $in++;
             next;
@@ -120,9 +95,9 @@ sub get_perl_modules_from_ini {
         next if ! $in;
 #       print "line: $line\n";
         next if ';' eq substr($line,0,1); # comment
-        last if '[' eq substr($line,0,1);  # [...] starts a new section
+        last if '[' eq substr($line,0,1); # [...] starts a new section
         my ($mod,$ver) = split /\s*=\s*/, $line;
-        $mod =~ s/\s*//g;   # remove whitespace
+        $mod =~ s/\s*//g;                 # remove whitespace
         next if ! $mod || ! defined $ver;
         push @modules, name_overrides($mod);
         print "module: $mod\n";
@@ -133,18 +108,18 @@ sub get_perl_modules_from_ini {
 };
 
 sub install_app {
-    my ( $app, $info) = @_;
+    my ( $app, $info ) = @_;
 
     if ( lc($OSNAME) eq 'darwin' ) {
-        install_app_darwin($app, $info );
+        install_app_darwin( $app, $info );
     }
     elsif ( lc($OSNAME) eq 'freebsd' ) {
-        install_app_freebsd($app, $info );
+        install_app_freebsd( $app, $info );
     }
     elsif ( lc($OSNAME) eq 'linux' ) {
         install_app_linux( $app, $info );
     };
-
+    return;
 };
 
 sub install_app_darwin {
@@ -158,32 +133,39 @@ sub install_app_darwin {
     }
 
     system "/opt/local/bin/port install $port"
-        and warn "install failed for Darwin port $port";
+        and warn "install failed for Darwin port $port"; ## no critic (Carp)
+    return;
 }
 
 sub install_app_freebsd {
     my ($app, $info ) = @_;
 
     print " from ports...";
-    my $name = $info->{port} || $app;
 
-    if ( `/usr/sbin/pkg_info | /usr/bin/grep $name` ) {
-        return print "$app is installed.\n";
+    if ( -x '/usr/sbin/pkg_info' ) {
+        if ( `/usr/sbin/pkg_info | /usr/bin/grep $app` ) { ## no critic (Backtick)
+            return print "$app is installed.\n";
+        };
     }
-    elsif( `/usr/sbin/pkg info | /usr/bin/grep $name` ) {
-        return print "$app is installed.\n";
+    if ( -x '/usr/sbin/pkg') {
+        if ( `/usr/sbin/pkg info -x $app` ) {  ## no critic (Backtick)
+            return print "$app is installed.\n";
+        }
     }
 
     print "installing $app";
 
+    my $name = $info->{port} || $app;
     my $category = $info->{category} || '*';
-    my ($portdir) = glob "/usr/ports/$category/$name";
+    my ($portdir) = glob "/usr/ports/$category/$name"; ## no critic (Backtick)
 
     if ( $portdir && -d $portdir ) {
         print " from ports ($portdir)\n";
-        system "make -C $portdir install clean"
-            and warn "'make install clean' failed for port $app\n";
+        system "make -C $portdir install clean" and do {
+            warn "'make install clean' failed for port $app\n"; ## no critic (Carp)
+        };
     };
+    return;
 };
 
 sub install_app_linux {
@@ -198,8 +180,9 @@ sub install_app_linux {
         system "/usr/bin/apt-get -y install $package";
     }
     else {
-        warn "no Linux package manager detected\n";
+        warn "no Linux package manager detected\n"; ## no critic (Carp)
     };
+    return;
 };
 
 
@@ -217,12 +200,11 @@ sub install_module {
         install_module_linux( $module, $info, $version);
     };
 
-## no critic
-    eval "require $module";
-## use critic
+    eval "require $module" or print ''; ## no critic (Stringy)
     return 1 if ! $EVAL_ERROR;
 
     install_module_cpan($module, $version);
+    return;
 };
 
 sub install_module_cpan {
@@ -233,22 +215,21 @@ sub install_module_cpan {
     sleep 1;
 
     # this causes problems when CPAN is not configured.
-    #$ENV{PERL_MM_USE_DEFAULT} = 1;       # supress CPAN prompts
+    #local $ENV{PERL_MM_USE_DEFAULT} = 1; # supress CPAN prompts
 
-    $ENV{FTP_PASSIVE} = 1;        # for FTP behind NAT/firewalls
+    local $ENV{FTP_PASSIVE} = 1;          # for FTP behind NAT/firewalls
 
     # some Linux distros break CPAN by auto/preconfiguring it with no URL mirrors.
     # this works around that annoying little habit
-    no warnings;
-    $CPAN::Config = get_cpan_config();
-    use warnings;
+    $CPAN::Config = get_cpan_config(); ## no critic (PackageVars)
 
     # a hack to grab the latest version on CPAN before its hits the mirrors
     if ( $module eq 'Provision::Unix' && $version ) {
         $module =~ s/\:\:/\-/g;
         $module = "M/MS/MSIMERSON/$module-$version.tar.gz";
     }
-    CPAN::Shell->install($module);
+    CPAN::Shell->install($module);  ## no critic (PackageVars)
+    return;
 }
 
 sub install_module_darwin {
@@ -263,7 +244,8 @@ sub install_module_darwin {
     my $port = "p5-$module";
     $port =~ s/::/-/g;
     system "$dport install $port"
-        and warn "install failed for Darwin port $module";
+        and warn "install failed for Darwin port $module"; ## no critic (Carp)
+    return;
 }
 
 sub install_module_freebsd {
@@ -275,11 +257,15 @@ sub install_module_freebsd {
 
     print " from ports...$portname...";
 
-    if ( `/usr/sbin/pkg_info | /usr/bin/grep $portname` ) {
-        return print "$module is installed.\n";
+    if ( -x '/usr/sbin/pkg_info' ) {
+        if ( `/usr/sbin/pkg_info | /usr/bin/grep $portname` ) { ## no critic (Backtick)
+            return print "$module is installed.\n";
+        }
     }
-    elsif( `/usr/sbin/pkg info | /usr/bin/grep $portname` ) {
-        return print "$module is installed.\n";
+    if ( -x '/usr/sbin/pkg' ) {
+        if ( `/usr/sbin/pkg info -x $portname` ) { ## no critic (Backtick)
+            return print "$module is installed.\n";
+        }
     }
 
     print "installing $module ...";
@@ -288,26 +274,28 @@ sub install_module_freebsd {
     my ($portdir) = glob "/usr/ports/$category/$portname";
 
     if ( ! $portdir || ! -d $portdir ) {
-        print "oops, no match at /usr/ports/$category/$portname\n";
+        print "no match at /usr/ports/$category/$portname\n";
         return;
     };
 
     print " from ports ($portdir)\n";
     system "make -C $portdir install clean"
-        and warn "'make install clean' failed for port $module\n";
+        and warn "'make install clean' failed for port $module\n"; ## no critic (Carp)
+    return;
 }
 
 sub install_module_linux {
     my ($module, $info, $version) = @_;
 
     my $package;
-    if ( -x '/usr/bin/yum' ) {
+    if ( -x '/usr/bin/yum' ) { ## no critic (Backtick)
         return install_module_linux_yum($module, $info);
     }
-    elsif ( -x '/usr/bin/apt-get' ) {
+    elsif ( -x '/usr/bin/apt-get' ) { ## no critic (Backtick)
         return install_module_linux_apt($module, $info);
     }
-    warn "no Linux package manager detected\n";
+    warn "no Linux package manager detected\n"; ## no critic (Carp)
+    return;
 };
 
 sub install_module_linux_yum {
@@ -321,6 +309,7 @@ sub install_module_linux_yum {
         $package =~ s/::/-/g;
     };
     system "/usr/bin/yum -y install $package";
+    return;
 };
 
 sub install_module_linux_apt {
@@ -334,16 +323,17 @@ sub install_module_linux_apt {
         $package =~ s/::/-/g;
     };
     system "/usr/bin/apt-get -y install $package";
+    return;
 };
 
 sub get_cpan_config {
 
-    my $ftp = `which ftp`; chomp $ftp;
-    my $gzip = `which gzip`; chomp $gzip;
-    my $unzip = `which unzip`; chomp $unzip;
-    my $tar  = `which tar`; chomp $tar;
-    my $make = `which make`; chomp $make;
-    my $wget = `which wget`; chomp $wget;
+    my $ftp = `which ftp`; chomp $ftp;  ## no critic (Backtick)
+    my $gzip = `which gzip`; chomp $gzip; ## no critic (Backtick)
+    my $unzip = `which unzip`; chomp $unzip; ## no critic (Backtick)
+    my $tar  = `which tar`; chomp $tar; ## no critic (Backtick)
+    my $make = `which make`; chomp $make; ## no critic (Backtick)
+    my $wget = `which wget`; chomp $wget; ## no critic (Backtick)
 
     return
 {
@@ -389,7 +379,7 @@ sub name_overrides {
 # couple rules. When that doesn't work, add entries here for FreeBSD (port),
 # MacPorts ($dport), yum, and apt.
     my @modules = (
-        { module=>'LWP::UserAgent', info => { cat=>'www', port=>'p5-libwww', dport=>'p5-libwww-perl' }, },
+        { module=>'LWP::UserAgent', info => { cat=>'www', port=>'libwww', dport=>'p5-libwww-perl', yum=>'perl-libwww-perl' }, },
         { module=>'Mail::Send'    , info => { port => 'Mail::Tools', }  },
         { module=>'Date::Parse'   , info => { port => 'TimeDate',    }  },
         { module=>'LWP'           , info => { port => 'libwww',      }  },
