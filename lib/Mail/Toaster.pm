@@ -3,7 +3,7 @@ package Mail::Toaster;
 use strict;
 use warnings;
 
-our $VERSION = '5.43';
+our $VERSION = '5.44';
 
 use Carp;
 use Cwd;

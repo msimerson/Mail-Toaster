@@ -1,6 +1,15 @@
 
 =head1 Mail Toaster Changes
 
+=head2 5.44 - Apr 20, 2014
+    speed up dspam training
+    added supervise support for qpsmtpd
+    added support for unusual (intl) file name characters
+    correct detection of pop3 daemon
+    updated install_deps.pl
+    added simscan debug option in tw.conf
+    added qmail-deliverable setting and build support
+
 =head2 5.43 - Jul NN, 2013
 
     minor improvements to test suite
