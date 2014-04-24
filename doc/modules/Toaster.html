@@ -4,395 +4,405 @@
 <head>
 <title>Mail::Toaster</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
+<link rev="made" href="mailto:matt@rmbp.local" />
 </head>
 
 <body style="background-color: white">
 
 
-<!-- INDEX BEGIN -->
-<div name="index">
-<p><a name="__index__"></a></p>
 
-<ul>
-
-	<li><a href="#name">NAME</a></li>
-	<li><a href="#synopsis">SYNOPSIS</a></li>
-	<li><a href="#usage">USAGE</a></li>
-	<li><a href="#description">DESCRIPTION</a></li>
-	<li><a href="#subroutines">SUBROUTINES</a></li>
-	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#diagnostics">DIAGNOSTICS</a></li>
-	<li><a href="#configuration_and_environment">CONFIGURATION AND ENVIRONMENT</a></li>
-	<li><a href="#dependencies">DEPENDENCIES</a></li>
-	<li><a href="#bugs_and_limitations">BUGS AND LIMITATIONS</a></li>
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#copyright_and_licence">COPYRIGHT AND LICENCE</a></li>
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#USAGE">USAGE</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#SUBROUTINES">SUBROUTINES</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#DIAGNOSTICS">DIAGNOSTICS</a></li>
+  <li><a href="#CONFIGURATION-AND-ENVIRONMENT">CONFIGURATION AND ENVIRONMENT</a></li>
+  <li><a href="#DEPENDENCIES">DEPENDENCIES</a></li>
+  <li><a href="#BUGS-AND-LIMITATIONS">BUGS AND LIMITATIONS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENCE">COPYRIGHT AND LICENCE</a></li>
 </ul>
 
-<hr name="index" />
-</div>
-<!-- INDEX END -->
+<h1 id="NAME">NAME</h1>
 
-<p>
-</p>
-<h1><a name="name">NAME</a></h1>
 <p>Mail::Toaster - a fast, secure, full-featured mail server.</p>
-<p>
-</p>
-<hr />
-<h1><a name="synopsis">SYNOPSIS</a></h1>
-<pre>
-    functions used in: toaster-watcher.pl
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    functions used in: toaster-watcher.pl
                        toaster_setup.pl
-                       qqtool.pl</pre>
-<p>To expose much of what can be done with these, run toaster_setup.pl -s help and you'll get a list of the available targets.</p>
+                       qqtool.pl</code></pre>
+
+<p>To expose much of what can be done with these, run toaster_setup.pl -s help and you&#39;ll get a list of the available targets.</p>
+
 <p>The functions in Mail::Toaster.pm are used by toaster-watcher.pl (which is run every 5 minutes via cron), as well as in toaster_setup.pl and other functions, particularly those in Qmail.pm and mailadmin.</p>
-<p>
-</p>
-<hr />
-<h1><a name="usage">USAGE</a></h1>
-<pre>
-    use Mail::Toaster;
-    my $toaster = Mail::Toaster-&gt;new;</pre>
-<pre>
+
+<h1 id="USAGE">USAGE</h1>
+
+<pre><code>    use Mail::Toaster;
+    my $toaster = Mail::Toaster-&gt;new;
+
     # verify that processes are all running and complain if not
-    $toaster-&gt;check();</pre>
-<pre>
+    $toaster-&gt;check();
+
     # get a list of all maildirs on the system
-    my @all_maildirs = $toaster-&gt;get_maildir_paths();</pre>
-<pre>
+    my @all_maildirs = $toaster-&gt;get_maildir_paths();
+
     # clean up old messages over X days old
-    $toaster-&gt;clean_mailboxes();</pre>
-<pre>
+    $toaster-&gt;clean_mailboxes();
+
     # clean up messages in Trash folders that exceed X days
     foreach my $maildir ( @all_maildirs ) {
         $toaster-&gt;maildir_clean_trash( $maildir );
-    };</pre>
-<p>These functions can all be called indivually, see the working
-examples in the aforementioned scripts or the t/Toaster.t file.</p>
-<p>
-</p>
-<hr />
-<h1><a name="description">DESCRIPTION</a></h1>
-<p>Mail::Toaster, Everything you need to build a industrial strength mail system.</p>
-<p>A collection of perl scripts and modules that are quite useful for building and maintaining a mail system. It was first authored for FreeBSD and has since been extended to Mac OS X, and Linux. It has become quite useful on other platforms and may grow to support other MTA's (think postfix) in the future.</p>
-<p>
-</p>
-<hr />
-<h1><a name="subroutines">SUBROUTINES</a></h1>
-<p>A separate section listing the public components of the module's interface.
-These normally consist of either subroutines that may be exported, or methods
-that may be called on objects belonging to the classes that the module provides.
-Name the section accordingly.</p>
-<p>In an object-oriented module, this section should begin with a sentence of the
-form &quot;An object of this class represents...&quot;, to give the reader a high-level
-context to help them understand the methods that are subsequently described.</p>
-<dl>
-<dt><strong><a name="new" class="item">new</a></strong></dt>
+    };</code></pre>
 
+<p>These functions can all be called indivually, see the working examples in the aforementioned scripts or the t/Toaster.t file.</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Mail::Toaster, Everything you need to build a industrial strength mail system.</p>
+
+<p>A collection of perl scripts and modules that are quite useful for building and maintaining a mail system. It was first authored for FreeBSD and has since been extended to Mac OS X, and Linux. It has become quite useful on other platforms and may grow to support other MTA&#39;s (think postfix) in the future.</p>
+
+<h1 id="SUBROUTINES">SUBROUTINES</h1>
+
+<p>A separate section listing the public components of the module&#39;s interface. These normally consist of either subroutines that may be exported, or methods that may be called on objects belonging to the classes that the module provides. Name the section accordingly.</p>
+
+<p>In an object-oriented module, this section should begin with a sentence of the form &quot;An object of this class represents...&quot;, to give the reader a high-level context to help them understand the methods that are subsequently described.</p>
+
+<dl>
+
+<dt id="new">new</dt>
 <dd>
-<pre>
-  ############################################
+
+<pre><code>  ############################################
   # Usage      : use Mail::Toaster;
   #            : my $toaster = Mail::Toaster-&gt;new;
   # Purpose    : create a new Mail::Toaster object
   # Returns    : an object to access Mail::Toaster functions
   # Parameters : none
-  # Throws     : no exceptions</pre>
-</dd>
-<dt><strong><a name="check" class="item">check</a></strong></dt>
+  # Throws     : no exceptions</code></pre>
 
+</dd>
+<dt id="check">check</dt>
 <dd>
-<pre>
-  ############################################
+
+<pre><code>  ############################################
   # Usage      : $toaster-&gt;check();
   # Purpose    : Runs a series of tests to inform admins of server problems
   # Returns    : prints out a series of test failures
   # Throws     : no exceptions
   # See Also   : toaster-watcher.pl
-  # Comments   :</pre>
+  # Comments   :</code></pre>
+
 <p>Performs the following tests:</p>
-<pre>
-   * check for processes that should be running.
+
+<pre><code>   * check for processes that should be running.
    * make sure watcher.log is less than 1MB
    * make sure ~alias/.qmail-* exist and are not empty
-   * verify multilog log directories are working</pre>
-<p>When this is run by toaster-watcher.pl via cron, the mail server admin will get notified via email any time one of the tests fails. Otherwise, there is no output generated.</p>
-</dd>
-<dt><strong><a name="learn_mailboxes" class="item">learn_mailboxes</a></strong></dt>
+   * verify multilog log directories are working</code></pre>
 
+<p>When this is run by toaster-watcher.pl via cron, the mail server admin will get notified via email any time one of the tests fails. Otherwise, there is no output generated.</p>
+
+</dd>
+<dt id="learn_mailboxes">learn_mailboxes</dt>
 <dd>
-<pre>
-  ############################################
+
+<pre><code>  ############################################
   # Usage      : $toaster-&gt;learn_mailboxes();
   # Purpose    : train SpamAssassin bayesian filters with your ham &amp; spam
   # Returns    : 0 - failure, 1 - success
   # See Also   : n/a
-  # Comments   :</pre>
-<p>Powers an easy to use mechanism for training SpamAssassin on what you think is ham versus spam. It does this by trawling through a mail system, finding mail messages that have arrived since the last time it ran. It passes these messages through sa-learn with the appropriate flags (sa-learn --ham|--spam) to train its bayesian filters.</p>
-</dd>
-<dt><strong><a name="clean_mailboxes" class="item">clean_mailboxes</a></strong></dt>
+  # Comments   :</code></pre>
 
+<p>Powers an easy to use mechanism for training SpamAssassin on what you think is ham versus spam. It does this by trawling through a mail system, finding mail messages that have arrived since the last time it ran. It passes these messages through sa-learn with the appropriate flags (sa-learn --ham|--spam) to train its bayesian filters.</p>
+
+</dd>
+<dt id="clean_mailboxes">clean_mailboxes</dt>
 <dd>
-<pre>
-  ############# clean_mailboxes ##############
+
+<pre><code>  ############# clean_mailboxes ##############
   # Usage      : $toaster-&gt;clean_mailboxes();
   # Purpose    : cleaning out old mail messages from user mailboxes
   # Returns    : 0 - failure, 1 - success
   # See Also   : n/a
-  # Comments   :</pre>
+  # Comments   :</code></pre>
+
 <p>This sub trawls through the mail system pruning all messages that exceed the threshholds defined in toaster-watcher.conf.</p>
+
 <p>Peter Brezny suggests adding another option which is good. Set a window during which the cleaning script can run so that it is not running during the highest load times.</p>
-</dd>
-<dt><strong><a name="get_toaster_cgibin" class="item">get_toaster_cgibin</a></strong></dt>
 
+</dd>
+<dt id="get_toaster_cgibin">get_toaster_cgibin</dt>
 <dd>
+
 <p>Determine the location of the cgi-bin directory used for email applications.</p>
-</dd>
-<dt><strong><a name="get_log_dir" class="item">get_log_dir</a></strong></dt>
 
+</dd>
+<dt id="get_log_dir">get_log_dir</dt>
 <dd>
+
 <p>Determine where log files are stored.</p>
-</dd>
-<dt><strong><a name="get_toaster_htdocs" class="item">get_toaster_htdocs</a></strong></dt>
 
+</dd>
+<dt id="get_toaster_htdocs">get_toaster_htdocs</dt>
 <dd>
+
 <p>Determine the location of the htdocs directory used for email applications.</p>
-</dd>
-<dt><strong><a name="maildir_clean_spam" class="item">maildir_clean_spam</a></strong></dt>
 
+</dd>
+<dt id="maildir_clean_spam">maildir_clean_spam</dt>
 <dd>
-<pre>
-  ########### maildir_clean_spam #############
-  # Usage      : $toaster-&gt;maildir_clean_spam( '/domains/example.com/user' );
+
+<pre><code>  ########### maildir_clean_spam #############
+  # Usage      : $toaster-&gt;maildir_clean_spam( &#39;/domains/example.com/user&#39; );
   # Purpose    : Removes spam that exceeds age as defined in t-w.conf.
   # Returns    : 0 - failure, 1 - success
-  # Parameters : path - path to a maildir</pre>
-<p>results in the Spam folder of a maildir with messages older than X days removed.</p>
-</dd>
-<dt><strong><a name="get_maildir_paths" class="item">get_maildir_paths</a></strong></dt>
+  # Parameters : path - path to a maildir</code></pre>
 
+<p>results in the Spam folder of a maildir with messages older than X days removed.</p>
+
+</dd>
+<dt id="get_maildir_paths">get_maildir_paths</dt>
 <dd>
-<pre>
-  ############################################
+
+<pre><code>  ############################################
   # Usage      : $toaster-&gt;get_maildir_paths()
   # Purpose    : build a list of email dirs to perform actions upon
   # Returns    : an array listing every maildir on a Mail::Toaster
-  # Throws     : exception on failure, or 0 if fatal=&gt;0</pre>
-<p>This sub creates a list of all the domains on a Mail::Toaster, and then creates a list of every email box (maildir) on every domain, thus generating a list of every mailbox on the system.</p>
-</dd>
-<dt><strong><a name="maildir_clean_trash" class="item">maildir_clean_trash</a></strong></dt>
+  # Throws     : exception on failure, or 0 if fatal=&gt;0</code></pre>
 
+<p>This sub creates a list of all the domains on a Mail::Toaster, and then creates a list of every email box (maildir) on every domain, thus generating a list of every mailbox on the system.</p>
+
+</dd>
+<dt id="maildir_clean_trash">maildir_clean_trash</dt>
 <dd>
-<pre>
-  ############################################
-  # Usage      : $toaster-&gt;maildir_clean_trash( '/domains/example.com/user' );
+
+<pre><code>  ############################################
+  # Usage      : $toaster-&gt;maildir_clean_trash( &#39;/domains/example.com/user&#39; );
   # Purpose    : expire old messages in Trash folders
   # Returns    : 0 - failure, 1 - success
   # Results    : a Trash folder with messages older than X days pruned
   # Parameters : path - path to a maildir
-  # Throws     : no exceptions</pre>
-<p>Comments: Removes messages in .Trash folders that exceed the number of days defined in toaster-watcher.conf.</p>
-</dd>
-<dt><strong><a name="maildir_clean_sent" class="item">maildir_clean_sent</a></strong></dt>
+  # Throws     : no exceptions</code></pre>
 
+<p>Comments: Removes messages in .Trash folders that exceed the number of days defined in toaster-watcher.conf.</p>
+
+</dd>
+<dt id="maildir_clean_sent">maildir_clean_sent</dt>
 <dd>
-<pre>
-  ############################################
-  # Usage      : $toaster-&gt;maildir_clean_sent( '/domains/example.com/user' );
+
+<pre><code>  ############################################
+  # Usage      : $toaster-&gt;maildir_clean_sent( &#39;/domains/example.com/user&#39; );
   # Purpose    : expire old messages in Sent folders
   # Returns    : 0 - failure, 1 - success
   # Results    : messages over X days in Sent folders are deleted
   # Parameters : path - path to a maildir
-  # Throws     : no exceptions</pre>
-</dd>
-<dt><strong><a name="maildir_clean_new" class="item">maildir_clean_new</a></strong></dt>
+  # Throws     : no exceptions</code></pre>
 
+</dd>
+<dt id="maildir_clean_new">maildir_clean_new</dt>
 <dd>
-<pre>
-  ############ maildir_clean_new #############
-  # Usage      : $toaster-&gt;maildir_clean_new( '/domains/example.com/user' );
+
+<pre><code>  ############ maildir_clean_new #############
+  # Usage      : $toaster-&gt;maildir_clean_new( &#39;/domains/example.com/user&#39; );
   # Purpose    : expire unread messages older than X days
   # Returns    : 0 - failure, 1 - success
   # Parameters : path - path to a maildir
-  # Throws     : no exceptions</pre>
-<pre>
-  This should be set to a large value, such as 180 or 365. Odds are, if a user hasn't read their messages in that amount of time, they never will so we should clean them out.</pre>
-</dd>
-<dt><strong><a name="maildir_clean_ham" class="item">maildir_clean_ham</a></strong></dt>
+  # Throws     : no exceptions
 
+  This should be set to a large value, such as 180 or 365. Odds are, if a user hasn&#39;t read their messages in that amount of time, they never will so we should clean them out.</code></pre>
+
+</dd>
+<dt id="maildir_clean_ham">maildir_clean_ham</dt>
 <dd>
-<pre>
-  ############################################
-  # Usage      : $toaster-&gt;maildir_clean_ham( '/domains/example.com/user' );
+
+<pre><code>  ############################################
+  # Usage      : $toaster-&gt;maildir_clean_ham( &#39;/domains/example.com/user&#39; );
   # Purpose    : prune read email messages
   # Returns    : 0 - failure, 1 - success
   # Results    : an INBOX minus read messages older than X days
   # Parameters : path - path to a maildir
-  # Throws     : no exceptions</pre>
-</dd>
-<dt><strong><a name="service_dir_create" class="item">service_dir_create</a></strong></dt>
+  # Throws     : no exceptions</code></pre>
 
+</dd>
+<dt id="service_dir_create">service_dir_create</dt>
 <dd>
-<p>Create the supervised services directory (if it doesn't exist).</p>
-<pre>
-        $toaster-&gt;service_dir_create;</pre>
+
+<p>Create the supervised services directory (if it doesn&#39;t exist).</p>
+
+<pre><code>        $toaster-&gt;service_dir_create;</code></pre>
+
 <p>Also sets the permissions to 775.</p>
-</dd>
-<dt><strong><a name="service_dir_get" class="item">service_dir_get</a></strong></dt>
 
+</dd>
+<dt id="service_dir_get">service_dir_get</dt>
 <dd>
+
 <p>This is necessary because things such as service directories are now in /var/service by default but older versions of my toaster installed them in /service. This will detect and adjust for that.</p>
-<pre>
- Example
-   $toaster-&gt;service_dir_get( 'smtp' );</pre>
-<pre>
+
+<pre><code> Example
+   $toaster-&gt;service_dir_get( &#39;smtp&#39; );
+
+
  arguments required:
-   prot is one of these protocols: smtp, pop3, submit, send</pre>
-<pre>
+   prot is one of these protocols: smtp, pop3, submit, send
+
  arguments optional:
    verbose
-   fatal</pre>
-<pre>
+   fatal
+
  result:
     0 - failure
-    the path to a directory upon success</pre>
-</dd>
-<dt><strong><a name="service_dir_test" class="item">service_dir_test</a></strong></dt>
+    the path to a directory upon success</code></pre>
 
+</dd>
+<dt id="service_dir_test">service_dir_test</dt>
 <dd>
+
 <p>Makes sure the service directory is set up properly</p>
-<pre>
-        $toaster-&gt;service_dir_test();</pre>
-<p>Also sets the permissions to 775.</p>
-</dd>
-<dt><strong><a name="service_symlinks" class="item">service_symlinks</a></strong></dt>
 
+<pre><code>        $toaster-&gt;service_dir_test();</code></pre>
+
+<p>Also sets the permissions to 775.</p>
+
+</dd>
+<dt id="service_symlinks">service_symlinks</dt>
 <dd>
+
 <p>Sets up the supervised mail services for Mail::Toaster</p>
-<pre>
-    $toaster-&gt;service_symlinks();</pre>
+
+<pre><code>    $toaster-&gt;service_symlinks();</code></pre>
+
 <p>This populates the supervised service directory (default: /var/service) with symlinks to the supervise control directories (typically /var/qmail/supervise/). Creates and sets permissions on the following directories and files:</p>
-<pre>
-    /var/service/pop3
+
+<pre><code>    /var/service/pop3
     /var/service/smtp
     /var/service/send
-    /var/service/submit</pre>
-</dd>
-<dt><strong><a name="supervise_dir_get" class="item">supervise_dir_get</a></strong></dt>
+    /var/service/submit</code></pre>
 
-<dd>
-<pre>
-  my $dir = $toaster-&gt;supervise_dir_get( &quot;smtp&quot; );</pre>
-<p>This sub just sets the supervise directory used by the various qmail
-services (qmail-smtpd, qmail-send, qmail-pop3d, qmail-submit). It sets
-the values according to your preferences in toaster-watcher.conf. If
-any settings are missing from the config, it chooses reasonable defaults.</p>
-<p>This is used primarily to allow you to set your mail system up in ways
-that are a different than mine, like a LWQ install.</p>
 </dd>
-<dt><strong><a name="supervise_dirs_create" class="item">supervise_dirs_create</a></strong></dt>
-
+<dt id="supervise_dir_get">supervise_dir_get</dt>
 <dd>
+
+<pre><code>  my $dir = $toaster-&gt;supervise_dir_get( &quot;smtp&quot; );</code></pre>
+
+<p>This sub just sets the supervise directory used by the various qmail services (qmail-smtpd, qmail-send, qmail-pop3d, qmail-submit). It sets the values according to your preferences in toaster-watcher.conf. If any settings are missing from the config, it chooses reasonable defaults.</p>
+
+<p>This is used primarily to allow you to set your mail system up in ways that are a different than mine, like a LWQ install.</p>
+
+</dd>
+<dt id="supervise_dirs_create">supervise_dirs_create</dt>
+<dd>
+
 <p>Creates the qmail supervise directories.</p>
-<pre>
-        $toaster-&gt;supervise_dirs_create(verbose=&gt;$verbose);</pre>
+
+<pre><code>        $toaster-&gt;supervise_dirs_create(verbose=&gt;$verbose);</code></pre>
+
 <p>The default directories created are:</p>
-<pre>
-  $supervise/smtp
+
+<pre><code>  $supervise/smtp
   $supervise/submit
   $supervise/send
-  $supervise/pop3</pre>
-<p>unless otherwise specified in $self-&gt;conf</p>
-</dd>
-<dt><strong><a name="supervised_dir_test" class="item">supervised_dir_test</a></strong></dt>
+  $supervise/pop3</code></pre>
 
+<p>unless otherwise specified in $self-&gt;conf</p>
+
+</dd>
+<dt id="supervised_dir_test">supervised_dir_test</dt>
 <dd>
+
 <p>Checks a supervised directory to see if it is set up properly for supervise to start it. It performs a bunch of tests including:</p>
-<pre>
- * directory exists
+
+<pre><code> * directory exists
  * dir/run file exists and is executable
  * dir/down file is not present
  * dir/log exists
  * dir/log/run exists and is executable
- * dir/log/down does not exist</pre>
-<pre>
+ * dir/log/down does not exist
+
  arguments required:
-    prot - a protocol to check (smtp, pop3, send, submit)</pre>
-<pre>
- arguments optional:
-    verbose</pre>
-</dd>
-<dt><strong><a name="supervise_restart" class="item">supervise_restart</a></strong></dt>
+    prot - a protocol to check (smtp, pop3, send, submit)
 
+ arguments optional:
+    verbose</code></pre>
+
+</dd>
+<dt id="supervise_restart">supervise_restart</dt>
 <dd>
+
 <p>Restarts a supervised process.</p>
-</dd>
-<dt><strong><a name="check_running_processes" class="item">check_running_processes</a></strong></dt>
 
+</dd>
+<dt id="check_running_processes">check_running_processes</dt>
 <dd>
+
 <p>Tests to see if all the processes on your Mail::Toaster that should be running in fact are.</p>
-<pre>
- usage:
-    $toaster-&gt;check_running_processes;</pre>
-<pre>
+
+<pre><code> usage:
+    $toaster-&gt;check_running_processes;
+
  arguments optional:
-    verbose</pre>
+    verbose</code></pre>
+
 </dd>
 </dl>
-<p>
-</p>
-<hr />
-<h1><a name="see_also">SEE ALSO</a></h1>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
 <p>The following man (perldoc) pages:</p>
-<pre>
-  Mail::Toaster
+
+<pre><code>  Mail::Toaster
   Mail::Toaster::Conf
   toaster.conf
-  toaster-watcher.conf</pre>
-<pre>
-  <a href="http://www.mail-toaster.org/">http://www.mail-toaster.org/</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="diagnostics">DIAGNOSTICS</a></h1>
+  toaster-watcher.conf
+
+  http://www.mail-toaster.org/</code></pre>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
 <p>Since the functions in the module are primarily called by toaster-watcher.pl, they are designed to do their work with a minimum amount of feedback, complaining only when a problem is encountered. Whether or not they produce status messages and verbose errors is governed by the &quot;verbose&quot; argument which is passed to each sub/function.</p>
+
 <p>Status messages and verbose logging is enabled by default. toaster-watcher.pl and most of the automated tests (see t/toaster-watcher.t and t/Toaster.t) explicitely turns this off by setting verbose=&gt;0.</p>
-<p>
-</p>
-<hr />
-<h1><a name="configuration_and_environment">CONFIGURATION AND ENVIRONMENT</a></h1>
+
+<h1 id="CONFIGURATION-AND-ENVIRONMENT">CONFIGURATION AND ENVIRONMENT</h1>
+
 <p>The primary means of configuration for Mail::Toaster is via toaster-watcher.conf. It is typically installed in /usr/local/etc, but may also be found in /opt/local/etc, or simply /etc. Documentation for the man settings in toaster-watcher.conf can be found in the man page (perldoc toaster-watcher.conf).</p>
-<p>
-</p>
-<hr />
-<h1><a name="dependencies">DEPENDENCIES</a></h1>
-<pre>
-    Params::Validate - must be installed seperately
+
+<h1 id="DEPENDENCIES">DEPENDENCIES</h1>
+
+<pre><code>    Params::Validate - must be installed seperately
     POSIX (floor only - included with Perl)
-    Mail::Toaster::Utility</pre>
-<p>
-</p>
-<hr />
-<h1><a name="bugs_and_limitations">BUGS AND LIMITATIONS</a></h1>
+    Mail::Toaster::Utility</code></pre>
+
+<h1 id="BUGS-AND-LIMITATIONS">BUGS AND LIMITATIONS</h1>
+
 <p>Report to author or submit patches on GitHub.</p>
-<p>
-</p>
-<hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson (<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>)</p>
-<p>
-</p>
-<hr />
-<h1><a name="copyright_and_licence">COPYRIGHT AND LICENCE</a></h1>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Simerson (matt@tnpi.net)</p>
+
+<h1 id="COPYRIGHT-AND-LICENCE">COPYRIGHT AND LICENCE</h1>
+
 <p>Copyright (c) 2004-2013, The Network People, Inc. <code>&lt;matt@tnpi.net&gt;</code>. All rights reserved.</p>
+
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+
 <p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+
 <p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
 
 </body>
 
 </html>
+
+

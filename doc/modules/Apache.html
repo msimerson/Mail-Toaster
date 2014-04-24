@@ -4,161 +4,168 @@
 <head>
 <title>Mail::Toaster::Apache</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
+<link rev="made" href="mailto:matt@rmbp.local" />
 </head>
 
 <body style="background-color: white">
 
 
-<!-- INDEX BEGIN -->
-<div name="index">
-<p><a name="__index__"></a></p>
 
-<ul>
-
-	<li><a href="#name">NAME</a></li>
-	<li><a href="#synopsis">SYNOPSIS</a></li>
-	<li><a href="#description">DESCRIPTION</a></li>
-	<li><a href="#methods">METHODS</a></li>
-	<ul>
-
-		<li><a href="#dependencies">DEPENDENCIES</a></li>
-	</ul>
-
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#bugs">BUGS</a></li>
-	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a>
+    <ul>
+      <li><a href="#DEPENDENCIES">DEPENDENCIES</a></li>
+    </ul>
+  </li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
 </ul>
 
-<hr name="index" />
-</div>
-<!-- INDEX END -->
+<h1 id="NAME">NAME</h1>
 
-<p>
-</p>
-<h1><a name="name">NAME</a></h1>
 <p>Mail::Toaster::Apache - modules for installing, configuring and managing Apache</p>
-<p>
-</p>
-<hr />
-<h1><a name="synopsis">SYNOPSIS</a></h1>
-<p>Modules for working with Apache. Some are specific to Mail Toaster while most are generic, such as provisioning vhosts for an Apache 2 server. Using just these subs, Apache will be installed, SSL certs generated, and serving.</p>
-<p>
-</p>
-<hr />
-<h1><a name="description">DESCRIPTION</a></h1>
-<p>Perl methods for working with Apache. See METHODS.</p>
-<p>
-</p>
-<hr />
-<h1><a name="methods">METHODS</a></h1>
-<dl>
-<dt><strong><a name="new" class="item">new</a></strong></dt>
 
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p>Modules for working with Apache. Some are specific to Mail Toaster while most are generic, such as provisioning vhosts for an Apache 2 server. Using just these subs, Apache will be installed, SSL certs generated, and serving.</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Perl methods for working with Apache. See METHODS.</p>
+
+<h1 id="METHODS">METHODS</h1>
+
+<dl>
+
+<dt id="new">new</dt>
 <dd>
-<pre>
-   use Mail::Toaster;
+
+<pre><code>   use Mail::Toaster;
    use Mail::Toaster::Apache
    my $log = Mail::Toaster-&gt;new(verbose=&gt;0)
-   my $apache = Mail::Toaster::Apache-&gt;new;</pre>
-<p>use this function to create a new apache object. From there you can use all the functions
-included in this document.</p>
+   my $apache = Mail::Toaster::Apache-&gt;new;</code></pre>
+
+<p>use this function to create a new apache object. From there you can use all the functions included in this document.</p>
+
 <p>Each method expect to recieve one or two hashrefs. The first hashref must have a value set for &lt;i&gt;vhost&lt;/i&gt; and optional values set for the following: ip, serveralias serveradmin, documentroot, redirect, ssl, sslcert, sslkey, cgi, customlog, customerror.</p>
+
 <p>The second hashref is key/value pairs from sysadmin.conf. See that file for details of what options you can set there to influence the behavior of these methods..</p>
-</dd>
-<dt><strong><a name="installapache1" class="item">InstallApache1</a></strong></dt>
 
+</dd>
+<dt id="InstallApache1">InstallApache1</dt>
 <dd>
-<pre>
-        $apache-&gt;install_apache1(src=&gt;&quot;/usr/local/src&quot;)</pre>
+
+<pre><code>        $apache-&gt;install_apache1(src=&gt;&quot;/usr/local/src&quot;)</code></pre>
+
 <p>Builds Apache from sources with DSO for all but mod_perl which must be compiled statically in order to work at all.</p>
+
 <p>Will build Apache in the directory as shown. After compile, the script will show you a few options for testing and completing the installation.</p>
+
 <p>Also installs mod_php4 and mod_ssl.</p>
-</dd>
-<dt><strong><a name="install_2" class="item">install_2</a></strong></dt>
 
+</dd>
+<dt id="install_2">install_2</dt>
 <dd>
-<pre>
-        use Mail::Toaster::Apache;
-        my $apache = new Mail::Toaster::Apache;</pre>
-<pre>
-        $apache-&gt;install_2();</pre>
+
+<pre><code>        use Mail::Toaster::Apache;
+        my $apache = new Mail::Toaster::Apache;
+
+        $apache-&gt;install_2();</code></pre>
+
 <p>Builds Apache from sources with DSO for all modules. Also installs mod_perl2 and mod_php4.</p>
-<p>Currently tested on FreeBSD and Mac OS X. On FreeBSD, the chosen version of php is installed. It installs both the PHP cli and mod_php Apache module. This is done because the SpamAssassin + SQL module requires pear-DB and the pear-DB port thinks it needs the lang/php port installed. There are other ports which also have this requirement so it's best to just have it installed.</p>
+
+<p>Currently tested on FreeBSD and Mac OS X. On FreeBSD, the chosen version of php is installed. It installs both the PHP cli and mod_php Apache module. This is done because the SpamAssassin + SQL module requires pear-DB and the pear-DB port thinks it needs the lang/php port installed. There are other ports which also have this requirement so it&#39;s best to just have it installed.</p>
+
 <p>This script also builds default SSL certificates, based on your preferences in openssl.cnf (usually in /etc/ssl) and makes a few tweaks to your httpd.conf (for using PHP &amp; perl scripts).</p>
+
 <p>Values in $conf are set in toaster-watcher.conf. Please refer to that file to see how you can influence your Apache build.</p>
-</dd>
-<dt><strong><a name="apache_conf_patch" class="item">apache_conf_patch</a></strong></dt>
 
-<dd>
-<pre>
-        $apache-&gt;apache_conf_patch();</pre>
-<p>Patch apache's default httpd.conf file. See the patch in contrib of Mail::Toaster to see what changes are being made.</p>
 </dd>
-<dt><strong><a name="install_ssl_certs" class="item">install_ssl_certs</a></strong></dt>
-
+<dt id="apache_conf_patch">apache_conf_patch</dt>
 <dd>
+
+<pre><code>        $apache-&gt;apache_conf_patch();</code></pre>
+
+<p>Patch apache&#39;s default httpd.conf file. See the patch in contrib of Mail::Toaster to see what changes are being made.</p>
+
+</dd>
+<dt id="install_ssl_certs">install_ssl_certs</dt>
+<dd>
+
 <p>Builds and installs SSL certificates in the locations that Apache expects to find them. This allows me to build a SSL enabled web server with a minimal amount of human interaction.</p>
-</dd>
-<dt><strong><a name="install_rsa_cert" class="item">install_rsa_cert</a></strong></dt>
 
+</dd>
+<dt id="install_rsa_cert">install_rsa_cert</dt>
 <dd>
+
 <p>Builds and installs a RSA certificate.</p>
-<pre>
-        $apache-&gt;install_rsa_cert(crtdir=&gt;$crtdir, keydir=&gt;$keydir);</pre>
-</dd>
-<dt><strong><a name="restart" class="item">restart</a></strong></dt>
 
+<pre><code>        $apache-&gt;install_rsa_cert(crtdir=&gt;$crtdir, keydir=&gt;$keydir);</code></pre>
+
+</dd>
+<dt id="restart">restart</dt>
 <dd>
+
 <p>Restarts Apache.</p>
-<p>On FreeBSD, we use the rc.d script if it's available because it's smarter than apachectl. Under some instances, sending apache a restart signal will cause it to crash and not restart. The control script sends it a TERM, waits until it has done so, then starts it back up.</p>
-<pre>
-    $apache-&gt;restart($vals);</pre>
-</dd>
-<dt><strong><a name="install_dsa_cert" class="item">install_dsa_cert</a></strong></dt>
 
+<p>On FreeBSD, we use the rc.d script if it&#39;s available because it&#39;s smarter than apachectl. Under some instances, sending apache a restart signal will cause it to crash and not restart. The control script sends it a TERM, waits until it has done so, then starts it back up.</p>
+
+<pre><code>    $apache-&gt;restart($vals);</code></pre>
+
+</dd>
+<dt id="install_dsa_cert">install_dsa_cert</dt>
 <dd>
+
 <p>Builds and installs a DSA Certificate.</p>
+
 </dd>
 </dl>
-<p>
-</p>
-<h2><a name="dependencies">DEPENDENCIES</a></h2>
-<p>Mail::Toaster - <a href="http://mail-toaster.org/">http://mail-toaster.org/</a></p>
-<p>
-</p>
-<hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson &lt;<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>&gt;</p>
-<p>
-</p>
-<hr />
-<h1><a name="bugs">BUGS</a></h1>
+
+<h2 id="DEPENDENCIES">DEPENDENCIES</h2>
+
+<p>Mail::Toaster - http://mail-toaster.org/</p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Simerson &lt;matt@tnpi.net&gt;</p>
+
+<h1 id="BUGS">BUGS</h1>
+
 <p>None known. Report any to author.</p>
-<p>
-</p>
-<hr />
-<h1><a name="see_also">SEE ALSO</a></h1>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
 <p>The following are all man/perldoc pages:</p>
-<pre>
- Mail::Toaster
+
+<pre><code> Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
- toaster-watcher.conf</pre>
-<pre>
- <a href="http://matt.simerson.net/computing/mail/toaster/">http://matt.simerson.net/computing/mail/toaster/</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="copyright_and_license">COPYRIGHT AND LICENSE</a></h1>
+ toaster-watcher.conf
+
+ http://matt.simerson.net/computing/mail/toaster/</code></pre>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
 <p>Copyright (c) 2003-2012, The Network People, Inc. All Rights Reserved.</p>
+
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+
 <p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+
 <p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
 
 </body>
 
 </html>
+
+

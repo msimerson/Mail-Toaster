@@ -4,252 +4,276 @@
 <head>
 <title>Mail::Toaster::Mysql</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
+<link rev="made" href="mailto:matt@rmbp.local" />
 </head>
 
 <body style="background-color: white">
 
 
-<!-- INDEX BEGIN -->
-<div name="index">
-<p><a name="__index__"></a></p>
 
-<ul>
-
-	<li><a href="#name">NAME</a></li>
-	<li><a href="#synopsis">SYNOPSIS</a></li>
-	<li><a href="#description">DESCRIPTION</a></li>
-	<li><a href="#subroutines">SUBROUTINES</a></li>
-	<li><a href="#dependencies">DEPENDENCIES</a></li>
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#bugs">BUGS</a></li>
-	<li><a href="#todo">TODO</a></li>
-	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#copyright">COPYRIGHT</a></li>
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#SUBROUTINES">SUBROUTINES</a></li>
+  <li><a href="#DEPENDENCIES">DEPENDENCIES</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#TODO">TODO</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
 </ul>
 
-<hr name="index" />
-</div>
-<!-- INDEX END -->
+<h1 id="NAME">NAME</h1>
 
-<p>
-</p>
-<h1><a name="name">NAME</a></h1>
 <p>Mail::Toaster::Mysql - so much more than just installing mysql</p>
-<p>
-</p>
-<hr />
-<h1><a name="synopsis">SYNOPSIS</a></h1>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
 <p>Functions for installing, starting, stopping, querying, and otherwise interacting with MySQL.</p>
-<p>
-</p>
-<hr />
-<h1><a name="description">DESCRIPTION</a></h1>
-<p>I find myself using MySQL for a lot of things. Geographically distributed dns systems (MySQL replication), mail servers, and all the other fun stuff you'd use a RDBMS for. As such, I've got a growing pile of scripts that have lots of duplicated code in them. As such, the need for this perl module grew.</p>
-<pre>
-       Currently used in:
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>I find myself using MySQL for a lot of things. Geographically distributed dns systems (MySQL replication), mail servers, and all the other fun stuff you&#39;d use a RDBMS for. As such, I&#39;ve got a growing pile of scripts that have lots of duplicated code in them. As such, the need for this perl module grew.</p>
+
+<pre><code>       Currently used in:
   mysql_replicate_manager v1.5+
   uron.net user_*.pl
   polls.pl
   nt_export_djb_update.pl
-  toaster_setup.pl</pre>
-<p>
-</p>
-<hr />
-<h1><a name="subroutines">SUBROUTINES</a></h1>
+  toaster_setup.pl</code></pre>
+
+<h1 id="SUBROUTINES">SUBROUTINES</h1>
+
 <dl>
-<dt><strong><a name="new" class="item">new</a></strong></dt>
 
+<dt id="new">new</dt>
 <dd>
-<pre>
-        use Mail::Toaster::Mysql;
-        my $mysql = Mail::Toaster::Mysql-&gt;new();</pre>
+
+<pre><code>        use Mail::Toaster::Mysql;
+        my $mysql = Mail::Toaster::Mysql-&gt;new();</code></pre>
+
 </dd>
-<dt><strong><a name="autocommit" class="item">autocommit</a></strong></dt>
-
-<dt><strong><a name="backup" class="item">backup</a></strong></dt>
-
+<dt id="autocommit">autocommit</dt>
 <dd>
+
+</dd>
+<dt id="backup">backup</dt>
+<dd>
+
 <p>Back up your mysql databases</p>
-<pre>
-   $mysql-&gt;backup( $dot );</pre>
+
+<pre><code>   $mysql-&gt;backup( $dot );</code></pre>
+
 <p>The default location for backups is /var/backups/mysql. If you want them stored elsewhere, set backupdir = /path/to/backups in your .my.cnf (as shown in the FAQ) or pass it via -d on the command line.</p>
+
 <p>You will need to have cronolog, gzip, and mysqldump installed in a &quot;normal&quot; location. Your backups will be stored in a directory based on the date, such as /var/backups/mysql/2003/09/11/mysql_full_dump.gz. Make sure that path is configured to be backed up by your backup software.</p>
-<pre>
- arguments required:
-    dot - a hashref of values from a .my.cnf file</pre>
-</dd>
-<dt><strong><a name="connect" class="item">connect</a></strong></dt>
 
+<pre><code> arguments required:
+    dot - a hashref of values from a .my.cnf file</code></pre>
+
+</dd>
+<dt id="connect">connect</dt>
 <dd>
-<pre>
-    my ($dbh, $dsn, $drh) = $mysql-&gt;connect($dot, $warn, $verbose);</pre>
-<p>$dot is a hashref of key/value pairs in the same format you'd find in ~/.my.cnf. Not coincidentally, that's where it expects you'll be getting them from.</p>
+
+<pre><code>    my ($dbh, $dsn, $drh) = $mysql-&gt;connect($dot, $warn, $verbose);</code></pre>
+
+<p>$dot is a hashref of key/value pairs in the same format you&#39;d find in ~/.my.cnf. Not coincidentally, that&#39;s where it expects you&#39;ll be getting them from.</p>
+
 <p>$warn allows you to determine whether to die or warn on failure or error. To warn, set $warn to a non-zero value.</p>
+
 <p>$verbose will print out helpful messages should you be having problems.</p>
-</dd>
-<dt><strong><a name="db_vars" class="item">db_vars</a></strong></dt>
 
+</dd>
+<dt id="db_vars">db_vars</dt>
 <dd>
+
 <p>This sub is called internally by $mysql-&gt;connect and is used principally to set some reasonable defaults should you not pass along enough connection parameters in $dot.</p>
-</dd>
-<dt><strong><a name="flush_logs" class="item">flush_logs</a></strong></dt>
 
+</dd>
+<dt id="flush_logs">flush_logs</dt>
 <dd>
-<pre>
-        $mysql-&gt;flush_logs($dbh, $verbose)</pre>
+
+<pre><code>        $mysql-&gt;flush_logs($dbh, $verbose)</code></pre>
+
 <p>runs the mysql &quot;FLUSH LOGS&quot; query on the server. This commits any pending (memory cached writes) to disk.</p>
-</dd>
-<dt><strong><a name="get_hashes" class="item">get_hashes</a></strong></dt>
 
+</dd>
+<dt id="get_hashes">get_hashes</dt>
 <dd>
+
 <p>Gets results from a mysql query as an array of hashes</p>
-<pre>
-   my @r = $mysql-&gt;get_hashes($dbh, $sql);</pre>
+
+<pre><code>   my @r = $mysql-&gt;get_hashes($dbh, $sql);</code></pre>
+
 <p>$dbh is a database handle</p>
+
 <p>$sql is query</p>
-</dd>
-<dt><strong><a name="install" class="item">install</a></strong></dt>
 
+</dd>
+<dt id="install">install</dt>
 <dd>
+
 <p>Installs MySQL</p>
-</dd>
-<dt><strong><a name="is_newer" class="item">is_newer</a></strong></dt>
 
+</dd>
+<dt id="is_newer">is_newer</dt>
 <dd>
-<pre>
-        my $ver   = $mysql-&gt;version($dbh);
-        my $newer = $mysql-&gt;is_newer(&quot;4.1.0&quot;, $ver);</pre>
+
+<pre><code>        my $ver   = $mysql-&gt;version($dbh);
+        my $newer = $mysql-&gt;is_newer(&quot;4.1.0&quot;, $ver);</code></pre>
+
 <p>if ($newer) { print &quot;you are brave!&quot; };</p>
+
 <p>As you can see, is_newer can be very useful, especially when you need to execute queries with syntax differences between versions of Mysql.</p>
-</dd>
-<dt><strong><a name="parse_dot_file" class="item">parse_dot_file</a></strong></dt>
 
+</dd>
+<dt id="parse_dot_file">parse_dot_file</dt>
 <dd>
-<pre>
- $mysql-&gt;parse_dot_file ($file, $start, $verbose)</pre>
+
+<pre><code> $mysql-&gt;parse_dot_file ($file, $start, $verbose)</code></pre>
+
 <p>Example:</p>
-<pre>
- my $dot = $mysql-&gt;parse_dot_file(&quot;.my.cnf&quot;, &quot;[mysql_replicate_manager]&quot;, 0);</pre>
-<pre>
- $file is the file to be parsed.</pre>
-<p>$start is the [identifier] where we begin looking for settings.  This expects the format used in .my.cnf MySQL configuration files.</p>
+
+<pre><code> my $dot = $mysql-&gt;parse_dot_file(&quot;.my.cnf&quot;, &quot;[mysql_replicate_manager]&quot;, 0);
+
+ $file is the file to be parsed.</code></pre>
+
+<p>$start is the [identifier] where we begin looking for settings. This expects the format used in .my.cnf MySQL configuration files.</p>
+
 <p>A hashref is returned wih key value pairs</p>
-</dd>
-<dt><strong><a name="phpmyadmin_install" class="item">phpmyadmin_install</a></strong></dt>
 
+</dd>
+<dt id="phpmyadmin_install">phpmyadmin_install</dt>
 <dd>
+
 <p>Install PhpMyAdmin from FreeBSD ports.</p>
-<pre>
-        $mysql-&gt;phpmyadmin_install;</pre>
-</dd>
-<dt><strong><a name="query" class="item">query</a></strong></dt>
 
+<pre><code>        $mysql-&gt;phpmyadmin_install;</code></pre>
+
+</dd>
+<dt id="query">query</dt>
 <dd>
-<pre>
-    my $sth = $mysql-&gt;query ($dbh, $query, $warn)</pre>
-<p>$dbh is the database handle you've already acquired via $mysql-&gt;connect.</p>
+
+<pre><code>    my $sth = $mysql-&gt;query ($dbh, $query, $warn)</code></pre>
+
+<p>$dbh is the database handle you&#39;ve already acquired via $mysql-&gt;connect.</p>
+
 <p>$query is the SQL statement to execute.</p>
-<p>If $warn is set, we don't die if the query fails. This way you can decide when you call the sub whether you want it to die or return a failed $sth (and likely an error message).</p>
-<pre>
- execute performs whats necessary to execute a statement
+
+<p>If $warn is set, we don&#39;t die if the query fails. This way you can decide when you call the sub whether you want it to die or return a failed $sth (and likely an error message).</p>
+
+<pre><code> execute performs whats necessary to execute a statement
  Always returns true regardless of # of rows affected.
  For non-Select, returns # of rows affected: No rows = 0E0
- For Select, simply starts query. Follow with fetch_*</pre>
-</dd>
-<dt><strong><a name="query_confirm" class="item">query_confirm</a></strong></dt>
+ For Select, simply starts query. Follow with fetch_*</code></pre>
 
+</dd>
+<dt id="query_confirm">query_confirm</dt>
 <dd>
-<pre>
-        $mysql-&gt;query_confirm($dbh, $query );</pre>
+
+<pre><code>        $mysql-&gt;query_confirm($dbh, $query );</code></pre>
+
 <p>Use this if you want to interactively get user confirmation before executing a query.</p>
-</dd>
-<dt><strong><a name="sanity" class="item">sanity</a></strong></dt>
 
+</dd>
+<dt id="sanity">sanity</dt>
 <dd>
+
 <p>A place to do validation tests on values to make sure they are reasonable</p>
+
 <p>Currently we only check to assure the password is less than 32 characters and the username is less than 16. More tests will come.</p>
-</dd>
-<dt><strong><a name="shutdown_mysqld" class="item">shutdown_mysqld</a></strong></dt>
 
+</dd>
+<dt id="shutdown_mysqld">shutdown_mysqld</dt>
 <dd>
+
 <p>Shuts down mysql using a $drh handle.</p>
-<pre>
-   my $rc = $mysql-&gt;shutdown_mysqld($dbvs, $drh);</pre>
+
+<pre><code>   my $rc = $mysql-&gt;shutdown_mysqld($dbvs, $drh);</code></pre>
+
 <p>$dbvs is a hashref containing: host, user, pass</p>
+
 <p>returns error_code 200 on success, 500 on error. See error_desc for details.</p>
-</dd>
-<dt><strong><a name="tables_lock" class="item">tables_lock</a></strong></dt>
 
+</dd>
+<dt id="tables_lock">tables_lock</dt>
 <dd>
-<pre>
-        my $sth = $mysql-&gt;tables_lock($dbh );
+
+<pre><code>        my $sth = $mysql-&gt;tables_lock($dbh );
         # do some mysql stuff
-        $mysql-&gt;tables_unlock($dbh, $sth);</pre>
-<p>Takes a statement handle and does a global lock on all tables.  Quite useful when you want do do things like make a tarball of the database directory, back up the server, etc.</p>
+        $mysql-&gt;tables_unlock($dbh, $sth);</code></pre>
+
+<p>Takes a statement handle and does a global lock on all tables. Quite useful when you want do do things like make a tarball of the database directory, back up the server, etc.</p>
+
 </dd>
-<dt><strong><a name="tables_unlock" class="item">tables_unlock</a></strong></dt>
-
+<dt id="tables_unlock">tables_unlock</dt>
 <dd>
-<pre>
-        $mysql-&gt;tables_unlock($dbh, $sth );</pre>
-<p>Takes a statement handle and does a global unlock on all tables.  Quite useful after you've used $mysql-&gt;tables_lock, done your deeds and wish to release your lock.</p>
+
+<pre><code>        $mysql-&gt;tables_unlock($dbh, $sth );</code></pre>
+
+<p>Takes a statement handle and does a global unlock on all tables. Quite useful after you&#39;ve used $mysql-&gt;tables_lock, done your deeds and wish to release your lock.</p>
+
 </dd>
-<dt><strong><a name="status" class="item">status</a></strong></dt>
-
-<dt><strong><a name="version" class="item">version</a></strong></dt>
-
+<dt id="status">status</dt>
 <dd>
-<pre>
-        my $ver = $mysql-&gt;version($dbh);</pre>
+
+</dd>
+<dt id="version">version</dt>
+<dd>
+
+<pre><code>        my $ver = $mysql-&gt;version($dbh);</code></pre>
+
 <p>Returns a string representing the version of MySQL running.</p>
+
 </dd>
 </dl>
-<p>
-</p>
-<hr />
-<h1><a name="dependencies">DEPENDENCIES</a></h1>
-<pre>
-   DBI.pm     - /usr/ports/databases/p5-DBI
-   DBD::mysql - /usr/ports/databases/p5-DBD-mysql</pre>
+
+<h1 id="DEPENDENCIES">DEPENDENCIES</h1>
+
+<pre><code>   DBI.pm     - /usr/ports/databases/p5-DBI
+   DBD::mysql - /usr/ports/databases/p5-DBD-mysql</code></pre>
+
 <p>In order to use this module, you must have DBI.pm and DBD::Mysql installed. If they are not installed and you attempt to use this module, you should get some helpful error messages telling you how to install them.</p>
-<p>
-</p>
-<hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson &lt;<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>&gt;</p>
-<p>
-</p>
-<hr />
-<h1><a name="bugs">BUGS</a></h1>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Simerson &lt;matt@tnpi.net&gt;</p>
+
+<h1 id="BUGS">BUGS</h1>
+
 <p>None known. Report any to author.</p>
-<p>
-</p>
-<hr />
-<h1><a name="todo">TODO</a></h1>
-<p>
-</p>
-<hr />
-<h1><a name="see_also">SEE ALSO</a></h1>
+
+<h1 id="TODO">TODO</h1>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
 <p>The following are all man/perldoc pages:</p>
-<pre>
- Mail::Toaster
+
+<pre><code> Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
- toaster-watcher.conf</pre>
-<pre>
- <a href="http://www.mail-toaster.com/">http://www.mail-toaster.com/</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="copyright">COPYRIGHT</a></h1>
+ toaster-watcher.conf
+
+ http://www.mail-toaster.com/</code></pre>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
 <p>Copyright (c) 2003-2012, The Network People, Inc. All Rights Reserved.</p>
+
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+
 <p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+
 <p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
 
 </body>
 
 </html>
+
+

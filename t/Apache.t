@@ -40,7 +40,7 @@ isa_ok( $apache, 'Mail::Toaster::Apache', 'object class' );
 
 # conf_get_dir
         my $httpd_conf = $apache->conf_get_dir();
-        if ( -f $httpd_conf ) {
+        if ( $httpd_conf && -f $httpd_conf ) {
             print "httpd.conf: $httpd_conf \n";
             ok ( -f $httpd_conf, 'find httpd.conf' );
 

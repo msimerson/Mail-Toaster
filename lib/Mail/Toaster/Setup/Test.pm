@@ -1,7 +1,8 @@
 package Mail::Toaster::Setup::Test;
-
 use strict;
 use warnings;
+
+our $VERSION = '5.44';
 
 use Carp;
 use English '-no_match_vars';

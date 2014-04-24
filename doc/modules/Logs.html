@@ -4,267 +4,286 @@
 <head>
 <title>Mail::Toaster::Logs</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
+<link rev="made" href="mailto:matt@rmbp.local" />
 </head>
 
 <body style="background-color: white">
 
 
-<!-- INDEX BEGIN -->
-<div name="index">
-<p><a name="__index__"></a></p>
 
-<ul>
-
-	<li><a href="#name">NAME</a></li>
-	<li><a href="#methods">METHODS</a></li>
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#bugs">BUGS</a></li>
-	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#copyright">COPYRIGHT</a></li>
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#METHODS">METHODS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
 </ul>
 
-<hr name="index" />
-</div>
-<!-- INDEX END -->
+<h1 id="NAME">NAME</h1>
 
-<p>
-</p>
-<h1><a name="name">NAME</a></h1>
 <p>Mail::Toaster::Logs - objects and functions for interacting with email logs</p>
+
 <p>This module contains functions related to mail logging and are used primarily in maillogs. Some functions are also used in toaster-watcher.pl and toaster_setup.pl.</p>
-<p>
-</p>
-<hr />
-<h1><a name="methods">METHODS</a></h1>
+
+<h1 id="METHODS">METHODS</h1>
+
 <dl>
-<dt><strong><a name="new" class="item">new</a></strong></dt>
 
+<dt id="new">new</dt>
 <dd>
+
 <p>Create a new Mail::Toaster::Logs object.</p>
-<pre>
-    use Mail::Toaster::Logs;
-    $logs = Mail::Toaster::Logs-&gt;new;</pre>
-</dd>
-<dt><strong><a name="report_yesterdays_activity" class="item">report_yesterdays_activity</a></strong></dt>
 
+<pre><code>    use Mail::Toaster::Logs;
+    $logs = Mail::Toaster::Logs-&gt;new;</code></pre>
+
+</dd>
+<dt id="report_yesterdays_activity">report_yesterdays_activity</dt>
 <dd>
+
 <p>email a report of yesterdays email traffic.</p>
-</dd>
-<dt><strong><a name="verify_settings" class="item">verify_settings</a></strong></dt>
 
+</dd>
+<dt id="verify_settings">verify_settings</dt>
 <dd>
+
 <p>Does some checks to make sure things are set up correctly.</p>
-<pre>
-    $logs-&gt;verify_settings;</pre>
+
+<pre><code>    $logs-&gt;verify_settings;</code></pre>
+
 <p>tests:</p>
-<pre>
-  logs base directory exists
+
+<pre><code>  logs base directory exists
   logs based owned by qmaill
   counters directory exists
-  maillogs is installed</pre>
-</dd>
-<dt><strong><a name="parse_cmdline_flags" class="item">parse_cmdline_flags</a></strong></dt>
+  maillogs is installed</code></pre>
 
+</dd>
+<dt id="parse_cmdline_flags">parse_cmdline_flags</dt>
 <dd>
+
 <p>Do the appropriate things based on what argument is passed on the command line.</p>
-<pre>
-        $logs-&gt;parse_cmdline_flags(prot=&gt;$prot, verbose=&gt;0);</pre>
-<p>$prot is the protocol we're supposed to work on.</p>
-</dd>
-<dt><strong><a name="check_log_files" class="item">check_log_files</a></strong></dt>
 
-<dd>
-<pre>
-        $logs-&gt;check_log_files( $check );</pre>
-</dd>
-<dt><strong><a name="compress_yesterdays_logs" class="item">compress_yesterdays_logs</a></strong></dt>
+<pre><code>        $logs-&gt;parse_cmdline_flags(prot=&gt;$prot, verbose=&gt;0);</code></pre>
 
-<dd>
-<pre>
-        $logs-&gt;compress_yesterdays_logs( $file );</pre>
-</dd>
-<dt><strong><a name="count_rbl_line" class="item">count_rbl_line</a></strong></dt>
+<p>$prot is the protocol we&#39;re supposed to work on.</p>
 
-<dd>
-<pre>
-    $logs-&gt;count_rbl_line($line);</pre>
 </dd>
-<dt><strong><a name="count_send_line" class="item">count_send_line</a></strong></dt>
-
+<dt id="check_log_files">check_log_files</dt>
 <dd>
-<pre>
- usage:
-     $logs-&gt;count_send_line( $count, $line );</pre>
-<pre>
+
+<pre><code>        $logs-&gt;check_log_files( $check );</code></pre>
+
+</dd>
+<dt id="compress_yesterdays_logs">compress_yesterdays_logs</dt>
+<dd>
+
+<pre><code>        $logs-&gt;compress_yesterdays_logs( $file );</code></pre>
+
+</dd>
+<dt id="count_rbl_line">count_rbl_line</dt>
+<dd>
+
+<pre><code>    $logs-&gt;count_rbl_line($line);</code></pre>
+
+</dd>
+<dt id="count_send_line">count_send_line</dt>
+<dd>
+
+<pre><code> usage:
+     $logs-&gt;count_send_line( $count, $line );
+
  arguments required:
       count - a hashref of counter values
-      line  - an entry from qmail's send logs</pre>
-<pre>
+      line  - an entry from qmail&#39;s send logs
+
  results:
-     a hashref will be returned with updated counters</pre>
-</dd>
-<dt><strong><a name="counter_read" class="item">counter_read</a></strong></dt>
+     a hashref will be returned with updated counters</code></pre>
 
+</dd>
+<dt id="counter_read">counter_read</dt>
 <dd>
-<pre>
-        $logs-&gt;counter_read( file=&gt;$file );</pre>
+
+<pre><code>        $logs-&gt;counter_read( file=&gt;$file );</code></pre>
+
 <p>$file is the file to read from. The sub returns a hashref full of key value pairs.</p>
-</dd>
-<dt><strong><a name="counter_write" class="item">counter_write</a></strong></dt>
 
+</dd>
+<dt id="counter_write">counter_write</dt>
 <dd>
-<pre>
-        $logs-&gt;counter_write(log=&gt;$file, values=&gt;$values);</pre>
-<pre>
+
+<pre><code>        $logs-&gt;counter_write(log=&gt;$file, values=&gt;$values);
+
  arguments required:
     file   - the logfile to write.
-    values - a hashref of value=count style pairs.</pre>
-<pre>
+    values - a hashref of value=count style pairs.
+
  result:
    1 if written
-   0 if not.</pre>
-</dd>
-<dt><strong><a name="imap_count" class="item">imap_count</a></strong></dt>
+   0 if not.</code></pre>
 
+</dd>
+<dt id="imap_count">imap_count</dt>
 <dd>
-<pre>
-        $logs-&gt;imap_count;</pre>
+
+<pre><code>        $logs-&gt;imap_count;</code></pre>
+
 <p>Count the number of connections and successful authentications via IMAP and IMAP-SSL.</p>
-</dd>
-<dt><strong><a name="pop3_count" class="item">pop3_count</a></strong></dt>
 
+</dd>
+<dt id="pop3_count">pop3_count</dt>
 <dd>
-<pre>
-        $logs-&gt;pop3_count;</pre>
+
+<pre><code>        $logs-&gt;pop3_count;</code></pre>
+
 <p>Count the number of connections and successful authentications via POP3 and POP3-SSL.</p>
+
 </dd>
-<dt><strong><a name="process_pop3_logs" class="item">process_pop3_logs</a></strong></dt>
-
-<dt><strong><a name="process_rbl_logs" class="item">process_rbl_logs</a></strong></dt>
-
+<dt id="process_pop3_logs">process_pop3_logs</dt>
 <dd>
-<pre>
-    process_rbl_logs(
+
+</dd>
+<dt id="process_rbl_logs">process_rbl_logs</dt>
+<dd>
+
+<pre><code>    process_rbl_logs(
         roll  =&gt; 0,
         files =&gt; $self-&gt;check_log_files( &quot;$logbase/smtp/current&quot; ),
-    );</pre>
+    );</code></pre>
+
 </dd>
-<dt><strong><a name="process_send_logs" class="item">process_send_logs</a></strong></dt>
-
-<dt><strong><a name="qms_count" class="item">qms_count</a></strong></dt>
-
+<dt id="process_send_logs">process_send_logs</dt>
 <dd>
-<pre>
-        $logs-&gt;qms_count;</pre>
+
+</dd>
+<dt id="qms_count">qms_count</dt>
+<dd>
+
+<pre><code>        $logs-&gt;qms_count;</code></pre>
+
 <p>Count statistics logged by qmail scanner.</p>
-</dd>
-<dt><strong><a name="purge_last_months_logs" class="item">purge_last_months_logs</a></strong></dt>
 
+</dd>
+<dt id="purge_last_months_logs">purge_last_months_logs</dt>
 <dd>
-<pre>
-        $logs-&gt;purge_last_months_logs(
+
+<pre><code>        $logs-&gt;purge_last_months_logs(
         fatal   =&gt; 0,
-        );</pre>
+        );</code></pre>
+
 <p>For a supplied protocol, cleans out last months email logs.</p>
-</dd>
-<dt><strong><a name="rbl_count" class="item">rbl_count</a></strong></dt>
 
-<dd>
-<p>Count the number of connections we've blocked (via rblsmtpd) for each RBL that we use.</p>
-<pre>
-        $logs-&gt;rbl_count(</pre>
 </dd>
-<dt><strong><a name="roll_rbl_logs" class="item">roll_rbl_logs</a></strong></dt>
-
+<dt id="rbl_count">rbl_count</dt>
 <dd>
-<pre>
-        $logs-&gt;roll_rbl_logs;</pre>
+
+<p>Count the number of connections we&#39;ve blocked (via rblsmtpd) for each RBL that we use.</p>
+
+<pre><code>        $logs-&gt;rbl_count(</code></pre>
+
+</dd>
+<dt id="roll_rbl_logs">roll_rbl_logs</dt>
+<dd>
+
+<pre><code>        $logs-&gt;roll_rbl_logs;</code></pre>
+
 <p>Roll the qmail-smtpd logs (without 2&gt;&amp;1 output generated by rblsmtpd).</p>
-</dd>
-<dt><strong><a name="rollpop3logs" class="item">RollPOP3Logs</a></strong></dt>
 
+</dd>
+<dt id="RollPOP3Logs">RollPOP3Logs</dt>
 <dd>
-<pre>
-        $logs-&gt;RollPOP3Logs;</pre>
+
+<pre><code>        $logs-&gt;RollPOP3Logs;</code></pre>
+
 <p>These logs will only exist if tcpserver verbose is enabled. Rolling them is not likely to be necessary but the code is here should it ever prove necessary.</p>
-</dd>
-<dt><strong><a name="roll_send_logs" class="item">roll_send_logs</a></strong></dt>
 
+</dd>
+<dt id="roll_send_logs">roll_send_logs</dt>
 <dd>
-<pre>
-        $logs-&gt;roll_send_logs;</pre>
+
+<pre><code>        $logs-&gt;roll_send_logs;</code></pre>
+
 <p>Roll the qmail-send multilog logs. Update the maillogs counter.</p>
-</dd>
-<dt><strong><a name="send_count" class="item">send_count</a></strong></dt>
 
+</dd>
+<dt id="send_count">send_count</dt>
 <dd>
-<pre>
-        $logs-&gt;send_count;</pre>
+
+<pre><code>        $logs-&gt;send_count;</code></pre>
+
 <p>Count the number of messages we deliver, and a whole mess of stats from qmail-send.</p>
-</dd>
-<dt><strong><a name="smtp_auth_count" class="item">smtp_auth_count</a></strong></dt>
 
+</dd>
+<dt id="smtp_auth_count">smtp_auth_count</dt>
 <dd>
-<pre>
-        $logs-&gt;smtp_auth_count;</pre>
+
+<pre><code>        $logs-&gt;smtp_auth_count;</code></pre>
+
 <p>Count the number of times users authenticate via SMTP-AUTH to our qmail-smtpd daemon.</p>
-</dd>
-<dt><strong><a name="spama_count" class="item">spama_count</a></strong></dt>
 
+</dd>
+<dt id="spama_count">spama_count</dt>
 <dd>
-<pre>
-        $logs-&gt;spama_count;</pre>
+
+<pre><code>        $logs-&gt;spama_count;</code></pre>
+
 <p>Count statistics logged by SpamAssassin.</p>
-</dd>
-<dt><strong><a name="syslog_locate" class="item">syslog_locate</a></strong></dt>
 
-<dd>
-<pre>
-        $logs-&gt;syslog_locate;</pre>
-<p>Determine where syslog.mail is logged to. Right now we just test based on the OS you're running on and assume you've left it in the default location. This is easy to expand later.</p>
 </dd>
-<dt><strong><a name="webmail_count" class="item">webmail_count</a></strong></dt>
-
+<dt id="syslog_locate">syslog_locate</dt>
 <dd>
-<pre>
-        $logs-&gt;webmail_count;</pre>
+
+<pre><code>        $logs-&gt;syslog_locate;</code></pre>
+
+<p>Determine where syslog.mail is logged to. Right now we just test based on the OS you&#39;re running on and assume you&#39;ve left it in the default location. This is easy to expand later.</p>
+
+</dd>
+<dt id="webmail_count">webmail_count</dt>
+<dd>
+
+<pre><code>        $logs-&gt;webmail_count;</code></pre>
+
 <p>Count the number of webmail authentications.</p>
+
 </dd>
 </dl>
-<p>
-</p>
-<hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson &lt;<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>&gt;</p>
-<p>
-</p>
-<hr />
-<h1><a name="bugs">BUGS</a></h1>
-<p>None known. Report any to author.
-Patches welcome.</p>
-<p>
-</p>
-<hr />
-<h1><a name="see_also">SEE ALSO</a></h1>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Simerson &lt;matt@tnpi.net&gt;</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>None known. Report any to author. Patches welcome.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
 <p>The following are relevant man/perldoc pages:</p>
-<pre>
- maillogs
+
+<pre><code> maillogs
  Mail::Toaster
- toaster.conf</pre>
-<pre>
- <a href="http://mail-toaster.org/">http://mail-toaster.org/</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="copyright">COPYRIGHT</a></h1>
+ toaster.conf
+
+ http://mail-toaster.org/</code></pre>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
 <p>Copyright (c) 2004-2008, The Network People, Inc. All rights reserved.</p>
+
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+
 <p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+
 <p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
 
 </body>
 
 </html>
+
+

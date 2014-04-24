@@ -2,90 +2,59 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>toaster_setup.pl - runs various build and testing functions for Mail::Toaster</title>
+<title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
+<link rev="made" href="mailto:matt@rmbp.local" />
 </head>
 
 <body style="background-color: white">
 
 
-<!-- INDEX BEGIN -->
-<div name="index">
-<p><a name="__index__"></a></p>
-<!--
 
-<ul>
+<h1 id="NAME">NAME</h1>
 
-	<li><a href="#name">NAME</a></li>
-	<li><a href="#synopsis">SYNOPSIS</a></li>
-	<li><a href="#description">DESCRIPTION</a></li>
-	<ul>
-
-		<li><a href="#urls">URLs</a></li>
-	</ul>
-
-	<li><a href="#options_and_arguments">OPTIONS AND ARGUMENTS</a></li>
-	<li><a href="#methods">METHODS</a></li>
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#bugs">BUGS</a></li>
-	<li><a href="#todo">TODO</a></li>
-	<li><a href="#see_also">SEE ALSO</a></li>
-</ul>
-
--->
-
-
-</div>
-<!-- INDEX END -->
-
-<p>
-</p>
-<h1><a name="name">NAME</a></h1>
 <p>toaster_setup.pl - runs various build and testing functions for Mail::Toaster</p>
-<p>
-</p>
-<hr />
-<h1><a name="synopsis">SYNOPSIS</a></h1>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
 <p>toaster_setupl.pl is the front end to everything you need to turn a computer into a secure, full-featured, high-performance mail server.</p>
-<pre>
-   toaster_setup.pl -s &lt;help&gt; [-d]</pre>
-<pre>
+
+<pre><code>   toaster_setup.pl -s &lt;help&gt; [-d]
+
       -s[ection] - see OPTIONS AND ARGUMENTS section for choices
-      -v[erbose] - enable verbose output</pre>
+      -v[erbose] - enable verbose output</code></pre>
+
 <p>A really good place to start is:</p>
-<pre>
-   toaster_setupl.pl -s help | less</pre>
-<p>
-</p>
-<hr />
-<h1><a name="description">DESCRIPTION</a></h1>
+
+<pre><code>   toaster_setupl.pl -s help | less</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
 <p>The mail toaster is a collection of open-source software which provides a full-featured mail server running on FreeBSD, Mac OS X, and Linux. The system is built around the qmail mail transport agent, with many additions and modifications. Matt Simerson is the primary author and maintainer of the toaster. There is an active and friendly community of toaster owners which supports the toaster on a mailing list and web forum.</p>
+
 <p>The toaster is built around qmail, a robust mail transfer agent by Daniel J. Bernstein, and vpopmail, a virtual domain manager by Inter7 systems. Matt keeps up with releases of the core software, evaluates them, decides when they are stable, and then integrates them into the toaster. Matt has also added several patches which add functionality to these core programs.</p>
-<p>A complete set of instructions for building a mail toaster are on the toaster install page. There is a substantial amount of documentation available for the &quot;Mail::Toaster&quot; toaster. Much of it is also readable via &quot;perldoc Mail::Toaster&quot;, and the subsequent pages. Don't forget to read the Install, Configure, and FAQ pages on the web site. If you still have questions, there is a Web Forum and mailing list. Both are browseable and searchable for your convenience.</p>
-<p>
-</p>
-<h2><a name="urls">URLs</a></h2>
-<pre>
-   <a href="http://mail-toaster.org/">http://mail-toaster.org/</a>
-   <a href="http://www.tnpi.net/internet/mail/toaster/">http://www.tnpi.net/internet/mail/toaster/</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="options_and_arguments">OPTIONS AND ARGUMENTS</a></h1>
-<pre>
-  toaster_setup.pl -s &lt;section&gt; [-verbose]</pre>
-<pre>
+
+<p>A complete set of instructions for building a mail toaster are on the toaster install page. There is a substantial amount of documentation available for the &quot;Mail::Toaster&quot; toaster. Much of it is also readable via &quot;perldoc Mail::Toaster&quot;, and the subsequent pages. Don&#39;t forget to read the Install, Configure, and FAQ pages on the web site. If you still have questions, there is a Web Forum and mailing list. Both are browseable and searchable for your convenience.</p>
+
+<h2 id="URLs">URLs</h2>
+
+<pre><code>   http://mail-toaster.org/
+   http://www.tnpi.net/internet/mail/toaster/</code></pre>
+
+<h1 id="OPTIONS-AND-ARGUMENTS">OPTIONS AND ARGUMENTS</h1>
+
+<pre><code>  toaster_setup.pl -s &lt;section&gt; [-verbose]
+
            help - print this usage screen
          config - initial configuration of toaster*.conf files
-            pre - installs a list of programs and libraries other toaster components need</pre>
-<pre>
+            pre - installs a list of programs and libraries other toaster components need
+
                     Standard Daemons &amp; Utilities
           mysql - installs MySQL
      phpmyadmin - installs phpMyAdmin
          apache - installs Apache
-      apachessl - installs self signed SSL certs for Apache</pre>
-<pre>
+      apachessl - installs self signed SSL certs for Apache
+
                      Qmail and related tools
           ucspi - install ucspi-tcp w/MySQL patch
     daemontools - install daemontools
@@ -98,17 +67,17 @@
       qmailconf - configure various qmail control files
        netqmail - installs netqmail
     netqmailmac - installs netqmail with no patches
-         djbdns - install the djbdns program</pre>
-<pre>
+         djbdns - install the djbdns program
+
         courier - installs courier imap &amp; pop3 daemons
-    courierconf - post install configure for courier</pre>
-<pre>
+    courierconf - post install configure for courier
+
                    Web Mail and Admin interfaces
      qmailadmin - installs qmailadmin
       sqwebmail - installs sqwebmail (webmail app)
    squirrelmail - installs squirrelmail (webmail app)
-      roundcube - installs Roundcube (webmail app)</pre>
-<pre>
+      roundcube - installs Roundcube (webmail app)
+
                      Mail Filtering
          filter - installs SpamAssassin, ClamAV, DCC, razor, and more
           razor - installs the razor2 agents
@@ -118,66 +87,63 @@
         simconf - configure simscan
         simtest - run email tests to verify that simscan is working
    spamassassin - install and configure spamassassin
-        allspam - activate spam filtering for all users</pre>
-<pre>
+        allspam - activate spam filtering for all users
+
                   Logs, Statistics, and Monitoring
        maillogs - creates the mail logging directories
         socklog - installs socklog
         isoqlog - installs and configured isoqlog
-      supervise - creates the directories to be used by svscan</pre>
-<pre>
+      supervise - creates the directories to be used by svscan
+
            test - runs a complete test suite against your server
      filtertest - runs the simscan and qmail-scanner email scanner tests
        authtest - authenticates against pop, imap, and smtp servers
        proctest - check for processes that *should* be running
- imap|pop3|smtp - do authentication test for imap, pop3, or smtp-auth</pre>
-<pre>
+ imap|pop3|smtp - do authentication test for imap, pop3, or smtp-auth
+
         toaster - install Mail::Toaster
      logmonster - install Apache::Logmonster
-        nictool - install nictool (<a href="http://www.nictool.com/">http://www.nictool.com/</a>)
-            all - installs everything shown on the toaster INSTALL page</pre>
-<p>
-</p>
-<hr />
-<h1><a name="methods">METHODS</a></h1>
-<dl>
-<dt><strong><a name="all" class="item">all</a></strong></dt>
+        nictool - install nictool (http://www.nictool.com/)
+            all - installs everything shown on the toaster INSTALL page</code></pre>
 
+<h1 id="METHODS">METHODS</h1>
+
+<dl>
+
+<dt id="all">all</dt>
 <dd>
-<pre>
-  toaster_setup.pl -s all</pre>
+
+<pre><code>  toaster_setup.pl -s all</code></pre>
+
 <p>a special target that tries to build the entire Mail::Toaster without any interaction from you. Unlike other targets, it will keep right on going when it encounters an error, getting as much built as it possibly can. It is presumed that the administrator is logging the output for later review. I use this target primarily in testing.</p>
+
 </dd>
 </dl>
-<p>
-</p>
-<hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson (<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>)</p>
-<p>
-</p>
-<hr />
-<h1><a name="bugs">BUGS</a></h1>
-<p>None known. Report any to author, preferably via RT <a href="http://rt.cpan.org/Public/Bug/Report.html?Queue=Mail-Toaster">http://rt.cpan.org/Public/Bug/Report.html?Queue=Mail-Toaster</a></p>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Simerson (matt@tnpi.net)</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>None known. Report any to author, preferably via RT http://rt.cpan.org/Public/Bug/Report.html?Queue=Mail-Toaster</p>
+
 <p>Patches welcome in &quot;diff -u&quot; format.</p>
-<p>
-</p>
-<hr />
-<h1><a name="todo">TODO</a></h1>
-<pre>
- Add -s dnscache section to install a DNS stub resolver
+
+<h1 id="TODO">TODO</h1>
+
+<pre><code> Add -s dnscache section to install a DNS stub resolver
  Check if daemons are running before installs. - mostly done
- Turn entire process into a ./install_it_all script  - done</pre>
-<p>
-</p>
-<hr />
-<h1><a name="see_also">SEE ALSO</a></h1>
+ Turn entire process into a ./install_it_all script  - done</code></pre>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
 <p>The following are all man/perldoc pages:</p>
-<pre>
-  Mail::Toaster::Conf
+
+<pre><code>  Mail::Toaster::Conf
   toaster.conf
-  toaster-watcher.conf</pre>
-<pre>
+  toaster-watcher.conf
+
   Mail::Toaster
   Mail::Toaster::Apache
   Mail::Toaster::CGI
@@ -189,13 +155,16 @@
   Mail::Toaster::Mysql
   Mail::Toaster::Qmail
   Mail::Toaster::Setup
-  Mail::Toaster::Utility</pre>
-<pre>
-  <a href="http://mail-toaster.org/">http://mail-toaster.org/</a>
-  <a href="http://mail-toaster.org/docs/">http://mail-toaster.org/docs/</a>
-  <a href="http://mail-toaster.org/faq.shtml">http://mail-toaster.org/faq.shtml</a>
-  <a href="http://mail-toaster.org/changes.shtml">http://mail-toaster.org/changes.shtml</a></pre>
+  Mail::Toaster::Utility
+
+  http://mail-toaster.org/
+  http://mail-toaster.org/docs/
+  http://mail-toaster.org/faq.shtml
+  http://mail-toaster.org/changes.shtml</code></pre>
+
 
 </body>
 
 </html>
+
+

@@ -4,142 +4,144 @@
 <head>
 <title>Mail::Toaster::DNS</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
+<link rev="made" href="mailto:matt@rmbp.local" />
 </head>
 
 <body style="background-color: white">
 
 
-<!-- INDEX BEGIN -->
-<div name="index">
-<p><a name="__index__"></a></p>
 
-<ul>
-
-	<li><a href="#name">NAME</a></li>
-	<li><a href="#synopsis">SYNOPSIS</a></li>
-	<li><a href="#description">DESCRIPTION</a></li>
-	<li><a href="#subroutines">SUBROUTINES</a></li>
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#bugs">BUGS</a></li>
-	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#SUBROUTINES">SUBROUTINES</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
 </ul>
 
-<hr name="index" />
-</div>
-<!-- INDEX END -->
+<h1 id="NAME">NAME</h1>
 
-<p>
-</p>
-<h1><a name="name">NAME</a></h1>
 <p>Mail::Toaster::DNS - DNS functions, primarily to test RBLs</p>
-<p>
-</p>
-<hr />
-<h1><a name="synopsis">SYNOPSIS</a></h1>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
 <p>A set of subroutines for testing rbls to verify that they are functioning properly. If Net::DNS is installed it will be used but we can also test using dig.</p>
-<p>
-</p>
-<hr />
-<h1><a name="description">DESCRIPTION</a></h1>
-<p>These functions are used by toaster-watcher to determine if RBL's are available when generating qmail's smtpd/run control file.</p>
-<p>
-</p>
-<hr />
-<h1><a name="subroutines">SUBROUTINES</a></h1>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>These functions are used by toaster-watcher to determine if RBL&#39;s are available when generating qmail&#39;s smtpd/run control file.</p>
+
+<h1 id="SUBROUTINES">SUBROUTINES</h1>
+
 <dl>
-<dt><strong><a name="new" class="item">new</a></strong></dt>
 
+<dt id="new">new</dt>
 <dd>
+
 <p>Create a new DNS method:</p>
-<pre>
-   use Mail::Toaster;
+
+<pre><code>   use Mail::Toaster;
    use Mail::Toaster::DNS;
-   my $dns     = Mail::Toaster::DNS-&gt;new;</pre>
-</dd>
-<dt><strong><a name="rbl_test" class="item">rbl_test</a></strong></dt>
+   my $dns     = Mail::Toaster::DNS-&gt;new;</code></pre>
 
+</dd>
+<dt id="rbl_test">rbl_test</dt>
 <dd>
-<p>After the demise of osirusoft and the DDoS attacks currently under way against RBL operators, this little subroutine becomes one of necessity for using RBL's on mail servers. It is called by the toaster-watcher.pl script to test the RBLs before including them in the SMTP invocation.</p>
-<pre>
-        my $r = $dns-&gt;rbl_test(conf=&gt;$conf, zone=&gt;&quot;bl.example.com&quot;);
-        if ($r) { print &quot;bl tests good!&quot; };</pre>
-<pre>
+
+<p>After the demise of osirusoft and the DDoS attacks currently under way against RBL operators, this little subroutine becomes one of necessity for using RBL&#39;s on mail servers. It is called by the toaster-watcher.pl script to test the RBLs before including them in the SMTP invocation.</p>
+
+<pre><code>        my $r = $dns-&gt;rbl_test(conf=&gt;$conf, zone=&gt;&quot;bl.example.com&quot;);
+        if ($r) { print &quot;bl tests good!&quot; };
+
  arguments required:
-    zone - the zone of a blacklist to test</pre>
-<p>Tests to make sure that name servers are found for the zone and then run several test queries against the zone to verify that the answers it returns are sane. We want to detect if a RBL operator does something like whitelist or blacklist the entire planet.</p>
-<p>If the blacklist fails any test, the sub will return zero and you should not use that blacklist.</p>
-</dd>
-<dt><strong><a name="rbl_test_ns" class="item">rbl_test_ns</a></strong></dt>
+    zone - the zone of a blacklist to test</code></pre>
 
+<p>Tests to make sure that name servers are found for the zone and then run several test queries against the zone to verify that the answers it returns are sane. We want to detect if a RBL operator does something like whitelist or blacklist the entire planet.</p>
+
+<p>If the blacklist fails any test, the sub will return zero and you should not use that blacklist.</p>
+
+</dd>
+<dt id="rbl_test_ns">rbl_test_ns</dt>
 <dd>
-<pre>
-        my $count = $t_dns-&gt;rbl_test_ns(
+
+<pre><code>        my $count = $t_dns-&gt;rbl_test_ns(
             conf  =&gt; $conf, 
             rbl   =&gt; $rbl, 
-        );</pre>
-<pre>
+        );
+
  arguments required:
-    rbl   - the reverse zone we use to test this rbl.</pre>
+    rbl   - the reverse zone we use to test this rbl.</code></pre>
+
 <p>This script requires a zone name. It will then return a count of how many NS records exist for that zone. This sub is used by the rbl tests. Before we bother to look up addresses, we make sure valid nameservers are defined.</p>
-</dd>
-<dt><strong><a name="rbl_test_positive_ip" class="item">rbl_test_positive_ip</a></strong></dt>
 
+</dd>
+<dt id="rbl_test_positive_ip">rbl_test_positive_ip</dt>
 <dd>
-<pre>
-        $t_dns-&gt;rbl_test_positive_ip( rbl=&gt;'sbl.spamhaus.org' );</pre>
-<pre>
+
+<pre><code>        $t_dns-&gt;rbl_test_positive_ip( rbl=&gt;&#39;sbl.spamhaus.org&#39; );
+
  arguments required:
-    rbl   - the reverse zone we use to test this rbl.</pre>
-<pre>
- arguments optional:
-    conf</pre>
-<p>A positive test is a test that should always return a RBL match. If it should and does not, then we assume that RBL has been disabled by its operator.</p>
-<p>Some RBLs have test IP(s) to verify they are working. For geographic RBLs (like korea.services.net) we can simply choose any IP within their allotted space. Most other RBLs use 127.0.0.2 as a positive test.</p>
-<p>In the case of rfc-ignorant.org, they have no known test IPs and thus we have to skip testing them.</p>
-</dd>
-<dt><strong><a name="rbl_test_negative_ip" class="item">rbl_test_negative_ip</a></strong></dt>
+    rbl   - the reverse zone we use to test this rbl.
 
+ arguments optional:
+    conf</code></pre>
+
+<p>A positive test is a test that should always return a RBL match. If it should and does not, then we assume that RBL has been disabled by its operator.</p>
+
+<p>Some RBLs have test IP(s) to verify they are working. For geographic RBLs (like korea.services.net) we can simply choose any IP within their allotted space. Most other RBLs use 127.0.0.2 as a positive test.</p>
+
+<p>In the case of rfc-ignorant.org, they have no known test IPs and thus we have to skip testing them.</p>
+
+</dd>
+<dt id="rbl_test_negative_ip">rbl_test_negative_ip</dt>
 <dd>
-<pre>
-        $t_dns-&gt;rbl_test_negative_ip(conf=&gt;$conf, rbl=&gt;$rbl);</pre>
-<p>This test is a little more difficult as RBL operators don't typically have an IP that is whitelisted. The DNS location based lists are very easy to test negatively. For the rest I'm listing my own IP as the default unless the RBL has a specific one. At the very least, my site won't get blacklisted that way. ;) I'm open to better suggestions.</p>
+
+<pre><code>        $t_dns-&gt;rbl_test_negative_ip(conf=&gt;$conf, rbl=&gt;$rbl);</code></pre>
+
+<p>This test is a little more difficult as RBL operators don&#39;t typically have an IP that is whitelisted. The DNS location based lists are very easy to test negatively. For the rest I&#39;m listing my own IP as the default unless the RBL has a specific one. At the very least, my site won&#39;t get blacklisted that way. ;) I&#39;m open to better suggestions.</p>
+
 </dd>
 </dl>
-<p>
-</p>
-<hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson &lt;<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>&gt;</p>
-<p>
-</p>
-<hr />
-<h1><a name="bugs">BUGS</a></h1>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Simerson &lt;matt@tnpi.net&gt;</p>
+
+<h1 id="BUGS">BUGS</h1>
+
 <p>None known. Report any to author.</p>
-<p>
-</p>
-<hr />
-<h1><a name="see_also">SEE ALSO</a></h1>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
 <p>The following man/perldoc pages:</p>
-<pre>
- Mail::Toaster 
+
+<pre><code> Mail::Toaster 
  Mail::Toaster::Conf
  toaster.conf
- toaster-watcher.conf</pre>
-<pre>
- <a href="http://mail-toaster.org/">http://mail-toaster.org/</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="copyright_and_license">COPYRIGHT AND LICENSE</a></h1>
-<p>Copyright (c) 2004-2008, The Network People, Inc.  All rights reserved.</p>
+ toaster-watcher.conf
+
+ http://mail-toaster.org/</code></pre>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright (c) 2004-2008, The Network People, Inc. All rights reserved.</p>
+
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+
 <p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+
 <p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
 
 </body>
 
 </html>
+
+

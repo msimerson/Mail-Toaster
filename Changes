@@ -1,4 +1,14 @@
 Mail Toaster Changes
+  5.45 - Apr 24, 2014
+    test fix in t/Apache.t
+  5.44 - Apr 20, 2014
+    speed up dspam training
+    added supervise support for qpsmtpd
+    added support for unusual (intl) file name characters
+    correct detection of pop3 daemon
+    updated install_deps.pl
+    added simscan debug option in tw.conf
+    added qmail-deliverable setting and build support
   5.43 - Jul NN, 2013
         minor improvements to test suite
 
@@ -687,6 +697,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 57:
+    Around line 69:
         Non-ASCII character seen before =encoding in '•'. Assuming UTF-8
 

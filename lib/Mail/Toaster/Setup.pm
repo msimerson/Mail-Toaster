@@ -1,7 +1,8 @@
 package Mail::Toaster::Setup;
-
 use strict;
 use warnings;
+
+our $VERSION = '5.44';
 
 use Carp;
 use Config;

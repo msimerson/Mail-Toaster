@@ -2,7 +2,7 @@ package Mail::Toaster::Base;
 use strict;
 use warnings;
 
-our $VERSION = '5.42';
+our $VERSION = '5.44';
 
 use Carp;
 use Params::Validate ':all';

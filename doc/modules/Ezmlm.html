@@ -4,177 +4,177 @@
 <head>
 <title>Mail::Toaster::Ezmlm</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
+<link rev="made" href="mailto:matt@rmbp.local" />
 </head>
 
 <body style="background-color: white">
 
 
-<!-- INDEX BEGIN -->
-<div name="index">
-<p><a name="__index__"></a></p>
 
-<ul>
-
-	<li><a href="#name">NAME</a></li>
-	<li><a href="#synopsis">SYNOPSIS</a></li>
-	<li><a href="#description">DESCRIPTION</a></li>
-	<li><a href="#dependencies">DEPENDENCIES</a></li>
-	<li><a href="#methods">METHODS</a></li>
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#bugs">BUGS</a></li>
-	<li><a href="#todo">TODO</a></li>
-	<li><a href="#see_also">SEE ALSO</a></li>
-	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#DEPENDENCIES">DEPENDENCIES</a></li>
+  <li><a href="#METHODS">METHODS</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#BUGS">BUGS</a></li>
+  <li><a href="#TODO">TODO</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
 </ul>
 
-<hr name="index" />
-</div>
-<!-- INDEX END -->
+<h1 id="NAME">NAME</h1>
 
-<p>
-</p>
-<h1><a name="name">NAME</a></h1>
 <p>Mail::Toaster::Ezmlm - a batch processing tool for ezmlm mailing lists</p>
-<p>
-</p>
-<hr />
-<h1><a name="synopsis">SYNOPSIS</a></h1>
-<pre>
-     ezmlm.cgi -a [ add | remove | list ]</pre>
-<pre>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>     ezmlm.cgi -a [ add | remove | list ]
+
      -a   action  - add, remove, list
      -d   dir     - ezmlm list directory
      -f   file    - file containing list of email addresses
-     -v   verbose - print verbose options</pre>
-<p>
-</p>
-<hr />
-<h1><a name="description">DESCRIPTION</a></h1>
-<p>Ezmlm.cgi is a command line and CGI application that allows a domain administrator (ie, <a href="mailto:postmaster@example.com)">postmaster@example.com)</a> to add, remove, and list batches of email addresses. You can use this utility to subscribe lists of email addresses, delete a list of addresses, or simply retrieve a list of subscribers.</p>
-<p>
-</p>
-<hr />
-<h1><a name="dependencies">DEPENDENCIES</a></h1>
-<pre>
- some functions depend on Mail::Ezmlm;
- authentication depends on &quot;vpopmail&quot; (a perl extension)</pre>
+     -v   verbose - print verbose options</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Ezmlm.cgi is a command line and CGI application that allows a domain administrator (ie, postmaster@example.com) to add, remove, and list batches of email addresses. You can use this utility to subscribe lists of email addresses, delete a list of addresses, or simply retrieve a list of subscribers.</p>
+
+<h1 id="DEPENDENCIES">DEPENDENCIES</h1>
+
+<pre><code> some functions depend on Mail::Ezmlm;
+ authentication depends on &quot;vpopmail&quot; (a perl extension)</code></pre>
+
 <p>If you need to run ezmlm.cgi suid, which is likely the case, then hacks to Mail::Ezmlm are required for the &quot;list&quot; function to work in taint mode. Also, for a perl script to run suid, you must have suidperl installed. Another (better) approach is to use Apache suexec instead of suidperl.</p>
-<p>
-</p>
-<hr />
-<h1><a name="methods">METHODS</a></h1>
+
+<h1 id="METHODS">METHODS</h1>
+
 <dl>
-<dt><strong><a name="new" class="item">new</a></strong></dt>
 
+<dt id="new">new</dt>
 <dd>
+
 <p>Creates a new Mail::Toaster::Ezmlm object.</p>
-<pre>
-   use Mail::Toaster::Ezmlm;
-   my $ez = Mail::Toaster::Ezmlm;</pre>
-</dd>
-<dt><strong><a name="authenticate" class="item">authenticate</a></strong></dt>
 
-<dd>
-<p>Authenticates a HTTP user against vpopmail to verify the user has permission to do what they're asking.</p>
-</dd>
-<dt><strong><a name="dir_check" class="item">dir_check</a></strong></dt>
+<pre><code>   use Mail::Toaster::Ezmlm;
+   my $ez = Mail::Toaster::Ezmlm;</code></pre>
 
+</dd>
+<dt id="authenticate">authenticate</dt>
 <dd>
-<p>Check a directory and see if it's a directory and readable.</p>
-<pre>
-    $ezmlm-&gt;dir_check(dir=&gt;$dir);</pre>
+
+<p>Authenticates a HTTP user against vpopmail to verify the user has permission to do what they&#39;re asking.</p>
+
+</dd>
+<dt id="dir_check">dir_check</dt>
+<dd>
+
+<p>Check a directory and see if it&#39;s a directory and readable.</p>
+
+<pre><code>    $ezmlm-&gt;dir_check(dir=&gt;$dir);</code></pre>
+
 <p>return 0 if not, return 1 if OK.</p>
-</dd>
-<dt><strong><a name="lists_get" class="item">lists_get</a></strong></dt>
 
+</dd>
+<dt id="lists_get">lists_get</dt>
 <dd>
+
 <p>Get a list of Ezmlm lists for a given mail directory. This is designed to work with vpopmail where all the list for example.com are in ~vpopmail/domains.</p>
-<pre>
-    $ezmlm-&gt;lists_get(&quot;example.com&quot;);</pre>
-</dd>
-<dt><strong><a name="logo" class="item">logo</a></strong></dt>
 
+<pre><code>    $ezmlm-&gt;lists_get(&quot;example.com&quot;);</code></pre>
+
+</dd>
+<dt id="logo">logo</dt>
 <dd>
+
 <p>Put the logo on the HTML page. Sets the URL from $conf.</p>
-<pre>
-    $ezmlm-&gt;logo(conf=&gt;$conf);</pre>
+
+<pre><code>    $ezmlm-&gt;logo(conf=&gt;$conf);</code></pre>
+
 <p>$conf is values from toaster.conf.</p>
-<pre>
- Example:
+
+<pre><code> Example:
     $ezmlm-&gt;logo(
-        web_logo_url =&gt; '<a href="http://www.tnpi.net/images/head.jpg">http://www.tnpi.net/images/head.jpg</a>',
-        web_log_alt  =&gt; 'tnpi.net logo',
-    );</pre>
-</dd>
-<dt><strong><a name="process_cgi" class="item">process_cgi</a></strong></dt>
+        web_logo_url =&gt; &#39;http://www.tnpi.net/images/head.jpg&#39;,
+        web_log_alt  =&gt; &#39;tnpi.net logo&#39;,
+    );</code></pre>
 
+</dd>
+<dt id="process_cgi">process_cgi</dt>
 <dd>
+
 <p>Accepts input from HTTP requests, presents a HTML request form, and triggers actions based on input.</p>
-<pre>
-   $ez-&gt;process_cgi();</pre>
-</dd>
-<dt><strong><a name="process_shell" class="item">process_shell</a></strong></dt>
 
+<pre><code>   $ez-&gt;process_cgi();</code></pre>
+
+</dd>
+<dt id="process_shell">process_shell</dt>
 <dd>
+
 <p>Get input from the command line options and proceed accordingly.</p>
-</dd>
-<dt><strong><a name="subs_add" class="item">subs_add</a></strong></dt>
 
+</dd>
+<dt id="subs_add">subs_add</dt>
 <dd>
+
 <p>Subcribe a user (or list of users) to a mailing list.</p>
-<pre>
-   $ezmlm-&gt;subs_add(
+
+<pre><code>   $ezmlm-&gt;subs_add(
        list      =&gt; $list_name,
        list_dir  =&gt; $list_dir,
        requested =&gt; $address_list
-    );</pre>
-</dd>
-<dt><strong><a name="subs_list" class="item">subs_list</a></strong></dt>
+    );</code></pre>
 
+</dd>
+<dt id="subs_list">subs_list</dt>
 <dd>
+
 <p>Print out a list of subscribers to an Ezmlm mailing list.</p>
-<pre>
-    $ezmlm-&gt;subs_list(list=&gt;$list, dir=&gt;$list_dir);</pre>
+
+<pre><code>    $ezmlm-&gt;subs_list(list=&gt;$list, dir=&gt;$list_dir);</code></pre>
+
 </dd>
 </dl>
-<p>
-</p>
-<hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson (<a href="mailto:matt@tnpi.net">matt@tnpi.net</a>)</p>
-<p>
-</p>
-<hr />
-<h1><a name="bugs">BUGS</a></h1>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Simerson (matt@tnpi.net)</p>
+
+<h1 id="BUGS">BUGS</h1>
+
 <p>None known. Report any to author.</p>
-<p>
-</p>
-<hr />
-<h1><a name="todo">TODO</a></h1>
-<p>
-</p>
-<hr />
-<h1><a name="see_also">SEE ALSO</a></h1>
+
+<h1 id="TODO">TODO</h1>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
 <p>The following are all man/perldoc pages:</p>
-<pre>
- Mail::Toaster
+
+<pre><code> Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
- toaster-watcher.conf</pre>
-<pre>
- <a href="http://mail-toaster.org/">http://mail-toaster.org/</a></pre>
-<p>
-</p>
-<hr />
-<h1><a name="copyright_and_license">COPYRIGHT AND LICENSE</a></h1>
-<p>Copyright (c) 2005-2012, The Network People, Inc.  All rights reserved.</p>
+ toaster-watcher.conf
+
+ http://mail-toaster.org/</code></pre>
+
+<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+
+<p>Copyright (c) 2005-2012, The Network People, Inc. All rights reserved.</p>
+
 <p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
 <p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
+
 <p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
+
 <p>Neither the name of the The Network People, Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+
 <p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
 
 </body>
 
 </html>
+
+

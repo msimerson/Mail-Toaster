@@ -4,205 +4,212 @@
 <head>
 <title>Mail::Toaster::Setup</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_netbios@teneight-slave.macports.org" />
+<link rev="made" href="mailto:matt@rmbp.local" />
 </head>
 
 <body style="background-color: white">
 
 
-<!-- INDEX BEGIN -->
-<div name="index">
-<p><a name="__index__"></a></p>
 
-<ul>
-
-	<li><a href="#name">NAME</a></li>
-	<li><a href="#description">DESCRIPTION</a></li>
-	<li><a href="#methods">METHODS</a></li>
-	<li><a href="#dependencies">DEPENDENCIES</a></li>
-	<li><a href="#author">AUTHOR</a></li>
-	<li><a href="#see_also">SEE ALSO</a></li>
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#METHODS">METHODS</a></li>
+  <li><a href="#DEPENDENCIES">DEPENDENCIES</a></li>
+  <li><a href="#AUTHOR">AUTHOR</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
 </ul>
 
-<hr name="index" />
-</div>
-<!-- INDEX END -->
+<h1 id="NAME">NAME</h1>
 
-<p>
-</p>
-<h1><a name="name">NAME</a></h1>
-<p>Mail::Toaster::Setup -  methods to configure and build all the components of a modern email server.</p>
-<p>
-</p>
-<hr />
-<h1><a name="description">DESCRIPTION</a></h1>
+<p>Mail::Toaster::Setup - methods to configure and build all the components of a modern email server.</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
 <p>The meat and potatoes of toaster_setup.pl. This is where the majority of the work gets done. Big chunks of the code and logic for getting all the various applications and scripts installed and configured resides in here.</p>
-<p>
-</p>
-<hr />
-<h1><a name="methods">METHODS</a></h1>
+
+<h1 id="METHODS">METHODS</h1>
+
 <p>All documented methods in this package (shown below) accept two optional arguments, verbose and fatal. Setting verbose to zero will supress nearly all informational and debugging output. If you want more output, simply pass along verbose=&gt;1 and status messages will print out. Fatal allows you to override the default behaviour of these methods, which is to die upon error. Each sub returns 0 if the action failed and 1 for success.</p>
-<pre>
- arguments required:
-   varies (most require conf)</pre>
-<pre>
+
+<pre><code> arguments required:
+   varies (most require conf)
+
  arguments optional:
    verbose - print status messages
-   fatal   - die on errors (default)</pre>
-<pre>
+   fatal   - die on errors (default)
+
  result:
    0 - failure
-   1 - success</pre>
-<pre>
- Examples:</pre>
-<pre>
+   1 - success
+
+ Examples:
+
    1. $setup-&gt;apache( verbose=&gt;0, fatal=&gt;0 );
-   Try to build apache, do not print status messages and do not die on error(s).</pre>
-<pre>
+   Try to build apache, do not print status messages and do not die on error(s).
+
    2. $setup-&gt;apache( verbose=&gt;1 );
-   Try to build apache, print status messages, die on error(s).</pre>
-<pre>
+   Try to build apache, print status messages, die on error(s).
+
    3. if ( $setup-&gt;apache( ) { print &quot;yay!\n&quot; };
-   Test to see if apache installed correctly.</pre>
+   Test to see if apache installed correctly.</code></pre>
+
 <dl>
-<dt><strong><a name="new" class="item">new</a></strong></dt>
 
+<dt id="new">new</dt>
 <dd>
+
 <p>To use any methods in Mail::Toaster::Setup, you must create a setup object:</p>
-<pre>
-  use Mail::Toaster::Setup;
-  my $setup = Mail::Toaster::Setup-&gt;new;</pre>
+
+<pre><code>  use Mail::Toaster::Setup;
+  my $setup = Mail::Toaster::Setup-&gt;new;</code></pre>
+
 <p>From there you can run any of the following methods via $setup-&gt;method as documented below.</p>
+
 <p>Many of the methods require $conf, which is a hashref containing the contents of toaster-watcher.conf.</p>
-</dd>
-<dt><strong><a name="clamav" class="item">clamav</a></strong></dt>
 
+</dd>
+<dt id="clamav">clamav</dt>
 <dd>
+
 <p>Install ClamAV, configure the startup and config files, download the latest virus definitions, and start up the daemons.</p>
-</dd>
-<dt><strong><a name="config_personalize_your_toaster_watcher_conf_settings" class="item">config - personalize your toaster-watcher.conf settings</a></strong></dt>
 
+</dd>
+<dt id="config---personalize-your-toaster-watcher.conf-settings">config - personalize your toaster-watcher.conf settings</dt>
 <dd>
+
 <p>There are a subset of the settings in toaster-watcher.conf which must be personalized for your server. Things like the hostname, where you store your configuration files, html documents, passwords, etc. This function checks to make sure these settings have been changed and prompts for any necessary changes.</p>
-<pre>
- required arguments:
-   conf</pre>
-</dd>
-<dt><strong><a name="config_tweaks" class="item">config_tweaks</a></strong></dt>
 
-<dd>
-<p>Makes changes to the config file, dynamically based on detected circumstances such as a jailed hostname, or OS platform. Platforms like FreeBSD, Darwin, and Debian have package management capabilities. Rather than installing software via sources, we prefer to try using the package manager first. The toaster-watcher.conf file typically includes the latest stable version of each application to install. This subroutine will replace those version numbers with with 'port', 'package', or other platform specific tweaks.</p>
-</dd>
-<dt><strong><a name="daemontools" class="item">daemontools</a></strong></dt>
+<pre><code> required arguments:
+   conf</code></pre>
 
-<dd>
-<p>Fetches sources from DJB's web site and installs daemontools, per his instructions.</p>
 </dd>
-<dt><strong><a name="dependencies" class="item">dependencies</a></strong></dt>
-
+<dt id="config_tweaks">config_tweaks</dt>
 <dd>
-<pre>
-  $setup-&gt;dependencies( );</pre>
+
+<p>Makes changes to the config file, dynamically based on detected circumstances such as a jailed hostname, or OS platform. Platforms like FreeBSD, Darwin, and Debian have package management capabilities. Rather than installing software via sources, we prefer to try using the package manager first. The toaster-watcher.conf file typically includes the latest stable version of each application to install. This subroutine will replace those version numbers with with &#39;port&#39;, &#39;package&#39;, or other platform specific tweaks.</p>
+
+</dd>
+<dt id="daemontools">daemontools</dt>
+<dd>
+
+<p>Fetches sources from DJB&#39;s web site and installs daemontools, per his instructions.</p>
+
+</dd>
+<dt id="dependencies">dependencies</dt>
+<dd>
+
+<pre><code>  $setup-&gt;dependencies( );</code></pre>
+
 <p>Installs a bunch of dependency programs that are needed by other programs we will install later during the build of a Mail::Toaster. You can install these yourself if you would like, this does not do anything special beyond installing them:</p>
+
 <p>ispell, gdbm, setquota, expect, maildrop, autorespond, qmail, qmailanalog, daemontools, openldap-client, Crypt::OpenSSL-RSA, DBI, DBD::mysql.</p>
-<p>required arguments:
-  conf</p>
-<p>result:
-  1 - success
-  0 - failure</p>
-</dd>
-<dt><strong><a name="djbdns" class="item">djbdns</a></strong></dt>
 
+<p>required arguments: conf</p>
+
+<p>result: 1 - success 0 - failure</p>
+
+</dd>
+<dt id="djbdns">djbdns</dt>
 <dd>
+
 <p>Fetches djbdns, compiles and installs it.</p>
-<pre>
-  $setup-&gt;djbdns( );</pre>
-<pre>
+
+<pre><code>  $setup-&gt;djbdns( );
+
  required arguments:
-   conf</pre>
-<pre>
+   conf
+
  result:
    1 - success
-   0 - failure</pre>
-</dd>
-<dt><strong><a name="expect" class="item">expect</a></strong></dt>
+   0 - failure</code></pre>
 
+</dd>
+<dt id="expect">expect</dt>
 <dd>
+
 <p>Expect is a component used by courier-imap and sqwebmail to enable password changing via those tools. Since those do not really work with a Mail::Toaster, we could live just fine without it, but since a number of FreeBSD ports want it installed, we install it without all the extra X11 dependencies.</p>
-</dd>
-<dt><strong><a name="ezmlm" class="item">ezmlm</a></strong></dt>
 
+</dd>
+<dt id="ezmlm">ezmlm</dt>
 <dd>
-<p>Installs Ezmlm-idx. This also tweaks the port Makefile so that it will build against MySQL 4.0 libraries if you don't have MySQL 3 installed. It also copies the sample config files into place so that you have some default settings.</p>
-<pre>
-  $setup-&gt;ezmlm( );</pre>
-<pre>
+
+<p>Installs Ezmlm-idx. This also tweaks the port Makefile so that it will build against MySQL 4.0 libraries if you don&#39;t have MySQL 3 installed. It also copies the sample config files into place so that you have some default settings.</p>
+
+<pre><code>  $setup-&gt;ezmlm( );
+
  required arguments:
-   conf</pre>
-<pre>
+   conf
+
  result:
    1 - success
-   0 - failure</pre>
-</dd>
-<dt><strong><a name="filtering" class="item">filtering</a></strong></dt>
+   0 - failure</code></pre>
 
+</dd>
+<dt id="filtering">filtering</dt>
 <dd>
+
 <p>Installs SpamAssassin, ClamAV, simscan, QmailScanner, maildrop, procmail, and programs that support the aforementioned ones. See toaster-watcher.conf for options that allow you to customize which programs are installed and any options available.</p>
-<pre>
-  $setup-&gt;filtering();</pre>
-</dd>
-<dt><strong><a name="maillogs" class="item">maillogs</a></strong></dt>
 
+<pre><code>  $setup-&gt;filtering();</code></pre>
+
+</dd>
+<dt id="maillogs">maillogs</dt>
 <dd>
+
 <p>Installs the maillogs script, creates the logging directories (toaster_log_dir/), creates the qmail supervise dirs, installs maillogs as a log post-processor and then builds the corresponding service/log/run file to use with each post-processor.</p>
-<pre>
-  $setup-&gt;maillogs();</pre>
-</dd>
-<dt><strong><a name="startup_script" class="item">startup_script</a></strong></dt>
 
+<pre><code>  $setup-&gt;maillogs();</code></pre>
+
+</dd>
+<dt id="startup_script">startup_script</dt>
 <dd>
+
 <p>Sets up the supervised mail services for Mail::Toaster</p>
-<pre>
-        $setup-&gt;startup_script( );</pre>
-<p>If they don't already exist, this sub will create:</p>
-<pre>
-        daemontools service directory (default /var/service)
-        symlink to the services script</pre>
-<p>The services script allows you to run &quot;services stop&quot; or &quot;services start&quot; on your system to control the supervised daemons (qmail-smtpd, qmail-pop3, qmail-send, qmail-submit). It affects the following files:</p>
-<pre>
-  $prefix/etc/rc.d/[svscan|services].sh
-  $prefix/sbin/services</pre>
-</dd>
-<dt><strong><a name="test" class="item">test</a></strong></dt>
 
+<pre><code>        $setup-&gt;startup_script( );</code></pre>
+
+<p>If they don&#39;t already exist, this sub will create:</p>
+
+<pre><code>        daemontools service directory (default /var/service)
+        symlink to the services script</code></pre>
+
+<p>The services script allows you to run &quot;services stop&quot; or &quot;services start&quot; on your system to control the supervised daemons (qmail-smtpd, qmail-pop3, qmail-send, qmail-submit). It affects the following files:</p>
+
+<pre><code>  $prefix/etc/rc.d/[svscan|services].sh
+  $prefix/sbin/services</code></pre>
+
+</dd>
+<dt id="test">test</dt>
 <dd>
+
 <p>Run a variety of tests to verify that your Mail::Toaster installation is working correctly.</p>
+
 </dd>
 </dl>
-<p>
-</p>
-<hr />
-<h1><a name="dependencies">DEPENDENCIES</a></h1>
-<pre>
-    IO::Socket::SSL</pre>
-<p>
-</p>
-<hr />
-<h1><a name="author">AUTHOR</a></h1>
-<p>Matt Simerson - <a href="mailto:matt@tnpi.net">matt@tnpi.net</a></p>
-<p>
-</p>
-<hr />
-<h1><a name="see_also">SEE ALSO</a></h1>
+
+<h1 id="DEPENDENCIES">DEPENDENCIES</h1>
+
+<pre><code>    IO::Socket::SSL</code></pre>
+
+<h1 id="AUTHOR">AUTHOR</h1>
+
+<p>Matt Simerson - matt@tnpi.net</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
 <p>The following are all perldoc pages:</p>
-<pre>
- Mail::Toaster
+
+<pre><code> Mail::Toaster
  Mail::Toaster::Conf
  toaster.conf
- toaster-watcher.conf</pre>
-<pre>
- <a href="http://mail-toaster.org/">http://mail-toaster.org/</a></pre>
+ toaster-watcher.conf
+
+ http://mail-toaster.org/</code></pre>
+
 
 </body>
 
 </html>
+
+

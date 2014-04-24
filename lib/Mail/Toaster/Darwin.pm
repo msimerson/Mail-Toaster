@@ -2,6 +2,8 @@ package Mail::Toaster::Darwin;
 use strict;
 use warnings;
 
+our $VERSION = '5.44';
+
 use Carp;
 use Params::Validate ':all';
 

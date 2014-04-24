@@ -1,7 +1,8 @@
 package Mail::Toaster::Setup::Maildrop;
-
 use strict;
 use warnings;
+
+our $VERSION = '5.44';
 
 use English '-no_match_vars';
 use Params::Validate ':all';

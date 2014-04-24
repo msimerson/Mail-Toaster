@@ -3,6 +3,8 @@ package Mail::Toaster::Apache;
 use strict;
 use warnings;
 
+our $VERSION = '5.44';
+
 use Carp;
 use English qw( -no_match_vars );
 use File::Copy;

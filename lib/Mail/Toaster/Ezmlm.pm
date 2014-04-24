@@ -1,6 +1,8 @@
 use strict;
 use warnings;
 
+our $VERSION = '5.44';
+
 package Mail::Toaster::Ezmlm;
 
 use Params::Validate ':all';
