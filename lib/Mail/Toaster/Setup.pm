@@ -4592,6 +4592,7 @@ sub tcp_smtp {
 # RELAYCLIENT="" means IP can relay
 # RBLSMTPD=""    means DNSBLs are ignored for this IP
 # QMAILQUEUE=""  is the qmail queue process, defaults to $qdir/bin/qmail-queue
+# CHKUSER_MBXQUOTA rejects messages when the users mailbox quota is filled
 #
 #    common QMAILQUEUE settings:
 # QMAILQUEUE="$qdir/bin/qmail-queue"
@@ -4610,8 +4611,8 @@ sub tcp_smtp {
 #    hard block on no reverse DNS
 #:allow,RBLSMTPD="-Blocked - Reverse DNS queries for your IP fail. You cannot send me mail."
 #    default allow
-#:allow,QMAILQUEUE="$qdir/bin/simscan"
-:allow
+#:allow,QMAILQUEUE="$qdir/bin/simscan",CHKUSER_MBXQUOTA="99"
+:allow,CHKUSER_MBXQUOTA="99"
 EO_TCP_SMTP
 ;
     $self->util->file_write( "$etc_dir/tcp.smtp", lines => \@lines, mode => '0644' );
