@@ -1476,7 +1476,7 @@ sub netqmail_get_patches {
     };
 
     my ($sysname, undef, $version) = POSIX::uname;
-    if ( $sysname eq 'FreeBSD' && $version =~ /^9/ )  {
+    if ( $sysname eq 'FreeBSD' && $version =~ /^(9|10)/ )  {
         push @patches, "qmail-extra-patch-utmpx.patch";
     }
 
