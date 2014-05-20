@@ -1,7 +1,7 @@
 
 =head1 Mail Toaster Changes
 
-=head2 5.45 - Apr 24, 2014
+=head2 5.46 - Apr 24, 2014
     test fix in t/Apache.t
 
 =head2 5.44 - Apr 20, 2014
