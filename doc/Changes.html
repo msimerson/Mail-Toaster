@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:matt@rmbp.local" />
+<link rev="made" href="mailto:_mdnsresponder@jackson.apple.com" />
 </head>
 
 <body style="background-color: white">
@@ -13,9 +13,25 @@
 
 <h1 id="Mail-Toaster-Changes">Mail Toaster Changes</h1>
 
-<h2 id="Apr-24-2014-test-fix-in-t-Apache.t">5.45 - Apr 24, 2014 test fix in t/Apache.t</h2>
+<h2 id="May-20-2014">5.47 - May 20, 2014</h2>
 
-<h2 id="Apr-20-2014-speed-up-dspam-training-added-supervise-support-for-qpsmtpd-added-support-for-unusual-intl-file-name-characters-correct-detection-of-pop3-daemon-updated-install_deps.pl-added-simscan-debug-option-in-tw.conf-added-qmail-deliverable-setting-and-build-support">5.44 - Apr 20, 2014 speed up dspam training added supervise support for qpsmtpd added support for unusual (intl) file name characters correct detection of pop3 daemon updated install_deps.pl added simscan debug option in tw.conf added qmail-deliverable setting and build support</h2>
+<pre><code>    fix for qpop3d not having service symlink installed
+    added CHKUSER_MBXQUOTA to tcp.smtp
+    apply utmp patch to FreeBSD 9 &amp; 10 (was only 9)</code></pre>
+
+<h2 id="Apr-24-2014">5.46 - Apr 24, 2014</h2>
+
+<pre><code>    test fix in t/Apache.t</code></pre>
+
+<h2 id="Apr-20-2014">5.44 - Apr 20, 2014</h2>
+
+<pre><code>    speed up dspam training
+    added supervise support for qpsmtpd
+    added support for unusual (intl) file name characters
+    correct detection of pop3 daemon
+    updated install_deps.pl
+    added simscan debug option in tw.conf
+    added qmail-deliverable setting and build support</code></pre>
 
 <h2 id="Jul-NN-2013">5.43 - Jul NN, 2013</h2>
 
@@ -70,7 +86,7 @@
 
 <pre><code>    api change for get_dir_files, clean_tmp_dir, file_delete
     moved subs from Toaster to Utility: audit, error, dump_audit, dump_errors, has_module, find_config, find_readable, get_std_args, parse_config &amp; parse_line
-    replaced non-ASCII &bull; with *
+    replaced non-ASCII &acirc;&#128;&cent; with *
     added IO::Socket::SSL to bin/install_deps
     check just the &#39;standard&#39; places for httpd.conf instead of using `find $dir`
     apache test failed if no httpd.conf found on test machines, this is quite likely. The lack of finding the file now skips the test.
@@ -86,7 +102,7 @@
     added more support for qpsmtpd future
     added vpopmail_daemon setting to tw.conf
     added supervise support for qpsmtpd, vpopmaild, and qmail-deliverable daemons.
-    get_maildir_messages now uses File::Find instead of `find &hellip;`
+    get_maildir_messages now uses File::Find instead of `find &acirc;&#128;&brvbar;`
     deprecated rfc-ignorant DNSBLs
     replaced split &#39;..&#39; with split /../ syntax</code></pre>
 
@@ -626,7 +642,7 @@
 <p>supress notification of new toaster-watcher.conf install if its missing</p>
 
 </dd>
-<dt id="Logs.pm---prettied-up-the-yesterday-report-a-little-bit">Logs.pm - prettied up the yesterday report a little bit.</dt>
+<dt id="Logs.pm---prettied-up-the-yesterday-report-a-little-bit.">Logs.pm - prettied up the yesterday report a little bit.</dt>
 <dd>
 
 <pre><code> added checks to prevent warnings when logs are empty
@@ -762,20 +778,6 @@
 </dl>
 
 <p>See Also 4.x Changes <a href="http://mail-toaster.org/changes/4.x-changes.html">http://mail-toaster.org/changes/4.x-changes.html</a></p>
-
-<h1 id="POD-ERRORS">POD ERRORS</h1>
-
-<p>Hey! <b>The above document had some coding errors, which are explained below:</b></p>
-
-<dl>
-
-<dt id="Around-line-69">Around line 69:</dt>
-<dd>
-
-<p>Non-ASCII character seen before =encoding in &#39;&bull;&#39;. Assuming UTF-8</p>
-
-</dd>
-</dl>
 
 
 </body>

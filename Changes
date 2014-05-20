@@ -1,14 +1,21 @@
 Mail Toaster Changes
-  5.45 - Apr 24, 2014
-    test fix in t/Apache.t
+  5.47 - May 20, 2014
+        fix for qpop3d not having service symlink installed
+        added CHKUSER_MBXQUOTA to tcp.smtp
+        apply utmp patch to FreeBSD 9 & 10 (was only 9)
+
+  5.46 - Apr 24, 2014
+        test fix in t/Apache.t
+
   5.44 - Apr 20, 2014
-    speed up dspam training
-    added supervise support for qpsmtpd
-    added support for unusual (intl) file name characters
-    correct detection of pop3 daemon
-    updated install_deps.pl
-    added simscan debug option in tw.conf
-    added qmail-deliverable setting and build support
+        speed up dspam training
+        added supervise support for qpsmtpd
+        added support for unusual (intl) file name characters
+        correct detection of pop3 daemon
+        updated install_deps.pl
+        added simscan debug option in tw.conf
+        added qmail-deliverable setting and build support
+
   5.43 - Jul NN, 2013
         minor improvements to test suite
 
@@ -692,11 +699,4 @@ Mail Toaster Changes
         are now installed via the -s webmail target to toaster_setup.
 
     See Also 4.x Changes <http://mail-toaster.org/changes/4.x-changes.html>
-
-POD ERRORS
-    Hey! The above document had some coding errors, which are explained
-    below:
-
-    Around line 69:
-        Non-ASCII character seen before =encoding in '•'. Assuming UTF-8
 

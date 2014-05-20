@@ -1,10 +1,18 @@
 
 =head1 Mail Toaster Changes
 
+=head2 5.47 - May 20, 2014
+
+    fix for qpop3d not having service symlink installed
+    added CHKUSER_MBXQUOTA to tcp.smtp
+    apply utmp patch to FreeBSD 9 & 10 (was only 9)
+
 =head2 5.46 - Apr 24, 2014
+
     test fix in t/Apache.t
 
 =head2 5.44 - Apr 20, 2014
+
     speed up dspam training
     added supervise support for qpsmtpd
     added support for unusual (intl) file name characters
