@@ -629,12 +629,12 @@ So, a full complement of settings could look like:
 
 =item install_package
 
-	$fbsd->install_package( "ispell" );
+	$fbsd->install_package( "maildrop" );
 
 Suggested usage:
 
-	unless ( $fbsd->install_package( "ispell" ) ) {
-		$fbsd->install_port( "ispell" );
+	unless ( $fbsd->install_package( "maildrop" ) ) {
+		$fbsd->install_port( "maildrop" );
 	};
 
 Installs the selected package from FreeBSD packages. If the first install fails, it will try again using an alternate FTP site (ftp2.freebsd.org). If that fails, it returns 0 (failure) so you know it failed and can try something else, like installing via ports.

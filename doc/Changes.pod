@@ -1,6 +1,11 @@
 
 =head1 Mail Toaster Changes
 
+=head2 5.48 -
+
+    remove ispell/aspell from port install (renamed in ports)
+
+
 =head2 5.47 - May 20, 2014
 
     fix for qpop3d not having service symlink installed
