@@ -24,6 +24,7 @@ sub install {
     if ( $ver eq "port" || $ver eq "1" ) {
         if ( $OSNAME eq "freebsd" ) {
             # pre-installing pcre supresses a dialog
+            $self->freebsd->install_package( "pcre" );
             $self->freebsd->install_port( "pcre",
                     options => '# written by Mail::Toaster
 # Options for pcre-8.33
@@ -32,12 +33,13 @@ _FILE_COMPLETE_OPTIONS_LIST=STACK_RECURSION
 OPTIONS_FILE_SET+=STACK_RECURSION
 ',
                     );
+            $self->freebsd->install_package( "maildrop" );
             $self->freebsd->install_port( "maildrop", flags => "WITH_MAILDIRQUOTA=1",);
         }
         elsif ( $OSNAME eq "darwin" ) {
             $self->darwin->install_port( "maildrop" );
         }
-        $ver = "2.5.0";
+        $ver = "2.7.1";
     }
 
     $self->util->find_bin( "maildrop", fatal => 0 )

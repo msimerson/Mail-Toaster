@@ -2,7 +2,7 @@ package Mail::Toaster::FreeBSD;
 use strict;
 use warnings;
 
-our $VERSION = '5.44';
+our $VERSION = '5.47';
 
 use Carp;
 use File::Copy;
@@ -48,13 +48,6 @@ sub get_defines {
         }
     }
     return $make_defines;
-};
-
-sub get_pkg {
-    my $self = shift;
-    return 'pkg' if ! -x '/usr/sbin/pkg';
-    return 'pkg' if ! `/usr/sbin/pkg info pkg`;
-    return 'pkgng';
 };
 
 sub get_port_category {
@@ -145,28 +138,28 @@ sub install_port {
 
 sub is_port_installed {
     my $self = shift;
-    my $port = shift or return $self->error("missing port/package name", fatal=>0);
+    my $port = shift or return $self->error("missing port name", fatal=>0);
     my %p    = validate( @_,
         {   'alt' => { type => SCALAR | UNDEF, optional => 1 },
             $self->get_std_opts,
         },
     );
 
-    my $alt = $p{'alt'} || $port;
+    my $alt = $p{alt} || $port;
 
     my ( $r, @args );
 
     $self->util->audit( "  checking for port $port", verbose=>0);
 
-    return $p{'test_ok'} if defined $p{'test_ok'};
+    return $p{test_ok} if defined $p{test_ok};
 
     my @packages;
-    if ( $self->get_pkg eq 'pkgng' ) {
+    if ( -x '/usr/sbin/pkg' ) {
         @packages = `/usr/sbin/pkg info`; chomp @packages;
     }
     else {
         my $pkg_info = $self->util->find_bin( 'pkg_info', verbose => 0 );
-        @packages = `pkg_info`; chomp @packages;
+        @packages = `$pkg_info`; chomp @packages;
     }
 
     my @matches = grep {/^$port\-/} @packages;
@@ -227,10 +220,6 @@ sub install_package {
     my ( $alt, $pkg_url ) = ( $p{'alt'}, $p{'url'} );
     my %args = $self->toaster->get_std_args( %p );
 
-    my $pkg_method = $self->conf->{'use_pkgng'} || 0;
-
-    return $self->util->error("sorry, but I really need a package name!") if !$package;
-
     $self->util->audit("install_package: checking if $package is installed");
 
     return $p{'test_ok'} if defined $p{'test_ok'};
@@ -240,60 +229,26 @@ sub install_package {
     print "install_package: installing $package....\n";
     $ENV{"PACKAGESITE"} = $pkg_url if $pkg_url;
 
-    my $pkg_add;
-    if ( $pkg_method == 0) {
+    my ($pkg_add, $r2);
+    if ( -x '/usr/sbin/pkg' ) {
+        $pkg_add = '/usr/sbin/pkg';
+        $r2 = $self->util->syscmd( "$pkg_add install -y $package", verbose => 0 );
+    }
+
+    if (! -x $pkg_add) {
         $pkg_add = $self->util->find_bin( "pkg_add", %args );
-    } else {
-        $pkg_add = $self->util->find_bin( "pkg", %args );
-    }
-
-    return $self->error( "couldn't find pkg_add, giving up.",fatal=>0)
-        if ( !$pkg_add || !-x $pkg_add );
-
-    my $r2;
-    if ( $pkg_method == 0) {
+        if ( !$pkg_add || !-x $pkg_add ) {
+            return $self->error( "couldn't find pkg_add",fatal=>0)
+        };
         $r2 = $self->util->syscmd( "$pkg_add -r $package", verbose => 0 );
-    } else {
-        $r2 = $self->util->syscmd( "$pkg_add add -r $package", verbose => 0 );
     }
 
-    if   ( !$r2 ) { print "\t pkg_add failed\t "; }
-    else          { print "\t pkg_add success\t " };
-
-    unless ( $self->is_port_installed( $package, alt => $alt, %args )) {
-        print "Failure #1, trying alternate package site.\n";
-        $ENV{"PACKAGEROOT"} = "ftp://ftp2.freebsd.org";
-        if ( $pkg_method == 0) {
-            $self->util->syscmd( "$pkg_add -r $package", verbose => 0 );
-        } else {
-            $self->util->syscmd( "$pkg_add add -r $package", verbose => 0 );
-        }
-
-
-        unless ( $self->is_port_installed( $package, alt => $alt, %args,)) {
-            print "Failure #2, trying alternate package site.\n";
-            $ENV{"PACKAGEROOT"} = "ftp://ftp3.freebsd.org";
-            if ( $pkg_method == 0) {
-                $self->util->syscmd( "$pkg_add -r $package", verbose => 0 );
-            } else {
-                $self->util->syscmd( "$pkg_add add -r $package", verbose => 0 );
-            }
-
-            unless ( $self->is_port_installed( $package, alt => $alt, %args,)) {
-                print "Failure #3, trying alternate package site.\n";
-                $ENV{"PACKAGEROOT"} = "ftp://ftp4.freebsd.org";
-                if ( $pkg_method == 0) {
-                    $self->util->syscmd( "$pkg_add -r $package", verbose => 0 );
-                } else {
-                    $self->util->syscmd( "$pkg_add add -r $package", verbose => 0 );
-                }
-            }
-        }
-    }
+    if   ( !$r2 ) { print "\t $pkg_add failed\t "; }
+    else          { print "\t $pkg_add success\t " };
 
     my $r = $self->is_port_installed( $package, alt => $alt, %args );
     if ( ! $r ) {
-        carp "  : Failed again! Sorry, I can't install the package $package!\n";
+        carp "  : Sorry, I couldn't install $package!\n";
         return;
     }
 

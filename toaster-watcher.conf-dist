@@ -46,7 +46,7 @@ toaster_dl_url                     = /internet/mail/toaster
 preserve_cgifiles                  = 0
 toaster_apache_vhost               = 1
 
-package_install_method             = ports     # packages | ports
+package_install_method             = packages  # packages | ports
                                      # if both options are supported, the setup
                                      # script will prefer the one you choose.
 
@@ -61,7 +61,6 @@ cvsup_supfile_ports                = portsnap        # portsnap or path to file
                                                      # ex: /etc/cvsup-ports
 cvsup_supfile_sources              = cvsup-sources
 toaster_pkg_site                   = ftp://ftp.freebsd.org
-use_pkgng                          = 1               # Use the new package format pkgng see https://wiki.freebsd.org/pkgng
 
 
 ######################################
