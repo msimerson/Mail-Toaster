@@ -2,7 +2,7 @@ package Mail::Toaster::Setup;
 use strict;
 use warnings;
 
-our $VERSION = '5.47';
+our $VERSION = '5.48';
 
 use Carp;
 use Config;

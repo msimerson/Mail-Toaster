@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-our $VERSION = '5.44';
+our $VERSION = '5.48';
 
 package Mail::Toaster::Ezmlm;
 

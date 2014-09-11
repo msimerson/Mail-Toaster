@@ -2,7 +2,7 @@ package Mail::Toaster::Qmail;
 use strict;
 use warnings;
 
-our $VERSION = '5.47';
+our $VERSION = '5.48';
 
 use Carp;
 use English qw( -no_match_vars );

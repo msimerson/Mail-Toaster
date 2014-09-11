@@ -1,4 +1,8 @@
 Mail Toaster Changes
+  5.48 - Sep 10, 2014
+        fix POD error in Mail/Toaster/Setup/Test 
+        bump version number
+
   5.47 - May 20, 2014
         fix for qpop3d not having service symlink installed
         added CHKUSER_MBXQUOTA to tcp.smtp

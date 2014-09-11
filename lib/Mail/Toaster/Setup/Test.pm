@@ -2,7 +2,7 @@ package Mail::Toaster::Setup::Test;
 use strict;
 use warnings;
 
-our $VERSION = '5.44';
+our $VERSION = '5.48';
 
 use Carp;
 use English '-no_match_vars';
@@ -34,7 +34,7 @@ sub email_send {
     };
 
     foreach ( qw/ clean spam eicar attach clam / ) {
-        open(my $INJECT, "| $ibin -a -f \"\" $email" ) or
+        open(my $INJECT, "|", "$ibin -a -f \"\" $email" ) or
             return $self->error( "couldn't send using qmail-inject!");
         my $method = 'email_send_' . $_;
         $self->$method( $INJECT, $email );
@@ -230,7 +230,7 @@ sub imap_auth_nossl {
         return;
     };
 
-    eval "use Mail::IMAPClient";
+    eval "use Mail::IMAPClient";  ## no critic ( ProhibitStringyEval )
     if ( $EVAL_ERROR ) {
         $self->audit("unable to load Mail::IMAPClient");
         return;
@@ -326,7 +326,7 @@ sub pop3_auth {
 
     my $r = $self->util->install_module( "Mail::POP3Client", verbose => 0,);
     $self->pretty("checking Mail::POP3Client", $r );
-    eval "use Mail::POP3Client";
+    eval "use Mail::POP3Client";  ## no critic ( ProhibitStringyEval )
     if ( $EVAL_ERROR ) {
         print "unable to load Mail::POP3Client, skipping POP3 tests\n";
         return;
@@ -394,7 +394,7 @@ sub smtp_auth {
 
     my @modules = ('IO::Socket::INET', 'IO::Socket::SSL', 'Net::SSLeay', 'Socket qw(:DEFAULT :crlf)','Net::SMTP_auth');
     foreach ( @modules ) {
-        eval "use $_";
+        eval "use $_";   ## no critic ( ProhibitStringyEval )
         die $@ if $@;
         $self->pretty( "loading $_", 'ok' );
     };
@@ -899,6 +899,7 @@ sub ucspi {
 __END__;
 
 
+=over 4
 
 =item email_send
 
@@ -951,5 +952,7 @@ Sends an email message with the Eicar virus inline. It should trigger the AV eng
 =item email_send_spam
 
 Sends a sample spam message that SpamAssassin should block.
+
+=back
 
 =cut

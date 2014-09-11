@@ -2,7 +2,7 @@ package Mail::Toaster::Logs;
 use strict;
 use warnings;
 
-our $VERSION = 5.44;
+our $VERSION = 5.48;
 
 # the output of warnings and diagnostics should not be enabled in production.
 # the SNMP daemon depends on the output of maillogs, so we need to return

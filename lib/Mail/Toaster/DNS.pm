@@ -2,7 +2,7 @@ package Mail::Toaster::DNS;
 use strict;
 use warnings;
 
-our $VERSION = '5.44';
+our $VERSION = '5.48';
 
 use Params::Validate ':all';
 

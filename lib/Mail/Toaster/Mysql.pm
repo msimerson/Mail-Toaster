@@ -2,7 +2,7 @@ package Mail::Toaster::Mysql;
 use strict;
 use warnings;
 
-our $VERSION = '5.44';
+our $VERSION = '5.48';
 
 use Carp;
 #use DBI; # eval'ed in connect
@@ -94,7 +94,7 @@ sub connect {
     my $dsn = "DBI:$dbv->{'driver'}:database=$dbv->{'db'};"
         . "host=$dbv->{'host'};port=$dbv->{'port'}";
 
-    eval "use DBI";
+    eval "use DBI";    ## no critic ( ProhibitStringyEval )
     return $self->error($@) if $@;
 
     $dbh = DBI->connect( $dsn, $dbv->{'user'}, $dbv->{'pass'},

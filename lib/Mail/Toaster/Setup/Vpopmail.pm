@@ -2,7 +2,7 @@ package Mail::Toaster::Setup::Vpopmail;
 use strict;
 use warnings;
 
-our $VERSION = '5.44';
+our $VERSION = '5.48';
 
 use Carp;
 use English '-no_match_vars';
