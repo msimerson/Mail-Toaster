@@ -1,4 +1,7 @@
 Mail Toaster Changes
+  5.49 - Sep 11, 2014
+        updated t/Utility.t to check for perl process (was 'init')
+
   5.48 - Sep 10, 2014
         fix POD error in Mail/Toaster/Setup/Test 
         bump version number
