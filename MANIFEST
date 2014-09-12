@@ -132,10 +132,10 @@ t/toaster_setup.t
 t/Utility.t
 toaster-watcher.conf-dist
 toaster.conf-dist
-TODO
 xt/critic.t
 xt/hasversion.t
 xt/meta.t
 xt/minimumversion.t
 xt/pod-coverage.t
 xt/pod.t
+xt/release.pl
