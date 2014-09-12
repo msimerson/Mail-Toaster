@@ -268,7 +268,7 @@ SKIP: {
 # get the permissions of the file in octal file mode
 use File::stat;
 my $st = stat($rwtest) or warn "No $tmp: $!\n";
-my $before = sprintf "%lo", $st->mode & 07777;
+my $before = sprintf "%lo", $st->mode & oct('07777');
 
 #$util->syscmd( "ls -al $rwtest" );   # use ls -al to view perms
 
@@ -398,7 +398,7 @@ SKIP: {
 
 # get_the_date
 my $mod = "Date::Format";
-if ( eval "require $mod" ) {
+if ( eval "require $mod" ) {   ## no critic (Stringy)
 
     ok( @list = $util->get_the_date(), 'get_the_date' );
 
@@ -473,12 +473,7 @@ ok( !$util->install_from_source(
 );
 
 # is_process_running
-my $process_that_exists 
-    = lc($OSNAME) eq 'darwin' ? 'launchd' 
-    : lc($OSNAME) eq 'freebsd' ? 'cron'  
-    : 'init';      # init does not run in a freebsd jail
-
-ok( $util->is_process_running($process_that_exists), "is_process_running, $process_that_exists" )
+ok( $util->is_process_running('perl'), "is_process_running, perl" )
    ; # or diag system "/bin/ps -ef && /bin/ps ax";
 ok( !$util->is_process_running("nonexistent"), "is_process_running, nonexistent" );
 
@@ -487,7 +482,7 @@ ok( !$util->is_process_running("nonexistent"), "is_process_running, nonexistent"
 # logfile_append
 
 $mod = "Date::Format";
-if ( eval "require $mod" ) {
+if ( eval "require $mod" ) {      ## no critic (Stringy)
     ok( $util->logfile_append( $rwtest,
             prog  => $0,
             lines => ['running tests'],
