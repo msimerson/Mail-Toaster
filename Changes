@@ -1,4 +1,7 @@
 Mail Toaster Changes
+  5.50 - Sep 17, 2014
+        added encoding declaration in docs/Changes.pod
+
   5.49 - Sep 11, 2014
         updated t/Utility.t to check for perl process (was 'init')
 

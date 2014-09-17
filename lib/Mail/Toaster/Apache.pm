@@ -3,7 +3,7 @@ package Mail::Toaster::Apache;
 use strict;
 use warnings;
 
-our $VERSION = '5.49';
+our $VERSION = '5.50';
 
 use Carp;
 use English qw( -no_match_vars );

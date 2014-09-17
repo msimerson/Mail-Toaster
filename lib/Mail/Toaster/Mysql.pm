@@ -2,7 +2,7 @@ package Mail::Toaster::Mysql;
 use strict;
 use warnings;
 
-our $VERSION = '5.49';
+our $VERSION = '5.50';
 
 use Carp;
 #use DBI; # eval'ed in connect
