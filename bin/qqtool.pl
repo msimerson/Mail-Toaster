@@ -2,8 +2,6 @@
 use strict;
 use warnings;
 
-our $VERSION = '1.14';
-
 use vars qw/ $opt_a $opt_h $opt_q $opt_s $opt_v $remotes $locals /;
 
 use English;
@@ -19,7 +17,7 @@ use Mail::Toaster 5.42;
 my $toaster = Mail::Toaster->new;
 $toaster->verbose( $opt_v ? 1 : 0 );
 
-print "           Qmail Queue Tool   v $VERSION\n\n";
+print "           Qmail Queue Tool   v ".$toaster->version."\n\n";
 print "Only the root user has permission to read the queue.
 You are not root, goodbye!\n"
 and exit 0 if $UID != 0;

@@ -18,13 +18,7 @@ isa_ok( $toaster, 'Mail::Toaster', 'object class' );
 my $conf = $toaster->conf;
 ok( ref $conf, 'conf');
 
-# audit
-ok( $toaster->dump_audit( quiet => 1), "dump_audit");
-ok( $toaster->audit("line one"), "audit");
-#$toaster->dump_audit();
-ok( $toaster->audit("line two"), "audit 2");
-ok( $toaster->audit("line three"), "audit 3");
-ok( $toaster->dump_audit( quiet=>1), "dump_audit");
+__audit();
 
 if ( $UID != 0 ) {
 # many of the following tests can't 'test' anything useful without root perms
@@ -33,30 +27,9 @@ if ( $UID != 0 ) {
     exit;
 }
 
-# check
-    ok( $toaster->check( verbose => 0, test_ok=> 1 ), 'check' );
-
-# learn_mailboxes
-    if ( -d $conf->{'qmail_log_base'} ) {
-        ok( $toaster->learn_mailboxes( 
-            fatal => 0,
-            test_ok => 1, 
-        ), 'learn_mailboxes +' );
-
-# clean_mailboxes
-        ok( $toaster->clean_mailboxes( test_ok=>1, fatal => 0 ),
-            'clean_mailboxes +' );
-    }
-    else {
-        # these should fail if the toaster logs are not set up yet
-        ok( ! $toaster->clean_mailboxes( fatal => 0 ),
-            'clean_mailboxes -' );
-
-        ok( ! $toaster->learn_mailboxes( 
-            fatal => 0,
-            test_ok => 0, 
-        ), 'learn_mailboxes -' );
-    }
+__check();
+__learn_mailboxes();
+__clean_mailboxes();
 
 # maildir_clean_spam
 ok( !$toaster->maildir_clean_spam( path => '/home/domains/fake.com/user' ),
@@ -104,7 +77,7 @@ if ( -d "/var/service" ) {
     ok( $toaster->service_dir_test(), 'service_dir_test' );
 }
 
-# supervise_dir_get 
+# supervise_dir_get
 ok ( $toaster->supervise_dir_get( "send" ), 'supervise_dir_get');
 
 
@@ -168,3 +141,41 @@ foreach ( qw/ smtpd pop3 submit / ) {
 
 done_testing();
 exit;
+
+sub __audit {
+    ok( $toaster->dump_audit( quiet => 1), "dump_audit");
+    ok( $toaster->audit("line one"), "audit");
+#$toaster->dump_audit();
+    ok( $toaster->audit("line two"), "audit 2");
+    ok( $toaster->audit("line three"), "audit 3");
+    ok( $toaster->dump_audit( quiet=>1), "dump_audit");
+}
+
+sub __check {
+    ok( $toaster->check( verbose => 0, test_ok=> 1 ), 'check' );
+}
+
+sub __learn_mailboxes {
+    return if ! -d $conf->{'qmail_log_base'};
+
+    my $r;
+    eval { $r = $toaster->learn_mailboxes( fatal => 0, test_ok => 1); };
+    ok($r, 'learn_mailboxes +' );
+}
+
+sub __clean_mailboxes {
+    if ( -d $conf->{'qmail_log_base'} ) {
+        ok( $toaster->clean_mailboxes( test_ok=>1, fatal => 0 ),
+            'clean_mailboxes +' );
+    }
+    else {
+        # these should fail if the toaster logs are not set up yet
+        ok( ! $toaster->clean_mailboxes( fatal => 0 ),
+            'clean_mailboxes -' );
+
+        ok( ! $toaster->learn_mailboxes(
+            fatal => 0,
+            test_ok => 0,
+        ), 'learn_mailboxes -' );
+    }
+}

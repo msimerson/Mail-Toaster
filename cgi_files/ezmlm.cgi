@@ -2,8 +2,6 @@
 use strict;
 use warnings;
 
-our $VERSION = "5.25";
-
 use lib 'lib';
 use Mail::Toaster;
 use Mail::Toaster::Ezmlm; 

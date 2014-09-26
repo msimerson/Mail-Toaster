@@ -1137,9 +1137,10 @@ sub supervised_tcpserver_cdb {
     return "\\\n\t-x $cdb ";
 };
 
+sub version { $VERSION; }
+
 1;
 __END__
-sub {}
 
 =head1 NAME
 
