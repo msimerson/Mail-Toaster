@@ -381,8 +381,7 @@ sub maildir_clean_ham {
 }
 
 sub get_daemons {
-    my $self = shift;
-    my $active = shift;
+    my ($self, $active) = @_;
     return qw/ smtp send pop3 submit qmail-deliverable qpsmtpd vpopmaild / if ! $active;
 
     my @list = qw/ send pop3 /;
@@ -705,6 +704,8 @@ sub service_symlinks_smtp {
 
 sub service_symlinks_submit {
     my $self = shift;
+    $self->conf->{submit_enable} or return;
+
     my $daemon = $self->conf->{submit_daemon} or return 'submit';
 
     if ( $daemon eq 'qpsmtpd' ) {
