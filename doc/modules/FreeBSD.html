@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster::FreeBSD</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_mdnsresponder@jackson.apple.com" />
+<link rev="made" href="mailto:root@tenten-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -188,12 +188,12 @@
 <dt id="install_package">install_package</dt>
 <dd>
 
-<pre><code>        $fbsd-&gt;install_package( &quot;ispell&quot; );</code></pre>
+<pre><code>        $fbsd-&gt;install_package( &quot;maildrop&quot; );</code></pre>
 
 <p>Suggested usage:</p>
 
-<pre><code>        unless ( $fbsd-&gt;install_package( &quot;ispell&quot; ) ) {
-                $fbsd-&gt;install_port( &quot;ispell&quot; );
+<pre><code>        unless ( $fbsd-&gt;install_package( &quot;maildrop&quot; ) ) {
+                $fbsd-&gt;install_port( &quot;maildrop&quot; );
         };</code></pre>
 
 <p>Installs the selected package from FreeBSD packages. If the first install fails, it will try again using an alternate FTP site (ftp2.freebsd.org). If that fails, it returns 0 (failure) so you know it failed and can try something else, like installing via ports.</p>

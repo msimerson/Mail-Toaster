@@ -8,8 +8,6 @@ use CPAN;
 use English qw( -no_match_vars );
 
 my $apps = [
-#   { app => 'mysql-server-5', info => { port => 'mysql50-server', dport=>'mysql5',  yum =>'mysql-server'} },
-#   { app => 'apache22'      , info => { port => 'apache22',       dport=>'',     yum => 'httpd' } },
 ];
 
 $EUID == 0 or die "You will have better luck if you run me as root.\n"; ## no critic (Carp)

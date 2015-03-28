@@ -90,7 +90,6 @@ sub check_running_processes {
 
     my @processes = qw/ svscan qmail-send multilog /;
 
-    push @processes, "httpd"              if $conf->{install_apache};
     push @processes, "lighttpd"           if $conf->{install_lighttpd};
     push @processes, "mysqld"             if $conf->{install_mysqld};
     push @processes, "snmpd"              if $conf->{install_snmp};

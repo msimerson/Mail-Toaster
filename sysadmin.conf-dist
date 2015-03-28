@@ -26,18 +26,6 @@ system_config_dir              = /usr/local/etc
 delete_user_archive = 1     # make an archive of users files before nuking
 
 
-######################################
-#             Web Options            #
-######################################
-
-apache_dir_etc      = /usr/local/etc/apache2         # apache's config directory
-apache_dir_vhosts   = /usr/local/etc/apache2/vhosts  # a directory or file containing vhost defs
-apache_dir_sslcerts = /usr/local/etc/apache2/certs   # directory where ssl certs are stored
-apache_dir_v_stats  = stats                          # vhost stats directory
-apache_dir_v_logs   = logs                           # vhost processed logs directory
-
-
-
 #######################################
 #       Mail::Toaster::Admin          #
 #######################################

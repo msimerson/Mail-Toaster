@@ -2678,7 +2678,7 @@ Check all the "normal" locations for a binary that should be on the system and r
 
 Example:
 
-   my $apachectl = $util->find_bin( "apachectl", dir=>"/usr/local/sbin" );
+   my $sudo = $util->find_bin( "sudo", dir => "/usr/local/sbin" );
 
 
  arguments required:

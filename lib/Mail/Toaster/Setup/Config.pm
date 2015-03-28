@@ -399,8 +399,6 @@ sub config_tweaks_darwin {
         smtpd_use_mysql_relay_table => '0',
         qmailadmin_spam_command => '| /opt/local/bin/maildrop /opt/local/etc/mail/mailfilter',
         qmailadmin_http_images  => '/Library/WebServer/Documents/images',
-        apache_suexec_docroot   => '/Library/WebServer/Documents',
-        apache_suexec_safepath  => '/opt/local/bin:/usr/bin:/bin',
     );
 };
 
@@ -436,8 +434,6 @@ sub config_tweaks_linux {
         vpopmail_mysql              => '0',
         smtpd_use_mysql_relay_table => '0',
         qmailadmin_http_images      => '/var/www/images',
-        apache_suexec_docroot       => '/var/www',
-        apache_suexec_safepath      => '/usr/local/bin:/usr/bin:/bin',
         install_dovecot             => '1.0.2',
     )
 }
@@ -483,7 +479,6 @@ sub config_tweaks_testing {
     $changes{'install_bogofilter'}        = '1';
     $changes{'install_dcc'}               = '1';
     $changes{'install_lighttpd'}          = '1';
-    $changes{'install_apache'}            = '22';
     $changes{'install_courier_imap'}      = 'port';
     $changes{'install_gnupg'}             = 'port';
     $changes{'vpopmail_default_domain'}   = 'jail.simerson.net';

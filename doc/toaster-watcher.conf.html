@@ -4,7 +4,7 @@
 <head>
 <title>Mail::Toaster watcher.conf</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_mdnsresponder@jackson.apple.com" />
+<link rev="made" href="mailto:root@tenten-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -143,15 +143,8 @@
   # Extra options are noted after the # where available
 
   install_squirrelmail           = 1
-  install_apache                 = 2   # 0, 1, 2</code></pre>
 
-<p>If you already have Apache installed, set install_apache to be your installed version. toaster_setup will detect the installed version and not rebuild it. If you want apache installed, choose 1 or 2 for apache version 1.3 or 2.0. Unless you have a specific reason to run apache 1.x, 2.0 is recommended.</p>
-
-<pre><code>  install_apache_user            = www</code></pre>
-
-<p>Set install_apache_user to the username that apache will run under. The &quot;www&quot; is is very popular, as is &quot;nobody&quot;.</p>
-
-<pre><code>  install_mysql                  = 4   # 0, 1, 2, 3, 40, 41, 5</code></pre>
+  install_mysql                  = 4   # 0, 1, 2, 3, 40, 41, 5</code></pre>
 
 <p>You can choose from a variety of MySQL version to install. The code meanings are as follows:</p>
 
@@ -409,19 +402,19 @@
 
 <dl>
 
-<dt id="syslog---logs-to-syslog-normally-var-log-maillog-on-FreeBSD-.-This-is-generally-not-recommended-but-it-may-be-handy-for-sendmail-refugees."><b>syslog</b> - logs to syslog (normally /var/log/maillog on FreeBSD). This is generally not recommended, but it may be handy for sendmail refugees.</dt>
+<dt id="syslog---logs-to-syslog-normally-var-log-maillog-on-FreeBSD-.-This-is-generally-not-recommended-but-it-may-be-handy-for-sendmail-refugees"><b>syslog</b> - logs to syslog (normally /var/log/maillog on FreeBSD). This is generally not recommended, but it may be handy for sendmail refugees.</dt>
 <dd>
 
 </dd>
-<dt id="multilog---logs-via-multilog-to-the-location-specified-under-Qmail-Settings.---This-is-required-for-maillogs-RRDutil-and-is-the-recommended-logging-method-for-qmail-and-the-toaster."><b>multilog</b> - logs via multilog to the location specified under &quot;Qmail Settings.&quot; - This is required for maillogs &amp; RRDutil, and is the recommended logging method for qmail and the toaster.</dt>
+<dt id="multilog---logs-via-multilog-to-the-location-specified-under-Qmail-Settings.---This-is-required-for-maillogs-RRDutil-and-is-the-recommended-logging-method-for-qmail-and-the-toaster"><b>multilog</b> - logs via multilog to the location specified under &quot;Qmail Settings.&quot; - This is required for maillogs &amp; RRDutil, and is the recommended logging method for qmail and the toaster.</dt>
 <dd>
 
 </dd>
-<dt id="debug---enables-full-debugging-records-entire-SMTP-converation-and-also-logs-via-multilog-."><b>debug</b> - enables full debugging, records entire SMTP converation (and also logs via multilog).</dt>
+<dt id="debug---enables-full-debugging-records-entire-SMTP-converation-and-also-logs-via-multilog"><b>debug</b> - enables full debugging, records entire SMTP converation (and also logs via multilog).</dt>
 <dd>
 
 </dd>
-<dt id="stats---only-logs-stats-lines-via-multilog-."><b>stats</b> - only logs stats lines (via multilog).</dt>
+<dt id="stats---only-logs-stats-lines-via-multilog"><b>stats</b> - only logs stats lines (via multilog).</dt>
 <dd>
 
 </dd>

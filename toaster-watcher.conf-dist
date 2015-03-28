@@ -44,7 +44,6 @@ toaster_dl_site                    = http://www.tnpi.net    # select a mirror
 toaster_dl_url                     = /internet/mail/toaster
 
 preserve_cgifiles                  = 0
-toaster_apache_vhost               = 1
 
 package_install_method             = packages  # packages | ports
                                      # if both options are supported, the setup
@@ -81,12 +80,6 @@ install_squirrelmail               = 1.4.22  # 0, ver, port
 install_squirrelmail_sql           = 0       # use MySQL for user prefs and address book?
 install_squirrelmail_sql_pass      = chAnge7his
 install_lighttpd                   = 1
-install_apache                     = 0       # 0, 1, 2, 21, 22
-install_apache_etc                 = /usr/local/etc/apache22
-install_apache_user                = www
-install_apache_suexec              = 0
-install_apache_proxy               = 0
-install_apache_bdb                 = 0       # berkeley DB
 install_cronolog                   = 1.6.2   # ver, port
 install_phpmyadmin                 = 0       # 0, 1
 install_mysql                      = 0       # 0, 1, 2, 3, 40, 41, 5, 51
@@ -449,8 +442,6 @@ qmailadmin_install_as_root         = 0
 qmailadmin_modify_quotas           = 1
 qmailadmin_domain_autofill         = 1
 qmailadmin_spam_command            = | /usr/local/bin/maildrop /usr/local/etc/mail/mailfilter
-qmailadmin_cgi_bin_dir             = 0  # override toaster_cgi_bin
-qmailadmin_http_docroot            = 0  # override toaster_http_docs
 qmailadmin_http_images             = /usr/local/www/data/images
 qmailadmin_catchall                = 0
 
@@ -509,20 +500,6 @@ maildir_learn_Spam                 = 1       # feed spam through sa-learn (SpamA
 maildir_learn_Spam_unread          = 0       # learn from unread messages in Spam folders?
 maildir_learn_Read                 = 1       # feed ham through sa-learn (SpamAssassin)
 maildir_learn_Read_days            = 1       # only learn from messages older than x days
-
-
-#######################################
-#      Apache Suexec Options          #
-#######################################
-
-apache_suexec_docroot              = /usr/local/www/data
-apache_suexec_userdir              = html
-apache_suexec_safepath             = /usr/local/bin:/usr/bin:/bin
-apache_suexec_logfile              = /var/log/apache/suexec.log
-apache_suexec_uidmin               = 1000
-apache_suexec_gidmin               = 1000
-apache_suexec_caller               = www
-apache_suexec_umask                =
 
 
 #######################################

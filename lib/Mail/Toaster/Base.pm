@@ -10,7 +10,7 @@ use Params::Validate ':all';
 our $verbose = our $last_audit = our $last_error = 0; # package variables
 our (@audit, @errors); # package wide message stacks
 our ($conf, $log);
-our ($apache, $darwin, $dns, $freebsd, $qmail, $logs, $mysql, $setup, $toaster, $util );
+our ($darwin, $dns, $freebsd, $qmail, $logs, $mysql, $setup, $toaster, $util);
 
 our %std_opts = (
         test_ok => { type => BOOLEAN, optional => 1 },
@@ -24,13 +24,6 @@ sub new {
     my @caller = caller;
 #   warn sprintf( "Base.pm loaded by %s, %s, %s\n", @caller ) if $caller[0] ne 'main';
     return bless {}, $class;
-}
-
-sub apache {
-    my $self = shift;
-    return $apache if ref $apache;
-    require Mail::Toaster::Apache;
-    return $apache = Mail::Toaster::Apache->new();
 }
 
 sub darwin {

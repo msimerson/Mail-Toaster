@@ -4,7 +4,7 @@
 <head>
 <title></title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rev="made" href="mailto:_mdnsresponder@jackson.apple.com" />
+<link rev="made" href="mailto:root@tenten-slave.macports.org" />
 </head>
 
 <body style="background-color: white">
@@ -12,6 +12,25 @@
 
 
 <h1 id="Mail-Toaster-Changes">Mail Toaster Changes</h1>
+
+<h2 id="Mar-28.-2014">5.51 - Mar 28. 2014</h2>
+
+<pre><code>    removed Apache support
+    removed config settings for qmailadmin install dirs (use default)</code></pre>
+
+<h2 id="Sep-17-2014">5.50 - Sep 17, 2014</h2>
+
+<pre><code>     added encoding declaration in docs/Changes.pod</code></pre>
+
+<h2 id="Sep-11-2014">5.49 - Sep 11, 2014</h2>
+
+<pre><code>     updated t/Utility.t to check for perl process (was &#39;init&#39;)</code></pre>
+
+<h2 id="Sep-10-2014">5.48 - Sep 10, 2014</h2>
+
+<pre><code>    fix POD error in Mail/Toaster/Setup/Test 
+    bump version number
+    remove ispell/aspell from port install (renamed in ports)</code></pre>
 
 <h2 id="May-20-2014">5.47 - May 20, 2014</h2>
 
@@ -86,7 +105,7 @@
 
 <pre><code>    api change for get_dir_files, clean_tmp_dir, file_delete
     moved subs from Toaster to Utility: audit, error, dump_audit, dump_errors, has_module, find_config, find_readable, get_std_args, parse_config &amp; parse_line
-    replaced non-ASCII &acirc;&#128;&cent; with *
+    replaced non-ASCII &bull; with *
     added IO::Socket::SSL to bin/install_deps
     check just the &#39;standard&#39; places for httpd.conf instead of using `find $dir`
     apache test failed if no httpd.conf found on test machines, this is quite likely. The lack of finding the file now skips the test.
@@ -102,7 +121,7 @@
     added more support for qpsmtpd future
     added vpopmail_daemon setting to tw.conf
     added supervise support for qpsmtpd, vpopmaild, and qmail-deliverable daemons.
-    get_maildir_messages now uses File::Find instead of `find &acirc;&#128;&brvbar;`
+    get_maildir_messages now uses File::Find instead of `find &hellip;`
     deprecated rfc-ignorant DNSBLs
     replaced split &#39;..&#39; with split /../ syntax</code></pre>
 
@@ -163,7 +182,7 @@
    explicitly include a few more perl modules required by SpamAssassin
    automatically password protect isoqlog in apache vhost file
    &#39;maillogs yesterday&#39; exits 0, so periodic is content
-   t/Utility: test if file exists before testing ability to delete </code></pre>
+   t/Utility: test if file exists before testing ability to delete</code></pre>
 
 <h2 id="Jul-08-2010">5.27 - Jul 08, 2010</h2>
 
@@ -172,7 +191,7 @@
    POD doc cleanups
    fixed inverted regexp match that caused control/me to be set to the system
      hostname instead of toaster-watcher.conf configured value
-   added URI to prereq list in Makefile.PL 
+   added URI to prereq list in Makefile.PL
    skip rbl tests if client can&#39;t resolv bl.spamcop.net properly
    FreeBSD-&gt;is_port_installed does a better job of port detection when there
      are multiple ports with similar names (qmail, qmailanalog, etc)
@@ -201,8 +220,8 @@
    renamed M:T:U:archive_expand to extract_archive
    for objects in classes beneath Mail::Toaster:
      new objects inherit debug and fatal settings from the Mail::Toaster object
-     when loading a M:T:Utility, use $toaster-&gt;get_util instead of loading 
-     when a method is run, it can inherit its parents values for debug and 
+     when loading a M:T:Utility, use $toaster-&gt;get_util instead of loading
+     when a method is run, it can inherit its parents values for debug and
        fatal by adding %std_opts to its own parameter validation
      removed hundreds of places where debug settings were explicity passed.
    renamed M:T:F:package_install to install_package
@@ -211,7 +230,7 @@
    util-&gt;get_my_ips is done in perl now, instead of using CLI cut &amp; grep
    added config questions for squirrelmail, roundcube, spamassassin, and
      phpMyAdmin database passwords (requested by Carmi)
-   updated Ezmlm.pm and ezmlm.cgi 
+   updated Ezmlm.pm and ezmlm.cgi
    t_setup.pl -s webmail will try to find the cgi_files folder before error</code></pre>
 
 <h2 id="Jun-10-2010">5.25 - Jun 10, 2010</h2>
@@ -289,10 +308,10 @@
    removed legacy CGI applications
    deprecated cvsup based functions. Use portsnap and freebsd-update instead.
    api for ask and yes_or_no changed, slightly
-   updated bin/install_deps 
+   updated bin/install_deps
    updated bin/install_deps.pl
    removed InstallMysqlTool, and with_linuxthreads from MySQL.pm
-   perl seems to default to installing scripts in bin now instead of sbin, add 
+   perl seems to default to installing scripts in bin now instead of sbin, add
        checks to detect where scripts are installed.
    updates to make courier, sqwebmail, and simscan install from ports correctly
    vpopmail.mysql gets updated when -s vpopmysql target is run
@@ -303,7 +322,7 @@
 
 <h2 id="Oct-19-2008">5.13 - Oct 19, 2008</h2>
 
-<pre><code> packaging updates: 
+<pre><code> packaging updates:
    removed &#39;use lib &quot;inc&quot;&#39;
    changed #!/usr/bin/perl to #!perl (for portability)
    commented out warnings pragma in tests</code></pre>
@@ -316,12 +335,12 @@
    bumped toaster_os_release to 7.1 in t-w.conf
    updated META.yml
    Makefile.PL, removed Mail::Toaster dependency
-   removed portsdb from portsnap sub and &#39;all&#39; target 
+   removed portsdb from portsnap sub and &#39;all&#39; target
    install_deps.pl installs a few more dependencies
    removed openssl stable bits from -s pre target
    perl modules have #!perl instead of a full path to perl (portability)
    moved $VERSION to top of modules, help remind me to update it
-   removed contrib/netqmail-* patches (installer fetches them from 
+   removed contrib/netqmail-* patches (installer fetches them from
      mail-toaster.org/patches), so can anyone else
    License in bin/migrate.pl was perl artistic, made BSD for consistency
    removed contrib/mailfilter (it&#39;s autogenerated) and contrib/pkgtools.conf</code></pre>
@@ -349,7 +368,7 @@
 <pre><code>   disable apache2_fixups until it can be fixed
    renamed item_installdsacert to item_install_dsa_cert
    update copyrights to 2008
-   added the function &quot;get_yesterdays_smtp_log&quot; which provides the same functionality 
+   added the function &quot;get_yesterdays_smtp_log&quot; which provides the same functionality
      as get_yesterdays_send_log. -- patch from Georg von Itzenplitz
    Mysql.pm - honor $debug setting in DBD &amp; DBD install subs</code></pre>
 
@@ -366,14 +385,13 @@
    Setup.pm - updated dovecot patch so it applies cleanly to 1.0.7
             - don&#39;t pass mysql args to FreeBSD port install, no loger
               necessary and doing so causes port build to fail
-   Utility.pm - added missing pod doc for file_mode
-  </code></pre>
+   Utility.pm - added missing pod doc for file_mode</code></pre>
 
 <h2 id="Nov-21-2007">5.08 - Nov 21, 2007</h2>
 
 <pre><code>   tw.conf: added rbl psbl.surriel.com
    tw.conf: added rwl list.dnswl.org
-   DNS.pm - adjust the RBL positive tests to accommodate pattern used by dnswl.org 
+   DNS.pm - adjust the RBL positive tests to accommodate pattern used by dnswl.org
    Qmail.pm - smtp_set_rbls invoked get_list_of_rwls incorrectly (Bugz #3)
    t/qqtool.t &amp; toaster_setup.t - run the script using the same version of
      perl as the test is being run as. - (for CPAN testers)
@@ -411,20 +429,19 @@
  Check permissions on toaster-watcher.conf file
  Don&#39;t ask about mysql package if package install selected
  Always run portsnap fetch update when ports_update is called
- Source installs for dovecot, ripmime, ucspi-tcp, and 
+ Source installs for dovecot, ripmime, ucspi-tcp, and
    rrdtool were passing an invalid patches value.
  Altered netstat invocation on Linux so it works reliably
  Only test snmp if it is enabled
  Put the contents of &quot;openssl ciphers&quot; into
    /var/qmail/control/tlsserverciphers. Should resolve some
-   openssl issues.
- </code></pre>
+   openssl issues.</code></pre>
 
 <h2 id="Feb-7-2007">5.05 - Feb 7, 2007</h2>
 
 <pre><code> Extensive updates for Darwin and Linux platforms
  Support for Yahoo DomainKeys
- Fixed -s allspam target (thanks Georg) 
+ Fixed -s allspam target (thanks Georg)
  Support for dovecot IMAP/POP3 server
 
  toaster-watcher.conf
@@ -459,7 +476,7 @@
  Qmail.pm
    - on FreeBSD, be smarter about disabling sendmail and enabling qmail
 
- Setup.pm - 
+ Setup.pm -
    - Georg von Itzenplitz - allspam target created an empty .qmail with
      invalid ownership, sent patch.
    - fix for installing phpMyAdmin with php5
@@ -487,8 +504,7 @@
       file if filtering_spamassassin_method was not = site.
     - installing phpmyadmin attempted to install php4-gd
       despite install_php = 5.
- *.pm - updated calls to darwin-&gt;install_port to reflect an internal
-      API change. </code></pre>
+ *.pm - updated calls to darwin-&gt;install_port to reflect an internal API change.</code></pre>
 
 <h2 id="Nov-8-2006">5.03 - Nov 8, 2006</h2>
 
@@ -532,7 +548,7 @@
    udpated test file to use Test::More
 
  t/Utility.t
-    only attempt to chown_system if we are root, don&#39;t run get_my_ips on 
+    only attempt to chown_system if we are root, don&#39;t run get_my_ips on
     netbsd (until I figure out why it doesn&#39;t work
 
  Changes
@@ -544,7 +560,7 @@
  bin/sysadmin
    updated for MT 5 syntax
 
- Passwd.pm 
+ Passwd.pm
     mt 5 syntax updates, add in warnings for failures
 
  Qmail.pm
@@ -553,7 +569,7 @@
  Provision.pm
     mt 5 updates and rewrite. If values are missing and we are interactive,
        prompt for the missing values.
-    pass debug and $conf variables in the $provision object (accomplish 
+    pass debug and $conf variables in the $provision object (accomplish
        the same result with less code)
 
  Utility.pm
@@ -642,7 +658,7 @@
 <p>supress notification of new toaster-watcher.conf install if its missing</p>
 
 </dd>
-<dt id="Logs.pm---prettied-up-the-yesterday-report-a-little-bit.">Logs.pm - prettied up the yesterday report a little bit.</dt>
+<dt id="Logs.pm---prettied-up-the-yesterday-report-a-little-bit">Logs.pm - prettied up the yesterday report a little bit.</dt>
 <dd>
 
 <pre><code> added checks to prevent warnings when logs are empty
@@ -658,7 +674,7 @@
 <dt id="Setup.pm1">Setup.pm</dt>
 <dd>
 
-<pre><code> phpmyadmin_install was not passing $conf </code></pre>
+<pre><code> phpmyadmin_install was not passing $conf</code></pre>
 
 </dd>
 <dt id="Utility.pm">Utility.pm</dt>
@@ -675,12 +691,22 @@
 
 <h2 id="pod5.01---2006.09.22">5.01 - 2006.09.22</h2>
 
-<ul>
+<dl>
 
-<pre><code> added help-&gt;vpopmail option to web interface
- added setup -s allspam option (enabled mail filtering for all users)
- default ports update mechanism is now portsnap
- removed dependency on Net::DNS (using dig)</code></pre>
+<dt id="added-help-vpopmail-option-to-web-interface">added help-&gt;vpopmail option to web interface</dt>
+<dd>
+
+</dd>
+<dt id="added-setup--s-allspam-option-enabled-mail-filtering-for-all-users">added setup -s allspam option (enabled mail filtering for all users)</dt>
+<dd>
+
+</dd>
+<dt id="default-ports-update-mechanism-is-now-portsnap">default ports update mechanism is now portsnap</dt>
+<dd>
+
+</dd>
+<dt id="removed-dependency-on-Net::DNS-using-dig">removed dependency on Net::DNS (using dig)</dt>
+<dd>
 
 <p>commented out v-webmail, roundcube, vqadmin, and ezmlm menu options. Those items are not installed by Mail::Toaster (yet).</p>
 
@@ -700,7 +726,8 @@
 
 <p>toaster_setup -s sources now auto-builds cvsup-sources if missing. The location for it is /usr/local/etc now.</p>
 
-</ul>
+</dd>
+</dl>
 
 <h2 id="pod5.00---2006.09.18">5.00 - 2006.09.18</h2>
 
