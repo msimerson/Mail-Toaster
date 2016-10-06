@@ -128,12 +128,14 @@ WriteMakefile(
 # typically included with perl
         'Data::Dumper'     => 0,
         'English'          => 0,
+        'File::Basename'   => 0,
         'File::stat'       => 0,
         'Getopt::Long'     => 0,
         'Pod::Usage'       => 0,
         'Sys::Hostname'    => 0,
 
 # generally CPAN
+        'CGI'              => 1,
         'Date::Parse'      => 1,
         'DateTime'         => 0.5,
         'DBI'              => 1,
