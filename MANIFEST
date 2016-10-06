@@ -63,7 +63,6 @@ DEVELOP
 doc/Changes.html
 doc/Changes.pod
 doc/mailadmin.html
-doc/modules/Apache.html
 doc/modules/Darwin.html
 doc/modules/DNS.html
 doc/modules/Ezmlm.html
@@ -85,7 +84,6 @@ examples/squirrelmail.jpg
 examples/statistics.jpg
 INSTALL
 lib/Mail/Toaster.pm
-lib/Mail/Toaster/Apache.pm
 lib/Mail/Toaster/Base.pm
 lib/Mail/Toaster/Conf.pod
 lib/Mail/Toaster/Darwin.pm
@@ -116,7 +114,6 @@ t/01-syntax.t
 t/05-Toaster.t
 t/06.Toaster.Base.t
 t/15.Setup.t
-t/Apache.t
 t/Darwin.t
 t/DNS.t
 t/Ezmlm.t
