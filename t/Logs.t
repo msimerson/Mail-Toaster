@@ -2,6 +2,7 @@ use strict;
 use warnings;
 
 use Cwd;
+use File::Basename;
 use English qw( -no_match_vars );
 use Test::More;
 
@@ -164,7 +165,7 @@ SKIP: {
 
     my $countfile = $log->set_countfile(prot=>"pop3");
 # counter_read
-    my ( $path, $file ) = $toaster->util->path_parse($countfile);
+    my ( $file, $path ) = fileparse($countfile); chop $path;
     if ( -w $path ) {
         ok( $log->counter_read(file=>$countfile, verbose=>0), 'counter_read');
     }

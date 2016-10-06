@@ -1,23 +1,17 @@
-#!/usr/bin/perl
+#!/usr/local/bin/perl
 use strict;
 use warnings;
 
 use vars qw/ $opt_a $opt_h $opt_q $opt_s $opt_v $remotes $locals /;
 
 use English;
+use File::Basename;
 use Getopt::Std;
-use Params::Validate ':all';
 use Pod::Usage;
 
 getopts('a:h:q:s:v');
 
-use lib 'lib';
-use Mail::Toaster 5.42;
-
-my $toaster = Mail::Toaster->new;
-$toaster->verbose( $opt_v ? 1 : 0 );
-
-print "           Qmail Queue Tool   v ".$toaster->version."\n\n";
+print "           Qmail Queue Tool   v6.0.0\n\n";
 print "Only the root user has permission to read the queue.
 You are not root, goodbye!\n"
 and exit 0 if $UID != 0;
@@ -25,8 +19,8 @@ and exit 0 if $UID != 0;
 pod2usage() if ! $opt_a;
 
 # Make sure the qmail queue directory is set correctly
-my $qdir = $toaster->qmail->queue_check( fatal=>0 );
-exit 0 unless $qdir;
+my $qdir = '/var/qmail/queue';
+exit 0 unless -d $qdir;
 
 # if a queue is specified, only check it.
 print "$0, getting list of messages in delivery queues..." if $opt_v;
@@ -92,13 +86,14 @@ sub message_delete {
 
 sub messages_delete {
 
-    my $svc_dir = $toaster->service_dir_get( "send" );
+    my $svc_dir = '/var/qmail/control/qmail-smtpd';
     if ( ! -d $svc_dir ) {
-        return $toaster->error( "The service directory does not exist: $svc_dir");
+        warn "The service directory does not exist: $svc_dir";
+        return;
     }
-    $toaster->audit( "checking control dir $svc_dir, ok" );
+    warn "checking control dir $svc_dir, ok";
 
-    my $r = $toaster->qmail->send_stop();
+    my $r = send_signal('-d');
     die "qmail-send wouldn't die!\n" if ($r);
 
     # we'll get passed an array of the local, remote, or both queues
@@ -126,7 +121,7 @@ sub messages_delete {
         }
     }
 
-    $toaster->qmail->send_start();
+    send_signal('-u');
 }
 
 sub message_expire {
@@ -167,7 +162,7 @@ sub messages_expire {
         }
     }
 
-    $toaster->qmail->queue_process();
+    system "qmailctl doqueue";
 
     print "NOTICE: Expiring the messages does not remove them from the queue.
 	It merely alters their expiration time. The messages will be removed from
@@ -175,7 +170,7 @@ sub messages_expire {
 	
 	I've already told qmail to start that process so be patient while qmail
 	is processing the queue. This might be a good time to check the value of
-	/var/qmail/control/concurrencyremote and verify it's value is reasonable
+	/var/qmail/control/concurrencyremote and verify its value is reasonable
 	for your site.\n\n";
 
 =head2	Message Expiration
@@ -237,9 +232,8 @@ sub message_print {
             print "CC:        $header->{'CC'}\n";
         }
         print "Date:      $header->{'Date'}\n";
-        my @lines = $toaster->util->file_read( "$qdir/info/$id" );
-        chop $lines[0];
-        print "Return Path: $lines[0]\n";
+        my $rp = `head -n1 "$qdir/info/$id"`;
+        print "Return Path: $rp\n";
     }
 
     print "\n";
@@ -247,23 +241,13 @@ sub message_print {
 
 sub headers_get {
 
-    # a better way to read in the headers
-    # from http://perl.plover.com/lp/Spam.html
-    #
-    #	{ local $/ = "";
-    #		$header = <STDIN>;
-    #		undef $/;
-    #		$body = <STDIN>;
-    #	}
-    #	@lines = split /\n/, $header;
-
     my ( $tree, $id ) = @_;
     my %hash;
 
-#    foreach my $line ( $toaster->util->file_read( "$qdir/mess/$tree/$id", max_lines  => 40, max_length => 256, ) )
-
     my ($FILE, $header);
 
+    # a better way to read in the headers
+    # from http://perl.plover.com/lp/Spam.html
     if ( open $FILE, '<', "$qdir/mess/$tree/$id" )
     {
         local $/ = "";     # enable localized slurp mode
@@ -307,17 +291,17 @@ sub messages_get {
     }
 
     # eache queue has "buckets" within it that we need to iterate over
-    foreach my $queue_buckets ( $toaster->util->get_dir_files( $queue ) ) {
+    foreach my $queue_buckets ( get_dir_files( $queue ) ) {
 
         # within each bucket is files that contain the email address we
         # are trying to deliver to.
 
-        foreach my $file ( $toaster->util->get_dir_files( $queue_buckets ) ) {
+        foreach my $file ( get_dir_files( $queue_buckets ) ) {
 
             # id is the message id
-            ( $up1dir, $id )     = $toaster->util->path_parse($file);
-            ( $up1dir, $bucket ) = $toaster->util->path_parse($up1dir);
-            ( $up1dir, $queu )   = $toaster->util->path_parse($up1dir);
+            ($id, $up1dir)      = fileparse($file); chop $up1dir;
+            ($bucket, $up1dir)  = fileparse($up1dir); chop $up1dir;
+            ($queu,   $up1dir)  = fileparse($up1dir);
 
             print "messages_get: id: $id\n" if ($opt_v);
 
@@ -336,6 +320,72 @@ sub messages_get {
     print "$qsubdir has $count messages\n";
 
     return \@messages;
+}
+
+sub send_signal {
+    my $signal = shift;
+
+    my $svc    = '/usr/local/bin/svc';
+    my $svstat = '/usr/local/bin/svstat';
+
+    my $qcontrol = '/var/qmail/supervise/qmail-send';
+
+    if ( ! $qcontrol) {
+        warn "the service directory $qcontrol is missing! Giving up.";
+        return;
+    }
+
+    if ($UID != 0) {
+        warn "Only root can control supervised daemons, and you aren't root!";
+        return;
+    };
+
+    # send qmail-send a TERM signal
+    system "$svc $signal $qcontrol";
+
+    # loop up to a hundred seconds waiting for qmail-send to exit
+    foreach my $i ( 1 .. 100 ) {
+        my $r = `$svstat $qcontrol`;
+        chomp $r;
+        if ( $r =~ /^.*:\sdown\s[0-9]*\sseconds/ ) {
+            print "Yay, we're down!\n";
+            return;
+        }
+        elsif ( $r =~ /supervise not running/ ) {
+            print "Yay, we're down!\n";
+            return;
+        }
+        else {
+
+            # if more than 10 seconds passes, lets kill off the qmail-remote
+            # processes that are forcing us to wait.
+
+            if ( $i > 10 ) {
+                system "killall qmail-remote qmail-send";
+            }
+        }
+        sleep 1;
+    }
+    return 1;
+}
+
+sub get_dir_files {
+	my $dir = shift;
+	my @files;
+
+    opendir D, $dir or do {
+        warn "couldn't open $dir: $!";
+        return;
+    };
+
+    while ( defined( my $f = readdir(D) ) ) {
+        next if $f =~ /^\.\.?$/;
+        push @files, "$dir/$f";
+    }
+
+    closedir(D);
+
+    return @files;
 }
 
 1;

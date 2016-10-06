@@ -519,13 +519,6 @@ ok( $util->chmod( file_or_dir => $mkdir, mode => '0744', fatal => 0 ),
     'chmod' );
 ok( rmdir($mkdir), 'mkdir_system' );
 
-# path_parse
-my $pr = "/usr/bin";
-my $bi = "awk";
-ok( my ( $up1dir, $userdir ) = $util->path_parse("$pr/$bi"), 'path_parse' );
-ok( $pr eq $up1dir,  'path_parse' );
-ok( $bi eq $userdir, 'path_parse' );
-
 $util->dump_audit(quiet=>1);
 
 # check_pidfile

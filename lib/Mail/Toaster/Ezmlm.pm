@@ -125,7 +125,7 @@ sub lists_get {
             next unless ( -d $second );
             if ( $second =~ /subscribers$/ ) {
                 print "found one: $all, $second $br" if $verbose;
-                my ( $path, $list_dir ) = $self->util->path_parse($all);
+                my ( $list_dir, $path ) = fileparse($all); chop $path;
                 print "list name: $list_dir $br" if $verbose;
                 $lists{$list_dir} = $all;
             }

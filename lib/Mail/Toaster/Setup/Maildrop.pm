@@ -4,6 +4,7 @@ use warnings;
 
 our $VERSION = '5.50';
 
+use File::Basename;
 use English '-no_match_vars';
 use Params::Validate ':all';
 
@@ -81,7 +82,7 @@ sub filter {
     my $filterfile = $self->conf->{'filtering_maildrop_filter_file'}
       || "$prefix/etc/mail/mailfilter";
 
-    my ( $path, $file ) = $self->util->path_parse($filterfile);
+    my ( $file, $path ) = fileparse($filterfile); chop $path;
 
     $self->util->mkdir_system( dir => $path )  if ! -d $path;
 

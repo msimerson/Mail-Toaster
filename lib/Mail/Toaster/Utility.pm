@@ -1844,27 +1844,6 @@ sub mkdir_system {
     return $self->error( '', %args );
 }
 
-sub path_parse {
-    my $self = shift;
-    my $dir = shift or die "missing dir!";
-    # code left here for reference, use File::Basename instead
-
-    # if it ends with a /, chop if off
-    if ( $dir =~ q{/$} ) { chop $dir }
-
-    # get the position of the last / in the path
-    my $rindex = rindex( $dir, "/" );
-
-    # grabs everything up to the last /
-    my $updir = substr( $dir, 0, $rindex );
-    $rindex++;
-
-    # matches from the last / char +1 to the end of string
-    my $curdir = substr( $dir, $rindex );
-
-    return $updir, $curdir;
-}
-
 sub check_pidfile {
     my $self = shift;
     my $file = shift;

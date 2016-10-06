@@ -84,54 +84,42 @@ EOBINLOG
 
 sub connect {
     my ( $self, $dot, $warn, $verbose ) = @_;
-    my $dbh;
 
     $self->util->install_module( "DBI", verbose => $verbose );
     $self->util->install_module( "DBD::mysql", verbose => $verbose );
 
     my $ac  = $self->autocommit($dot);
-    my $dbv = $self->db_vars($dot);
-    my $dsn = "DBI:$dbv->{'driver'}:database=$dbv->{'db'};"
-        . "host=$dbv->{'host'};port=$dbv->{'port'}";
+    my %v   = $self->db_vars($dot);
+    my $dsn = "DBI:$v{driver}:database=$v{db};host=$v{host};port=$v{port}";
 
-    eval "use DBI";    ## no critic ( ProhibitStringyEval )
+    eval 'use DBI';    ## no critic ( ProhibitStringyEval )
     return $self->error($@) if $@;
 
-    $dbh = DBI->connect( $dsn, $dbv->{'user'}, $dbv->{'pass'},
-                { RaiseError => 0, AutoCommit => $ac } );
+    my $dbh = DBI->connect( $dsn, $v{user}, $v{pass},
+                { RaiseError => 0, AutoCommit => $ac } ) or do {
 
-    if ( !$dbh ) {
-        carp "db connect failed: $!\n" if $verbose;
-        croak unless $warn;
-        return $dbh;
-    }
+            carp "db connect failed: $!\n" if $verbose;
+            croak unless $warn;
+            return;
+        };
 
-    my $drh = DBI->install_driver( $dbv->{'driver'} );
+    my $drh = DBI->install_driver( $v{driver} );
 
     return ( $dbh, $dsn, $drh );
 }
 
 sub db_vars {
     my ( $self, $val ) = @_;
-    my ( $driver, $db, $host, $port, $user, $pass, $dir );
 
-    $driver = $val->{'driver'} || "mysql";
-    $db     = $val->{'db'}     || "mysql";
-    $host   = $val->{'host'}   || "localhost";
-    $port   = $val->{'port'}   || "3306";
-    $user   = $val->{'user'}   || "root";
-    $pass   = $val->{'pass'}   || "";
-    $dir    = $val->{'dir_m'}  || "/var/db/mysql";
-
-    return {
-        driver => $driver,
-        db     => $db,
-        host   => $host,
-        port   => $port,
-        user   => $user,
-        pass   => $pass,
-        dir    => $dir
-    };
+    return (
+        driver => $val->{driver} || 'mysql',
+        db     => $val->{database} || $val->{db} || 'mysql',
+        host   => $val->{host}   || 'localhost',
+        port   => $val->{port}   || '3306',
+        user   => $val->{user}   || 'root',
+        pass   => $val->{password} || $val->{pass} || '',
+        dir    => $val->{dir_m}  || '/var/db/mysql',
+    );
 }
 
 sub dbs_list {
@@ -339,7 +327,7 @@ sub parse_dot_file {
 
     my ( $self, $file, $start, $verbose ) = @_;
 
-    my ($homedir) = ( getpwuid($<) )[7];
+    my ($homedir) = ( getpwuid($REAL_USER_ID) )[7];
     my $dotfile = "$homedir/$file";
 
     return if ! -e $dotfile;
