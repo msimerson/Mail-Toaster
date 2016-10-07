@@ -604,14 +604,14 @@ $util->dump_audit( quiet => 1 );
 $util->dump_errors( fatal => 0 );
 
 # syscmd
-my $tmpfile = '/tmp/provision-unix-test';
-ok( $util->syscmd( "touch $tmpfile", fatal => 0 ), 'syscmd +');
+my $tmpfile = "$tmp/provision-unix-test";
+ok( $util->syscmd( "touch $tmpfile", fatal => 0 ), 'syscmd touch');
 ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,verbose=>0 ), 'syscmd -');
 ok( ! $util->syscmd( "rm $tmpfile.nonexist", fatal => 0,,verbose=>0, timeout=>1), 'syscmd - (w/timeout)');
-ok( $util->syscmd( "rm $tmpfile", fatal => 0, ), 'syscmd +');
-    ok( $util->syscmd( "$rm $tmp/maildrop-qmail-domain", fatal => 0, ),
-        'syscmd +'
-) if ( $network && -f "$tmp/maildrop-qmail-domain" );
+ok( $util->syscmd( "rm $tmpfile", fatal => 0, ), 'syscmd rm');
+if ( $network && -f "$tmp/maildrop-qmail-domain" ) {
+  ok( $util->syscmd( "$rm $tmp/maildrop-qmail-domain", fatal => 0, ), 'syscmd rm +')
+};
 
 # file_delete
 ok( $util->file_delete( $backup ), 'file_delete' );
