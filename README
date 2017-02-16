@@ -1,6 +1,10 @@
 NAME
     toaster_setup.pl - runs various build and testing functions for
-    Mail::Toaster
+    Mail::Toaster 5
+
+NOTICE
+    Mail::Toaster 5 is no longer under active development. Development has
+    moved to [Mail Toaster 6](https://github.com/msimerson/Mail-Toaster-6/wiki).
 
 SYNOPSIS
     toaster_setupl.pl is the front end to everything you need to turn a
