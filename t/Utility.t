@@ -40,7 +40,7 @@ if ( ! -d $tmp ) {
 };
 skip "$tmp dir creation failed!\n", 2 if ( ! -d $tmp );
 ok( -d $tmp, "temp dir: $tmp" );
-ok( $util->syscmd( "cp README $tmp/", fatal => 0 ), 'cp README' );
+ok( $util->syscmd( "cp README.md $tmp/", fatal => 0 ), 'cp README.md' );
 
 
 # ask - asks a question and retrieves the answer
@@ -79,7 +79,7 @@ my $star  = $util->find_bin( "star",  fatal => 0 );
 
 SKIP: {
     skip "gzip or tar is missing!\n", 6 unless ( -x $gzip and -x $tar and -d $tmp );
-    ok( $util->syscmd( "$tar -cf $tmp/test.tar README", fatal => 0),
+    ok( $util->syscmd( "$tar -cf $tmp/test.tar README.md", fatal => 0),
         "tar -cf test.tar"
     );
     ok( $util->syscmd( "$gzip -f $tmp/test.tar", fatal => 0), 'gzip test.tar'
