@@ -2,7 +2,7 @@ package Mail::Toaster::Setup::Maildrop;
 use strict;
 use warnings;
 
-our $VERSION = '5.50';
+our $VERSION = '5.54';
 
 use File::Basename;
 use English '-no_match_vars';
@@ -639,10 +639,8 @@ sub imap_subscribe {
     my $sub_bin = $self->util->find_bin( "$prefix/sbin/subscribeIMAP.sh", verbose => 0, fatal => 0 );
     return 1 if ( $sub_bin && -e $sub_bin );
 
-    my $chown = $self->util->find_bin( 'chown' );
-    my $chmod = $self->util->find_bin( 'chmod' );
-
     my @lines = '#!/bin/sh
+#!/bin/sh
 #
 # This subscribes the folder passed as $1 to courier imap
 # so that Maildir reading apps (Sqwebmail, Courier-IMAP) and
@@ -650,25 +648,26 @@ sub imap_subscribe {
 # extra mail folder.
 
 # Matt Simerson - 12 June 2003
+# Rob Lensen 29-04-2015 Dovecot changes
 
-LIST="$2/Maildir/courierimapsubscribed"
+LIST="$2/Maildir/subscriptions"
 
 if [ -f "$LIST" ]; then
-	# if the file exists, check it for the new folder
-	TEST=`cat "$LIST" | grep "INBOX.$1"`
+        # if the file exists, check it for the new folder
+        TEST=`cat "$LIST" | grep "$1"`
 
-	# if it is not there, add it
-	if [ "$TEST" = "" ]; then
-		echo "INBOX.$1" >> $LIST
-	fi
+        # if it is not there, add it
+        if [ "$TEST" = "" ]; then
+                echo "$1" >> $LIST
+        fi
 else
-	# the file does not exist so we define the full list
-	# and then create the file.
-	FULL="INBOX\nINBOX.Sent\nINBOX.Trash\nINBOX.Drafts\nINBOX.$1"
+        # the file does not exist so we define the full list
+        # and then create the file.
+        FULL="INBOX\nSent\nTrash\nDrafts\n$1"
 
-	echo -e $FULL > $LIST
-	' . $chown . ' vpopmail:vchkpw $LIST
-	' . $chmod . ' 644 $LIST
+        echo -e $FULL > $LIST
+        /usr/sbin/chown vpopmail:vchkpw $LIST
+        /bin/chmod 644 $LIST
 fi
 ';
 

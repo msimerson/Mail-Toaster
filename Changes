@@ -1,5 +1,11 @@
 Mail Toaster Changes
 
+  5.54 - Feb 16, 2017
+        added updated subscribeIMAP.sh #10
+        fix spamassassin install detection #9
+        test perl 5.22 (on Travis)
+        fix Utility test broken due to README rename
+
   5.53 - Feb 16, 2017
         apply utmp.h patch on FreeBSD 11 too
 
