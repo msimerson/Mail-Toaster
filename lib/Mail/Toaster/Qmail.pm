@@ -2,7 +2,7 @@ package Mail::Toaster::Qmail;
 use strict;
 use warnings;
 
-our $VERSION = '5.50';
+our $VERSION = '5.52';
 
 use Carp;
 use English qw( -no_match_vars );
@@ -1476,7 +1476,7 @@ sub netqmail_get_patches {
     };
 
     my ($sysname, undef, $version) = POSIX::uname;
-    if ( $sysname eq 'FreeBSD' && $version =~ /^(9|10)/ )  {
+    if ( $sysname eq 'FreeBSD' && $version =~ /^(9|10|11)/ )  {
         push @patches, "qmail-extra-patch-utmpx.patch";
     }
 

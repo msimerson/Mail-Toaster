@@ -1,5 +1,9 @@
 Mail Toaster Changes
-  5.51 - Mar 28. 2014
+
+  5.52 - Feb 16, 2017
+        apply utmp.h patch on FreeBSD 11 too
+
+  5.51 - Mar 28, 2014
         removed Apache support
         removed config settings for qmailadmin install dirs (use default)
 
