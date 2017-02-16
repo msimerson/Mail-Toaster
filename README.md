@@ -1,6 +1,5 @@
 NAME
-    toaster_setup.pl - runs various build and testing functions for
-    Mail::Toaster 5
+    toaster_setup.pl - build and testing CLI for Mail::Toaster 5
 
 NOTICE
     Mail::Toaster 5 is no longer under active development. Development has
@@ -43,9 +42,6 @@ DESCRIPTION
     have questions, there is a Web Forum and mailing list. Both are
     browseable and searchable for your convenience.
 
-  URLs
-       http://mail-toaster.org/
-       http://www.tnpi.net/internet/mail/toaster/
 
 OPTIONS AND ARGUMENTS
       toaster_setup.pl -s <section> [-verbose]
@@ -124,17 +120,6 @@ METHODS
 
 AUTHOR
     Matt Simerson (matt@tnpi.net)
-
-BUGS
-    None known. Report any to author, preferably via RT
-    http://rt.cpan.org/Public/Bug/Report.html?Queue=Mail-Toaster
-
-    Patches welcome in "diff -u" format.
-
-TODO
-     Add -s dnscache section to install a DNS stub resolver
-     Check if daemons are running before installs. - mostly done
-     Turn entire process into a ./install_it_all script  - done
 
 SEE ALSO
     The following are all man/perldoc pages:

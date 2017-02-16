@@ -1,7 +1,11 @@
 Mail Toaster Changes
 
-  5.52 - Feb 16, 2017
+  5.53 - Feb 16, 2017
         apply utmp.h patch on FreeBSD 11 too
+
+  5.52 - Aug 06, 2016
+        add CGI to deps
+        replace Util::path_parse with File::Basename
 
   5.51 - Mar 28, 2014
         removed Apache support
