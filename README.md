@@ -1,49 +1,54 @@
-NAME
-    toaster_setup.pl - build and testing CLI for Mail::Toaster 5
+## NAME
 
-NOTICE
-    Mail::Toaster 5 is no longer under active development. Development has
-    moved to [Mail Toaster 6](https://github.com/msimerson/Mail-Toaster-6/wiki).
+toaster_setup.pl - build and testing CLI for Mail::Toaster 5
 
-SYNOPSIS
-    toaster_setupl.pl is the front end to everything you need to turn a
-    computer into a secure, full-featured, high-performance mail server.
+## NOTICE
 
-       toaster_setup.pl -s <help> [-d]
+Mail::Toaster 5 is no longer under active development. Development has
+moved to [Mail Toaster 6](https://github.com/msimerson/Mail-Toaster-6/wiki).
 
-          -s[ection] - see OPTIONS AND ARGUMENTS section for choices
-          -v[erbose] - enable verbose output
+## SYNOPSIS
 
-    A really good place to start is:
+toaster_setupl.pl is the front end to everything you need to turn a
+computer into a secure, full-featured, high-performance mail server.
 
-       toaster_setupl.pl -s help | less
+    toaster_setup.pl -s <help> [-d]
 
-DESCRIPTION
-    The mail toaster is a collection of open-source software which provides
-    a full-featured mail server running on FreeBSD, Mac OS X, and Linux. The
-    system is built around the qmail mail transport agent, with many
-    additions and modifications. Matt Simerson is the primary author and
-    maintainer of the toaster. There is an active and friendly community of
-    toaster owners which supports the toaster on a mailing list and web
-    forum.
+        -s[ection] - see OPTIONS AND ARGUMENTS section for choices
+        -v[erbose] - enable verbose output
 
-    The toaster is built around qmail, a robust mail transfer agent by
-    Daniel J. Bernstein, and vpopmail, a virtual domain manager by Inter7
-    systems. Matt keeps up with releases of the core software, evaluates
-    them, decides when they are stable, and then integrates them into the
-    toaster. Matt has also added several patches which add functionality to
-    these core programs.
+A good place to start is:
 
-    A complete set of instructions for building a mail toaster are on the
-    toaster install page. There is a substantial amount of documentation
-    available for the "Mail::Toaster" toaster. Much of it is also readable
-    via "perldoc Mail::Toaster", and the subsequent pages. Don't forget to
-    read the Install, Configure, and FAQ pages on the web site. If you still
-    have questions, there is a Web Forum and mailing list. Both are
-    browseable and searchable for your convenience.
+    toaster_setupl.pl -s help | less
+
+## DESCRIPTION
+
+The mail toaster is a collection of open-source software which provides
+a full-featured mail server running on FreeBSD, Mac OS X, and Linux. The
+system is built around the qmail mail transport agent, with many
+additions and modifications. Matt Simerson is the primary author and
+maintainer of the toaster. There is an active and friendly community of
+toaster owners which supports the toaster on a mailing list and web
+forum.
+
+The toaster is built around qmail, a robust mail transfer agent by
+Daniel J. Bernstein, and vpopmail, a virtual domain manager by Inter7
+systems. Matt keeps up with releases of the core software, evaluates
+them, decides when they are stable, and then integrates them into the
+toaster. Matt has also added several patches which add functionality to
+these core programs.
+
+A complete set of instructions for building a mail toaster are on the
+toaster install page. There is a substantial amount of documentation
+available for the "Mail::Toaster" toaster. Much of it is also readable
+via "perldoc Mail::Toaster", and the subsequent pages. Don't forget to
+read the Install, Configure, and FAQ pages on the web site. If you still
+have questions, there is a Web Forum and mailing list. Both are
+browseable and searchable for your convenience.
 
 
-OPTIONS AND ARGUMENTS
+## OPTIONS AND ARGUMENTS
+
       toaster_setup.pl -s <section> [-verbose]
 
                help - print this usage screen
@@ -107,42 +112,13 @@ OPTIONS AND ARGUMENTS
             nictool - install nictool (http://www.nictool.com/)
                 all - installs everything shown on the toaster INSTALL page
 
-METHODS
-    all
+## METHODS
+
+all
               toaster_setup.pl -s all
 
-            a special target that tries to build the entire Mail::Toaster
-            without any interaction from you. Unlike other targets, it will
-            keep right on going when it encounters an error, getting as much
-            built as it possibly can. It is presumed that the administrator
-            is logging the output for later review. I use this target
-            primarily in testing.
+a special target that tries to build the entire Mail::Toaster without any interaction from you. Unlike other targets, it will keep right on going when it encounters an error, getting as much built as it possibly can. It is presumed that the administrator is logging the output for later review. I use this target primarily in testing.
 
-AUTHOR
-    Matt Simerson (matt@tnpi.net)
+## AUTHOR
 
-SEE ALSO
-    The following are all man/perldoc pages:
-
-      Mail::Toaster::Conf
-      toaster.conf
-      toaster-watcher.conf
-
-      Mail::Toaster
-      Mail::Toaster::Apache
-      Mail::Toaster::CGI
-      Mail::Toaster::DNS
-      Mail::Toaster::Darwin
-      Mail::Toaster::Ezmlm
-      Mail::Toaster::FreeBSD
-      Mail::Toaster::Logs
-      Mail::Toaster::Mysql
-      Mail::Toaster::Qmail
-      Mail::Toaster::Setup
-      Mail::Toaster::Utility
-
-      http://mail-toaster.org/
-      http://mail-toaster.org/docs/
-      http://mail-toaster.org/faq.shtml
-      http://mail-toaster.org/changes.shtml
-
+Matt Simerson (matt@tnpi.net)
